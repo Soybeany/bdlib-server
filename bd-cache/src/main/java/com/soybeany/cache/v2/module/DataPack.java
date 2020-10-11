@@ -37,14 +37,14 @@ public class DataPack<Data> {
         if (!(provider instanceof ICacheService)) {
             throw new RuntimeException("数据提供者没有实现“ICacheService”接口");
         }
-        return new DataPack<Data>(data, DataFrom.CACHE, provider, canCache);
+        return new DataPack<>(data, DataFrom.CACHE, provider, canCache);
     }
 
     public static <Data> DataPack<Data> newSourceDataPack(Data data, IDataProvider provider) {
         if (!(provider instanceof IDatasource)) {
             throw new RuntimeException("数据提供者没有实现“IDatasource“接口");
         }
-        return new DataPack<Data>(data, DataFrom.SOURCE, provider, true);
+        return new DataPack<>(data, DataFrom.SOURCE, provider, true);
     }
 
     private DataPack(Data data, DataFrom from, IDataProvider provider, boolean canCache) {

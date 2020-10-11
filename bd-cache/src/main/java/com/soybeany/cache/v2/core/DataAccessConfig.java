@@ -15,12 +15,12 @@ public class DataAccessConfig {
     /**
      * 是否允许访问数据源
      */
-    public boolean canAccessSource;
+    public final boolean canAccessSource;
 
     /**
      * 临时排除使用的缓存服务id列表
      */
-    public final Set<String> tempExcludedServiceIds = new HashSet<String>();
+    public final Set<String> tempExcludedServiceIds = new HashSet<>();
 
     public DataAccessConfig(boolean canAccessSource, String... tempExcludedServiceIds) {
         this.canAccessSource = canAccessSource;

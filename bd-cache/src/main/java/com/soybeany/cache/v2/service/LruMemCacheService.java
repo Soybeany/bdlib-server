@@ -18,7 +18,7 @@ import java.util.Map;
  */
 public class LruMemCacheService<Param, Data> extends BaseMemCacheService<Param, Data> {
 
-    private final LruDataAccessor<DataHolder<Data>> mDataAccessor = new LruDataAccessor<DataHolder<Data>>();
+    private final LruDataAccessor<DataHolder<Data>> mDataAccessor = new LruDataAccessor<>();
 
     @Override
     public String getDesc() {
@@ -85,8 +85,8 @@ public class LruMemCacheService<Param, Data> extends BaseMemCacheService<Param, 
     }
 
     private static class LruDataAccessor<Data> {
-        private final Map<String, Data> mCacheMap = new HashMap<String, Data>();
-        private final LinkedList<String> mOrderList = new LinkedList<String>(); // 用于记录访问顺序
+        private final Map<String, Data> mCacheMap = new HashMap<>();
+        private final LinkedList<String> mOrderList = new LinkedList<>(); // 用于记录访问顺序
 
         int capacity = 100;
 

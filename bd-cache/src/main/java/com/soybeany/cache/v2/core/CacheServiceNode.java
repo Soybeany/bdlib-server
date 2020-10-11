@@ -12,7 +12,7 @@ import java.util.WeakHashMap;
  */
 class CacheServiceNode<Param, Data> {
 
-    private final Map<String, String> mKeyMap = new WeakHashMap<String, String>();
+    private final Map<String, String> mKeyMap = new WeakHashMap<>();
 
     private final ICacheService<Param, Data> mCurService;
     private final IKeyConverter<Param> mConverter;
@@ -82,7 +82,7 @@ class CacheServiceNode<Param, Data> {
      * 从下一节点或数据源获取数据
      */
     private DataPack<Data> getDataFromNextServiceOrDatasource(final String dataGroup, Param param, String key, final DataAccessConfig config) throws DataException {
-        IOnNoDataListener<Param, Data> listener = new IOnNoDataListener<Param, Data>() {
+        IOnNoDataListener<Param, Data> listener = new IOnNoDataListener<>() {
             @Override
             public DataPack<Data> onNoData(Param param, String key) throws DataException {
                 try {
