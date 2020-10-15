@@ -16,7 +16,7 @@
     </properties>
 
     <modules>
-        <module>bd-cache</module>
+        <module>bd-cachev2</module>
         <module>bd-bypass</module>
     </modules>
 
