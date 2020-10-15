@@ -1,16 +1,17 @@
-package com.soybeany.cache.v2.core;
+package com.soybeany.cache.v2.contract;
 
 
-import com.soybeany.cache.v2.exception.CacheException;
-import com.soybeany.cache.v2.module.DataPack;
+import com.soybeany.cache.v2.exception.DataException;
+import com.soybeany.cache.v2.exception.NoCacheException;
+import com.soybeany.cache.v2.model.DataPack;
 
 /**
- * 缓存服务
+ * 缓存策略
  *
  * @author Soybeany
  * @date 2020/1/19
  */
-public interface ICacheService<Param, Data> extends IDataProvider {
+public interface ICacheStrategy<Param, Data> {
 
     /**
      * 默认的优先级
@@ -27,14 +28,12 @@ public interface ICacheService<Param, Data> extends IDataProvider {
     int order();
 
     /**
-     * 获取标识此缓存服务的唯一标识
-     *
-     * @return 唯一标识
+     * 获取该缓存策略的名称
      */
-    String getId();
+    String getName();
 
     /**
-     * 标识是否支持双重检查，即加锁后是否能够再次调用{@link #onRetrieveCachedData}方法
+     * 标识是否支持双重检查，即加锁后是否能够再次调用{@link #onGetCache}方法
      * <br>默认为false，但查询过程资源消耗小的服务，可以将此值设为true
      *
      * @return true表示支持，false表示不支持
@@ -42,33 +41,31 @@ public interface ICacheService<Param, Data> extends IDataProvider {
     boolean supportDoubleCheck();
 
     /**
-     * 设置数据失效时间
+     * 数据失效的超时，用于一般场景
      *
      * @param millis 失效时间(毫秒)
      * @return 自身，方便链式调用
      */
-    ICacheService<Param, Data> expiry(long millis);
+    ICacheStrategy<Param, Data> expiry(long millis);
 
     /**
-     * 设置没数据时的失效时间
+     * 快速失败的超时，用于防缓存穿透等场景
      *
      * @param millis 失效时间(毫秒)
      * @return 自身，方便链式调用
      */
-    ICacheService<Param, Data> noDataExpiry(long millis);
+    ICacheStrategy<Param, Data> fastFailExpiry(long millis);
 
     // ********************回调类********************
 
     /**
-     * 获取缓存数据的回调
+     * 获取缓存时的回调
      *
-     * @param dataGroup 数据分组
-     * @param param     参数
-     * @param key       键
+     * @param param 参数
+     * @param key   键
      * @return 数据
-     * @throws CacheException 缓存相关的异常
      */
-    DataPack<Data> onRetrieveCachedData(String dataGroup, Param param, String key) throws CacheException;
+    DataPack<Data> onGetCache(Param param, String key) throws DataException, NoCacheException;
 
     /**
      * 缓存数据的回调，与{@link #expiry(long)}对应
@@ -77,15 +74,16 @@ public interface ICacheService<Param, Data> extends IDataProvider {
      * @param key   键
      * @param data  待缓存的数据
      */
-    void onCacheData(String dataGroup, Param param, String key, Data data);
+    void onCacheData(Param param, String key, Data data);
 
     /**
-     * 没有数据可供缓存时的回调，与{@link #noDataExpiry(long)}对应
+     * 缓存异常的回调，与{@link #fastFailExpiry(long)}对应
      *
      * @param param 参数
      * @param key   键
+     * @param e     待缓存的异常
      */
-    void onNoDataToCache(String dataGroup, Param param, String key);
+    void onCacheException(Param param, String key, Exception e);
 
     // ********************触发类********************
 
@@ -95,10 +93,10 @@ public interface ICacheService<Param, Data> extends IDataProvider {
      * @param param 参数
      * @param key   键
      */
-    void removeCache(String dataGroup, Param param, String key);
+    void removeCache(Param param, String key);
 
     /**
      * 清除全部缓存
      */
-    void clearCache(String dataGroup);
+    void clearCache();
 }

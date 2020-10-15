@@ -1,9 +1,9 @@
-package com.soybeany.cache.v2.service;
+package com.soybeany.cache.v2.strategy;
 
-import com.soybeany.cache.v2.exception.CacheAntiPenetrateException;
-import com.soybeany.cache.v2.exception.CacheException;
-import com.soybeany.cache.v2.exception.CacheNoDataException;
-import com.soybeany.cache.v2.module.DataPack;
+import com.soybeany.cache.v2.exception.DataException;
+import com.soybeany.cache.v2.exception.NoCacheException;
+import com.soybeany.cache.v2.model.DataFrom;
+import com.soybeany.cache.v2.model.DataPack;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -14,12 +14,12 @@ import java.util.Map;
  * @author Soybeany
  * @date 2020/9/23
  */
-public class ThreadCacheService<Param, Data> extends BaseMemCacheService<Param, Data> {
+public class ThreadCacheStrategy<Param, Data> extends BaseMemCacheStrategy<Param, Data> {
 
     private final ThreadLocal<Map<Param, DataHolder<Data>>> threadLocal = new ThreadLocal<Map<Param, DataHolder<Data>>>();
 
     @Override
-    public String getId() {
+    public String getName() {
         return "THREAD_LOCAL";
     }
 
@@ -29,35 +29,35 @@ public class ThreadCacheService<Param, Data> extends BaseMemCacheService<Param, 
     }
 
     @Override
-    public DataPack<Data> onRetrieveCachedData(String dataGroup, Param param, String key) throws CacheException {
+    public DataPack<Data> onGetCache(Param param, String key) throws DataException, NoCacheException {
         Map<Param, DataHolder<Data>> map = threadLocal.get();
         if (!map.containsKey(param)) {
-            throw new CacheNoDataException();
+            throw new NoCacheException();
         }
         DataHolder<Data> holder = map.get(param);
-        if (!holder.hasData) {
-            throw new CacheAntiPenetrateException();
+        if (!holder.isNorm) {
+            throw new DataException(DataFrom.CACHE, holder.exception);
         }
-        return DataPack.newCacheDataPack(holder.data, true);
+        return DataPack.newCacheDataPack(holder.data);
     }
 
     @Override
-    public void onCacheData(String dataGroup, Param param, String key, Data data) {
+    public void onCacheData(Param param, String key, Data data) {
         threadLocal.get().put(param, DataHolder.get(data));
     }
 
     @Override
-    public void onNoDataToCache(String dataGroup, Param param, String key) {
-        threadLocal.get().put(param, new DataHolder<Data>(null, false));
+    public void onCacheException(Param param, String key, Exception e) {
+        threadLocal.get().put(param, DataHolder.<Data>get(e));
     }
 
     @Override
-    public void removeCache(String dataGroup, Param param, String key) {
+    public void removeCache(Param param, String key) {
         threadLocal.get().remove(param);
     }
 
     @Override
-    public void clearCache(String dataGroup) {
+    public void clearCache() {
         threadLocal.get().clear();
     }
 

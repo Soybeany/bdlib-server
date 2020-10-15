@@ -1,4 +1,4 @@
-package com.soybeany.cache.v2.service;
+package com.soybeany.cache.v2.strategy;
 
 /**
  * @author Soybeany

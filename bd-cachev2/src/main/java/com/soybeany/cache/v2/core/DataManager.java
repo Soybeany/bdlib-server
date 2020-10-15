@@ -1,12 +1,16 @@
 package com.soybeany.cache.v2.core;
 
 
-import com.google.gson.Gson;
+import com.soybeany.cache.v2.contract.ICacheStrategy;
+import com.soybeany.cache.v2.contract.IDatasource;
+import com.soybeany.cache.v2.contract.IKeyConverter;
 import com.soybeany.cache.v2.exception.DataException;
-import com.soybeany.cache.v2.module.DataGetMode;
-import com.soybeany.cache.v2.module.DataPack;
+import com.soybeany.cache.v2.model.DataPack;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.LinkedList;
+import java.util.List;
 
 /**
  * @author Soybeany
@@ -14,22 +18,14 @@ import java.util.*;
  */
 public class DataManager<Param, Data> {
 
-    private static final Gson GSON = new Gson();
-
-    private final String mDesc;
     private final IDatasource<Param, Data> mDatasource;
-    private final List<IDataOperationListener<Param, Data>> mListeners = new LinkedList<IDataOperationListener<Param, Data>>();
 
-    private CacheServiceNode<Param, Data> mFirstNode; // 调用链的头
+    private CacheNode<Param, Data> mFirstNode; // 调用链的头
 
-    private DataManager(String desc, IDatasource<Param, Data> datasource) {
-        if (null == desc || desc.isEmpty()) {
-            throw new RuntimeException("请填写描述");
-        }
+    private DataManager(IDatasource<Param, Data> datasource) {
         if (null == datasource) {
             throw new RuntimeException("数据源不能为null");
         }
-        mDesc = desc;
         mDatasource = datasource;
     }
 
@@ -41,24 +37,18 @@ public class DataManager<Param, Data> {
      * @param param 用于匹配数据
      * @return 相匹配的数据
      */
-    public Data getData(final Param param) throws DataException {
-        return innerGetData(param, new IGetDataHandler<Data>() {
-            @Override
-            public Data onNoCacheService() throws DataException {
-                // 若没有设置缓存服务，则直接访问数据源
-                return getDataDirectly(param);
-            }
+    public Data getData(Param param) throws DataException {
+        return getDataPack(param).data;
+    }
 
-            @Override
-            public DataAccessConfig onGetDataAccessConfig() {
-                return null;
-            }
-
-            @Override
-            public DataGetMode onGetMode() {
-                return DataGetMode.NORM;
-            }
-        });
+    /**
+     * 获得数据(数据包方式)
+     */
+    public DataPack<Data> getDataPack(Param param) throws DataException {
+        if (null == mFirstNode) {
+            return getDataPackDirectly(param);
+        }
+        return mFirstNode.getCache(param, mDatasource);
     }
 
     /**
@@ -67,110 +57,40 @@ public class DataManager<Param, Data> {
      * @param param 用于匹配数据
      * @return 相匹配的数据
      */
-    public Data getDataDirectly(Param param) throws DataException {
-        Data data = mDatasource.onGetData(param);
-        // 执行回调
-        for (IDataOperationListener<Param, Data> listener : mListeners) {
-            listener.onGetData(mDesc, DataGetMode.DIRECT, param, DataPack.newSourceDataPack(data));
-        }
-        // 返回数据
-        return data;
+    public DataPack<Data> getDataPackDirectly(Param param) throws DataException {
+        return CacheNode.getDataDirectly(param, mDatasource);
     }
 
-    /**
-     * 从数据源重新获取数据
-     *
-     * @param param 用于匹配数据
-     * @return 相匹配的数据
-     */
-    public Data updateCache(Param param) throws DataException {
-        try {
-            removeCache(param);
-            Data data = getData(param);
-            // 执行回调
-            for (IDataOperationListener<Param, Data> listener : mListeners) {
-                listener.onUpdateCache(mDesc, param, data);
-            }
-            // 返回数据
-            return data;
-        } catch (Exception e) {
-            return onHandleException(param, e);
+
+    public void cacheData(Param param, Data data) {
+        if (null != mFirstNode) {
+            mFirstNode.cacheData(param, data);
+        }
+    }
+
+    public void cacheException(Param param, Exception e) {
+        if (null != mFirstNode) {
+            mFirstNode.cacheException(param, e);
         }
     }
 
     /**
-     * 移除指定key的缓存(全部service)
+     * 移除指定key的缓存(全部策略)
      *
      * @param param 用于匹配数据
      */
     public void removeCache(Param param) {
-        try {
-            if (null != mFirstNode) {
-                mFirstNode.removeCache(mDesc, param);
-            }
-            // 执行回调
-            for (IDataOperationListener<Param, Data> listener : mListeners) {
-                listener.onRemoveCache(mDesc, param);
-            }
-        } catch (Exception e) {
-            onHandleUnexpectException(e);
+        if (null != mFirstNode) {
+            mFirstNode.removeCache(param);
         }
     }
 
     /**
-     * 清除全部缓存(全部service)
+     * 清除全部缓存(全部策略)
      */
     public void clearCache() {
-        try {
-            if (null != mFirstNode) {
-                mFirstNode.clearCache(mDesc);
-            }
-            // 执行回调
-            for (IDataOperationListener<Param, Data> listener : mListeners) {
-                listener.onClearCache(mDesc);
-            }
-        } catch (Exception e) {
-            onHandleUnexpectException(e);
-        }
-    }
-
-    // ********************内部方法********************
-
-    private Data innerGetData(Param param, IGetDataHandler<Data> handler) throws DataException {
-        if (null == mFirstNode) {
-            return handler.onNoCacheService();
-        }
-        try {
-            DataPack<Data> pack = mFirstNode.getData(mDesc, param, handler.onGetDataAccessConfig());
-            // 执行回调
-            DataGetMode mode = handler.onGetMode();
-            for (IDataOperationListener<Param, Data> listener : mListeners) {
-                listener.onGetData(mDesc, mode, param, pack);
-            }
-            // 返回数据
-            return pack.data;
-        } catch (Exception e) {
-            return onHandleException(param, e);
-        }
-    }
-
-    private Data onHandleException(Param param, Exception e) throws DataException {
-        if (e instanceof DataException) {
-            for (IDataOperationListener<Param, Data> listener : mListeners) {
-                listener.onNoData(mDesc, param);
-            }
-            throw (DataException) e;
-        }
-        onHandleUnexpectException(e);
-        throw new RuntimeException("出现了不可能的情况");
-    }
-
-    private void onHandleUnexpectException(Exception e) {
-        if (e instanceof RuntimeException) {
-            for (IDataOperationListener<Param, Data> listener : mListeners) {
-                listener.onHandleUnexpectException(mDesc, e);
-            }
-            throw (RuntimeException) e;
+        if (null != mFirstNode) {
+            mFirstNode.clearCache();
         }
     }
 
@@ -180,25 +100,18 @@ public class DataManager<Param, Data> {
 
         private final DataManager<Param, Data> mManager;
         private final IKeyConverter<Param> mDefaultConverter;
-        private final List<CacheServiceNode<Param, Data>> mNodes = new LinkedList<CacheServiceNode<Param, Data>>();
-        private final Set<String> mIds = new HashSet<String>();
+        private final List<CacheNode<Param, Data>> mNodes = new LinkedList<CacheNode<Param, Data>>();
 
-        /**
-         * @param desc 描述此数据管理器，如“存放了些什么数据”
-         */
-        public static <Data> Builder<String, Data> get(String desc, IDatasource<String, Data> datasource) {
-            return new Builder<String, Data>(desc, datasource, new IKeyConverter.Std());
+        public static <Data> Builder<String, Data> get(IDatasource<String, Data> datasource) {
+            return new Builder<String, Data>(datasource, new IKeyConverter.Std());
         }
 
-        /**
-         * @param desc 描述此数据管理器，如“存放了些什么数据”
-         */
-        public static <Param, Data> Builder<Param, Data> get(String desc, IDatasource<Param, Data> datasource, IKeyConverter<Param> defaultConverter) {
-            return new Builder<Param, Data>(desc, datasource, defaultConverter);
+        public static <Param, Data> Builder<Param, Data> get(IDatasource<Param, Data> datasource, IKeyConverter<Param> defaultConverter) {
+            return new Builder<Param, Data>(datasource, defaultConverter);
         }
 
-        private Builder(String desc, IDatasource<Param, Data> datasource, IKeyConverter<Param> defaultConverter) {
-            mManager = new DataManager<Param, Data>(desc, datasource);
+        private Builder(IDatasource<Param, Data> datasource, IKeyConverter<Param> defaultConverter) {
+            mManager = new DataManager<Param, Data>(datasource);
             mDefaultConverter = defaultConverter;
         }
 
@@ -209,36 +122,19 @@ public class DataManager<Param, Data> {
          * <br>第一次调用为一级缓存，第二次为二级缓存...以此类推
          * <br>数据查找时一级缓存最先被触发
          */
-        public Builder<Param, Data> withCache(ICacheService<Param, Data> service) {
+        public Builder<Param, Data> withCache(ICacheStrategy<Param, Data> service) {
             return withCache(service, null);
         }
 
         /**
-         * 与{@link #withCache(ICacheService)}相同，只是允许自定义KeyConverter
+         * 与{@link #withCache(ICacheStrategy)}相同，只是允许自定义KeyConverter
          */
-        public Builder<Param, Data> withCache(ICacheService<Param, Data> service, IKeyConverter<Param> converter) {
+        public Builder<Param, Data> withCache(ICacheStrategy<Param, Data> strategy, IKeyConverter<Param> converter) {
             if (null == converter) {
                 converter = mDefaultConverter;
             }
             // 添加到服务列表
-            mNodes.add(new CacheServiceNode<Param, Data>(service, converter, mManager.mDatasource));
-            // 判断id是否已存在
-            String id = service.getId();
-            if (mIds.contains(id)) {
-                throw new RuntimeException("不能使用相同ID的缓存服务");
-            }
-            mIds.add(id);
-            return this;
-        }
-
-        /**
-         * 设置监听器，可以多次调用，按添加的顺序回调
-         */
-        @SuppressWarnings("UnusedReturnValue")
-        public Builder<Param, Data> withListener(IDataOperationListener<Param, Data> listener) {
-            if (null != listener) {
-                mManager.mListeners.add(listener);
-            }
+            mNodes.add(new CacheNode<Param, Data>(strategy, converter));
             return this;
         }
 
@@ -256,9 +152,8 @@ public class DataManager<Param, Data> {
             // 节点排序
             Collections.sort(mNodes, new ServiceComparator());
             // 节点遍历处理
-            CacheServiceNode<Param, Data> lastNode = null;
-            for (CacheServiceNode<Param, Data> node : mNodes) {
-                ICacheService<Param, Data> curService = node.getService();
+            CacheNode<Param, Data> lastNode = null;
+            for (CacheNode<Param, Data> node : mNodes) {
                 // 创建链
                 if (null == lastNode) {
                     mManager.mFirstNode = node;
@@ -266,45 +161,18 @@ public class DataManager<Param, Data> {
                     lastNode.setNextNode(node);
                 }
                 lastNode = node;
-                // 执行回调
-                for (IDataOperationListener<Param, Data> listener : mManager.mListeners) {
-                    listener.onApplyService(mManager.mDesc, curService);
-                }
             }
         }
 
         /**
          * 用于缓存服务的排序器
          */
-        private static class ServiceComparator implements Comparator<CacheServiceNode<?, ?>> {
+        private static class ServiceComparator implements Comparator<CacheNode<?, ?>> {
             @Override
-            public int compare(CacheServiceNode o1, CacheServiceNode o2) {
-                return o2.getService().order() - o1.getService().order();
+            public int compare(CacheNode o1, CacheNode o2) {
+                return o2.getStrategy().order() - o1.getStrategy().order();
             }
         }
     }
 
-    // ********************内部类********************
-
-    public static class Container<Param, Data> {
-        public final DataManager<Param, Data> manager;
-        private final Class<Param> mParamClazz;
-
-        Container(DataManager<Param, Data> manager, Class<Param> paramClazz) {
-            this.manager = manager;
-            mParamClazz = paramClazz;
-        }
-
-        public Param toParam(String json) {
-            return GSON.fromJson(json, mParamClazz);
-        }
-    }
-
-    private interface IGetDataHandler<Data> {
-        Data onNoCacheService() throws DataException;
-
-        DataAccessConfig onGetDataAccessConfig();
-
-        DataGetMode onGetMode();
-    }
 }

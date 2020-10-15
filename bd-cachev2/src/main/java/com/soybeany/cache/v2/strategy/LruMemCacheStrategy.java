@@ -1,10 +1,10 @@
-package com.soybeany.cache.v2.service;
+package com.soybeany.cache.v2.strategy;
 
 
-import com.soybeany.cache.v2.exception.CacheAntiPenetrateException;
-import com.soybeany.cache.v2.exception.CacheException;
-import com.soybeany.cache.v2.exception.CacheNoDataException;
-import com.soybeany.cache.v2.module.DataPack;
+import com.soybeany.cache.v2.exception.DataException;
+import com.soybeany.cache.v2.exception.NoCacheException;
+import com.soybeany.cache.v2.model.DataFrom;
+import com.soybeany.cache.v2.model.DataPack;
 
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -16,12 +16,12 @@ import java.util.Map;
  * @author Soybeany
  * @date 2020/1/19
  */
-public class LruMemCacheService<Param, Data> extends BaseMemCacheService<Param, Data> {
+public class LruMemCacheStrategy<Param, Data> extends BaseMemCacheStrategy<Param, Data> {
 
     private final LruDataAccessor<DataHolder<Data>> mDataAccessor = new LruDataAccessor<DataHolder<Data>>();
 
     @Override
-    public String getId() {
+    public String getName() {
         return "MEM_LRU";
     }
 
@@ -31,50 +31,50 @@ public class LruMemCacheService<Param, Data> extends BaseMemCacheService<Param, 
     }
 
     @Override
-    public DataPack<Data> onRetrieveCachedData(String dataGroup, Param param, String key) throws CacheException {
+    public DataPack<Data> onGetCache(Param param, String key) throws DataException, NoCacheException {
         DataHolder<Data> holder = mDataAccessor.get(key);
         // 若缓存中没有数据，则直接抛出无数据异常
         if (null == holder) {
-            throw new CacheNoDataException();
+            throw new NoCacheException();
         }
         // 若缓存中的数据过期，则移除数据后抛出无数据异常
-        boolean withDataExpired = holder.hasData && isStampExpired(holder.stamp, mExpiry);
-        boolean withoutDataExpired = !holder.hasData && isStampExpired(holder.stamp, mNoDataExpiry);
+        boolean withDataExpired = holder.isNorm && isStampExpired(holder.stamp, mExpiry);
+        boolean withoutDataExpired = !holder.isNorm && isStampExpired(holder.stamp, mFastFailExpiry);
         if (withDataExpired || withoutDataExpired) {
             mDataAccessor.removeData(key);
-            throw new CacheNoDataException();
+            throw new NoCacheException();
         }
         // 数据依旧有效，则移到队列末尾
         mDataAccessor.moveDataToLast(key);
         // 没有数据，则抛出防穿透异常
-        if (!holder.hasData) {
-            throw new CacheAntiPenetrateException();
+        if (!holder.isNorm) {
+            throw new DataException(DataFrom.CACHE, holder.exception);
         }
         // 返回正常缓存的数据
-        return DataPack.newCacheDataPack(holder.data, true);
+        return DataPack.newCacheDataPack(holder.data);
     }
 
     @Override
-    public void onCacheData(String dataGroup, Param param, String key, Data data) {
+    public void onCacheData(Param param, String key, Data data) {
         mDataAccessor.putData(key, DataHolder.get(data));
     }
 
     @Override
-    public void onNoDataToCache(String dataGroup, Param param, String key) {
-        mDataAccessor.putData(key, new DataHolder<Data>(null, false));
+    public void onCacheException(Param param, String key, Exception e) {
+        mDataAccessor.putData(key, DataHolder.<Data>get(e));
     }
 
     @Override
-    public void removeCache(String dataGroup, Param param, String key) {
+    public void removeCache(Param param, String key) {
         mDataAccessor.removeData(key);
     }
 
     @Override
-    public void clearCache(String dataGroup) {
+    public void clearCache() {
         mDataAccessor.clear();
     }
 
-    public LruMemCacheService<Param, Data> capacity(int size) {
+    public LruMemCacheStrategy<Param, Data> capacity(int size) {
         mDataAccessor.capacity = size;
         return this;
     }

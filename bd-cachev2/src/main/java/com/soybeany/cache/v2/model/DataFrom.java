@@ -1,6 +1,8 @@
-package com.soybeany.cache.v2.module;
+package com.soybeany.cache.v2.model;
 
 /**
+ * 操作处理者
+ *
  * @author Soybeany
  * @date 2020/7/15
  */
