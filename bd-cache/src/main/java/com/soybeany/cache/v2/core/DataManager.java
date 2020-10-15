@@ -18,7 +18,7 @@ public class DataManager<Param, Data> {
 
     private final String mDesc;
     private final IDatasource<Param, Data> mDatasource;
-    private final List<IDataOperationListener<Param, Data>> mListeners = new LinkedList<>();
+    private final List<IDataOperationListener<Param, Data>> mListeners = new LinkedList<IDataOperationListener<Param, Data>>();
 
     private CacheServiceNode<Param, Data> mFirstNode; // 调用链的头
 
@@ -42,7 +42,7 @@ public class DataManager<Param, Data> {
      * @return 相匹配的数据
      */
     public Data getData(final Param param) throws DataException {
-        return innerGetData(param, new IGetDataHandler<>() {
+        return innerGetData(param, new IGetDataHandler<Data>() {
             @Override
             public Data onNoCacheService() throws DataException {
                 // 若没有设置缓存服务，则直接访问数据源
@@ -71,7 +71,7 @@ public class DataManager<Param, Data> {
         Data data = mDatasource.onGetData(param);
         // 执行回调
         for (IDataOperationListener<Param, Data> listener : mListeners) {
-            listener.onGetData(mDesc, DataGetMode.DIRECT, param, DataPack.newSourceDataPack(data, mDatasource));
+            listener.onGetData(mDesc, DataGetMode.DIRECT, param, DataPack.newSourceDataPack(data));
         }
         // 返回数据
         return data;
@@ -180,25 +180,25 @@ public class DataManager<Param, Data> {
 
         private final DataManager<Param, Data> mManager;
         private final IKeyConverter<Param> mDefaultConverter;
-        private final List<CacheServiceNode<Param, Data>> mNodes = new LinkedList<>();
-        private final Set<String> mIds = new HashSet<>();
+        private final List<CacheServiceNode<Param, Data>> mNodes = new LinkedList<CacheServiceNode<Param, Data>>();
+        private final Set<String> mIds = new HashSet<String>();
 
         /**
          * @param desc 描述此数据管理器，如“存放了些什么数据”
          */
         public static <Data> Builder<String, Data> get(String desc, IDatasource<String, Data> datasource) {
-            return new Builder<>(desc, datasource, new IKeyConverter.Std());
+            return new Builder<String, Data>(desc, datasource, new IKeyConverter.Std());
         }
 
         /**
          * @param desc 描述此数据管理器，如“存放了些什么数据”
          */
         public static <Param, Data> Builder<Param, Data> get(String desc, IDatasource<Param, Data> datasource, IKeyConverter<Param> defaultConverter) {
-            return new Builder<>(desc, datasource, defaultConverter);
+            return new Builder<Param, Data>(desc, datasource, defaultConverter);
         }
 
         private Builder(String desc, IDatasource<Param, Data> datasource, IKeyConverter<Param> defaultConverter) {
-            mManager = new DataManager<>(desc, datasource);
+            mManager = new DataManager<Param, Data>(desc, datasource);
             mDefaultConverter = defaultConverter;
         }
 
@@ -221,7 +221,7 @@ public class DataManager<Param, Data> {
                 converter = mDefaultConverter;
             }
             // 添加到服务列表
-            mNodes.add(new CacheServiceNode<>(service, converter, mManager.mDatasource));
+            mNodes.add(new CacheServiceNode<Param, Data>(service, converter, mManager.mDatasource));
             // 判断id是否已存在
             String id = service.getId();
             if (mIds.contains(id)) {
@@ -254,7 +254,7 @@ public class DataManager<Param, Data> {
 
         private void sortAndHandleNodes() {
             // 节点排序
-            mNodes.sort(new ServiceComparator());
+            Collections.sort(mNodes, new ServiceComparator());
             // 节点遍历处理
             CacheServiceNode<Param, Data> lastNode = null;
             for (CacheServiceNode<Param, Data> node : mNodes) {

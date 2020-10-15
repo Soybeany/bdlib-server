@@ -17,12 +17,4 @@ public interface IDatasource<Param, Data> extends IDataProvider {
      * @throws DataSourceException 数据源相关的异常
      */
     Data onGetData(Param param) throws DataSourceException;
-
-    /**
-     * 对此数据源进行描述，如“访问数据库，调用某个外部业务系统”
-     */
-    @Override
-    default String getDesc() {
-        return "默认数据源";
-    }
 }

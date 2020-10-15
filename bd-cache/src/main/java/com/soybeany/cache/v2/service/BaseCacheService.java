@@ -47,11 +47,7 @@ public abstract class BaseCacheService<Param, Data> implements ICacheService<Par
         final boolean hasData; // 是否有数据
 
         public static <Data> DataHolder<Data> get(Data data) {
-            return new DataHolder<>(data, true);
-        }
-
-        public static <Data> DataHolder<Data> noData() {
-            return new DataHolder<>(null, false);
+            return new DataHolder<Data>(data, true);
         }
 
         public DataHolder(Data data, long stamp, boolean hasData) {
@@ -60,7 +56,7 @@ public abstract class BaseCacheService<Param, Data> implements ICacheService<Par
             this.hasData = hasData;
         }
 
-        private DataHolder(Data data, boolean hasData) {
+        public DataHolder(Data data, boolean hasData) {
             this(data, System.currentTimeMillis(), hasData);
         }
     }

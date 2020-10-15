@@ -8,11 +8,4 @@ package com.soybeany.cache.v2.core;
  */
 public interface IDataProvider {
 
-    /**
-     * 获取此提供者的相关描述
-     *
-     * @return 描述文本
-     */
-    String getDesc();
-
 }

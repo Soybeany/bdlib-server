@@ -20,7 +20,7 @@ public class DataAccessConfig {
     /**
      * 临时排除使用的缓存服务id列表
      */
-    public final Set<String> tempExcludedServiceIds = new HashSet<>();
+    public final Set<String> tempExcludedServiceIds = new HashSet<String>();
 
     public DataAccessConfig(boolean canAccessSource, String... tempExcludedServiceIds) {
         this.canAccessSource = canAccessSource;

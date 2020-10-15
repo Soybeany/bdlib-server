@@ -18,12 +18,7 @@ import java.util.Map;
  */
 public class LruMemCacheService<Param, Data> extends BaseMemCacheService<Param, Data> {
 
-    private final LruDataAccessor<DataHolder<Data>> mDataAccessor = new LruDataAccessor<>();
-
-    @Override
-    public String getDesc() {
-        return "内存LRU";
-    }
+    private final LruDataAccessor<DataHolder<Data>> mDataAccessor = new LruDataAccessor<DataHolder<Data>>();
 
     @Override
     public String getId() {
@@ -56,7 +51,7 @@ public class LruMemCacheService<Param, Data> extends BaseMemCacheService<Param, 
             throw new CacheAntiPenetrateException();
         }
         // 返回正常缓存的数据
-        return DataPack.newCacheDataPack(holder.data, this, true);
+        return DataPack.newCacheDataPack(holder.data, true);
     }
 
     @Override
@@ -66,7 +61,7 @@ public class LruMemCacheService<Param, Data> extends BaseMemCacheService<Param, 
 
     @Override
     public void onNoDataToCache(String dataGroup, Param param, String key) {
-        mDataAccessor.putData(key, DataHolder.noData());
+        mDataAccessor.putData(key, new DataHolder<Data>(null, false));
     }
 
     @Override
@@ -85,8 +80,8 @@ public class LruMemCacheService<Param, Data> extends BaseMemCacheService<Param, 
     }
 
     private static class LruDataAccessor<Data> {
-        private final Map<String, Data> mCacheMap = new HashMap<>();
-        private final LinkedList<String> mOrderList = new LinkedList<>(); // 用于记录访问顺序
+        private final Map<String, Data> mCacheMap = new HashMap<String, Data>();
+        private final LinkedList<String> mOrderList = new LinkedList<String>(); // 用于记录访问顺序
 
         int capacity = 100;
 

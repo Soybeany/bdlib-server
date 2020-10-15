@@ -16,16 +16,11 @@ import java.util.Map;
  */
 public class ThreadCacheService<Param, Data> extends BaseMemCacheService<Param, Data> {
 
-    private final ThreadLocal<Map<Param, DataHolder<Data>>> threadLocal = new ThreadLocal<>();
+    private final ThreadLocal<Map<Param, DataHolder<Data>>> threadLocal = new ThreadLocal<Map<Param, DataHolder<Data>>>();
 
     @Override
     public String getId() {
         return "THREAD_LOCAL";
-    }
-
-    @Override
-    public String getDesc() {
-        return "同线程缓存";
     }
 
     @Override
@@ -43,7 +38,7 @@ public class ThreadCacheService<Param, Data> extends BaseMemCacheService<Param, 
         if (!holder.hasData) {
             throw new CacheAntiPenetrateException();
         }
-        return DataPack.newCacheDataPack(holder.data, this, true);
+        return DataPack.newCacheDataPack(holder.data, true);
     }
 
     @Override
@@ -53,7 +48,7 @@ public class ThreadCacheService<Param, Data> extends BaseMemCacheService<Param, 
 
     @Override
     public void onNoDataToCache(String dataGroup, Param param, String key) {
-        threadLocal.get().put(param, DataHolder.noData());
+        threadLocal.get().put(param, new DataHolder<Data>(null, false));
     }
 
     @Override
@@ -69,7 +64,7 @@ public class ThreadCacheService<Param, Data> extends BaseMemCacheService<Param, 
     // ********************操作方法********************
 
     public void start() {
-        threadLocal.set(new HashMap<>());
+        threadLocal.set(new HashMap<Param, DataHolder<Data>>());
     }
 
     public void finish() {
