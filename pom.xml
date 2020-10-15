@@ -17,7 +17,7 @@
 
     <modules>
         <module>bd-cache</module>
-        <module>bd-reflection</module>
+        <module>bd-bypass</module>
     </modules>
 
     <dependencies>
