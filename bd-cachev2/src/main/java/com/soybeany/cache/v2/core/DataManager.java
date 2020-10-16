@@ -10,7 +10,6 @@ import com.soybeany.cache.v2.model.DataPack;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedList;
-import java.util.List;
 
 /**
  * @author Soybeany
@@ -97,7 +96,7 @@ public class DataManager<Param, Data> {
 
         private final DataManager<Param, Data> mManager;
         private final IKeyConverter<Param> mDefaultConverter;
-        private final List<CacheNode<Param, Data>> mNodes = new LinkedList<CacheNode<Param, Data>>();
+        private final LinkedList<CacheNode<Param, Data>> mNodes = new LinkedList<CacheNode<Param, Data>>();
 
         private Long mExpiry;
         private Long mFastFailExpiry;
@@ -134,7 +133,7 @@ public class DataManager<Param, Data> {
                 converter = mDefaultConverter;
             }
             // 添加到服务列表
-            mNodes.add(new CacheNode<Param, Data>(strategy, converter));
+            mNodes.addFirst(new CacheNode<Param, Data>(strategy, converter));
             return this;
         }
 
@@ -144,7 +143,7 @@ public class DataManager<Param, Data> {
          * @param millis 失效时间(毫秒)
          * @return 自身，方便链式调用
          */
-        Builder<Param, Data> expiry(long millis) {
+        public Builder<Param, Data> expiry(long millis) {
             mExpiry = millis;
             return this;
         }
@@ -155,7 +154,7 @@ public class DataManager<Param, Data> {
          * @param millis 失效时间(毫秒)
          * @return 自身，方便链式调用
          */
-        Builder<Param, Data> fastFailExpiry(long millis) {
+        public Builder<Param, Data> fastFailExpiry(long millis) {
             mFastFailExpiry = millis;
             return this;
         }

@@ -30,7 +30,7 @@ class CacheNode<Param, Data> {
             if (null == datasource) {
                 throw new NoDataSourceException();
             }
-            return DataPack.newSourceDataPack(datasource.onGetData(param));
+            return DataPack.newSourceDataPack(datasource, datasource.onGetData(param));
         } catch (Exception e) {
             throw new DataException(DataFrom.SOURCE, e);
         }

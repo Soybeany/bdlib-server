@@ -4,6 +4,7 @@ package com.soybeany.cache.v2.strategy;
 import com.soybeany.cache.v2.exception.DataException;
 import com.soybeany.cache.v2.exception.NoCacheException;
 import com.soybeany.cache.v2.model.DataFrom;
+import com.soybeany.cache.v2.model.DataHolder;
 import com.soybeany.cache.v2.model.DataPack;
 
 import java.util.HashMap;
@@ -16,14 +17,9 @@ import java.util.Map;
  * @author Soybeany
  * @date 2020/1/19
  */
-public class LruMemCacheStrategy<Param, Data> extends BaseMemCacheStrategy<Param, Data> {
+public class LruMemCacheStrategy<Param, Data> extends BaseCacheStrategy<Param, Data> {
 
     private final LruDataAccessor<DataHolder<Data>> mDataAccessor = new LruDataAccessor<DataHolder<Data>>();
-
-    @Override
-    public String getName() {
-        return "MEM_LRU";
-    }
 
     @Override
     public boolean supportDoubleCheck() {
@@ -38,7 +34,8 @@ public class LruMemCacheStrategy<Param, Data> extends BaseMemCacheStrategy<Param
             throw new NoCacheException();
         }
         // 若缓存中的数据过期，则移除数据后抛出无数据异常
-        if (holder.isExpired()) {
+        long leftValidTime = holder.getLeftValidTime();
+        if (DataHolder.isExpired(leftValidTime)) {
             mDataAccessor.removeData(key);
             throw new NoCacheException();
         }
@@ -49,7 +46,7 @@ public class LruMemCacheStrategy<Param, Data> extends BaseMemCacheStrategy<Param
             throw new DataException(DataFrom.CACHE, holder.exception);
         }
         // 返回正常缓存的数据
-        return DataPack.newCacheDataPack(holder.data, holder.expiry);
+        return DataPack.newCacheDataPack(this, holder.data, leftValidTime);
     }
 
     @Override

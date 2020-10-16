@@ -3,6 +3,7 @@ package com.soybeany.cache.v2.strategy;
 import com.soybeany.cache.v2.exception.DataException;
 import com.soybeany.cache.v2.exception.NoCacheException;
 import com.soybeany.cache.v2.model.DataFrom;
+import com.soybeany.cache.v2.model.DataHolder;
 import com.soybeany.cache.v2.model.DataPack;
 
 import java.util.HashMap;
@@ -14,14 +15,9 @@ import java.util.Map;
  * @author Soybeany
  * @date 2020/9/23
  */
-public class ThreadCacheStrategy<Param, Data> extends BaseMemCacheStrategy<Param, Data> {
+public class ThreadCacheStrategy<Param, Data> extends BaseCacheStrategy<Param, Data> {
 
     private final ThreadLocal<Map<Param, DataHolder<Data>>> threadLocal = new ThreadLocal<Map<Param, DataHolder<Data>>>();
-
-    @Override
-    public String getName() {
-        return "THREAD_LOCAL";
-    }
 
     @Override
     public boolean supportDoubleCheck() {
@@ -38,7 +34,7 @@ public class ThreadCacheStrategy<Param, Data> extends BaseMemCacheStrategy<Param
         if (!holder.isNorm) {
             throw new DataException(DataFrom.CACHE, holder.exception);
         }
-        return DataPack.newCacheDataPack(holder.data, holder.expiry);
+        return DataPack.newCacheDataPack(this, holder.data, holder.getLeftValidTime());
     }
 
     @Override
