@@ -22,19 +22,19 @@ public class DataPack<Data> {
     /**
      * 该数据剩余的有效时间
      */
-    private long mLeftValidTime;
+    public final long expiryInMills;
 
-    public static <Data> DataPack<Data> newCacheDataPack(Data data) {
-        return new DataPack<Data>(data, DataFrom.CACHE);
+    public static <Data> DataPack<Data> newCacheDataPack(Data data, long expiryInMills) {
+        return new DataPack<Data>(data, DataFrom.CACHE, expiryInMills);
     }
 
     public static <Data> DataPack<Data> newSourceDataPack(Data data) {
-        return new DataPack<Data>(data, DataFrom.SOURCE);
+        return new DataPack<Data>(data, DataFrom.SOURCE, Long.MAX_VALUE);
     }
 
-    private DataPack(Data data, DataFrom from) {
+    private DataPack(Data data, DataFrom from, long expiryInMills) {
         this.data = data;
         this.from = from;
+        this.expiryInMills = expiryInMills;
     }
-
 }

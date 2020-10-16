@@ -74,7 +74,7 @@ public interface ICacheStrategy<Param, Data> {
      * @param key   键
      * @param data  待缓存的数据
      */
-    void onCacheData(Param param, String key, Data data);
+    void onCacheData(Param param, String key, DataPack<Data> data);
 
     /**
      * 缓存异常的回调，与{@link #fastFailExpiry(long)}对应

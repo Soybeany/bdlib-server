@@ -34,10 +34,4 @@ public abstract class BaseCacheStrategy<Param, Data> implements ICacheStrategy<P
         return false;
     }
 
-    /**
-     * 判断指定时间戳是否已经过期
-     */
-    protected boolean isStampExpired(long stamp, long reference) {
-        return System.currentTimeMillis() - stamp > reference;
-    }
 }

@@ -82,7 +82,7 @@ class CacheNode<Param, Data> {
         });
     }
 
-    void cacheData(final Param param, final Data data) {
+    void cacheData(final Param param, final DataPack<Data> data) {
         traverse(param, new ICallback2<Param, Data>() {
             @Override
             public void onInvoke(String key, CacheNode<Param, Data> node) {
@@ -145,7 +145,7 @@ class CacheNode<Param, Data> {
             else {
                 pack = mNextNode.getCache(param, datasource);
             }
-            mCurStrategy.onCacheData(param, key, pack.data);
+            mCurStrategy.onCacheData(param, key, pack);
             return pack;
         } catch (DataException e) {
             mCurStrategy.onCacheException(param, key, e.getOriginException());

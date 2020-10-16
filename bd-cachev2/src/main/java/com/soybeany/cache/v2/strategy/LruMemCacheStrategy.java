@@ -38,9 +38,7 @@ public class LruMemCacheStrategy<Param, Data> extends BaseMemCacheStrategy<Param
             throw new NoCacheException();
         }
         // 若缓存中的数据过期，则移除数据后抛出无数据异常
-        boolean withDataExpired = holder.isNorm && isStampExpired(holder.stamp, mExpiry);
-        boolean withoutDataExpired = !holder.isNorm && isStampExpired(holder.stamp, mFastFailExpiry);
-        if (withDataExpired || withoutDataExpired) {
+        if (holder.isExpired()) {
             mDataAccessor.removeData(key);
             throw new NoCacheException();
         }
@@ -51,17 +49,17 @@ public class LruMemCacheStrategy<Param, Data> extends BaseMemCacheStrategy<Param
             throw new DataException(DataFrom.CACHE, holder.exception);
         }
         // 返回正常缓存的数据
-        return DataPack.newCacheDataPack(holder.data);
+        return DataPack.newCacheDataPack(holder.data, holder.expiry);
     }
 
     @Override
-    public void onCacheData(Param param, String key, Data data) {
-        mDataAccessor.putData(key, DataHolder.get(data));
+    public void onCacheData(Param param, String key, DataPack<Data> data) {
+        mDataAccessor.putData(key, DataHolder.get(data, mExpiry));
     }
 
     @Override
     public void onCacheException(Param param, String key, Exception e) {
-        mDataAccessor.putData(key, DataHolder.<Data>get(e));
+        mDataAccessor.putData(key, DataHolder.<Data>get(e, mFastFailExpiry));
     }
 
     @Override

@@ -23,9 +23,6 @@ public class DataManager<Param, Data> {
     private CacheNode<Param, Data> mFirstNode; // 调用链的头
 
     private DataManager(IDatasource<Param, Data> datasource) {
-        if (null == datasource) {
-            throw new RuntimeException("数据源不能为null");
-        }
         mDatasource = datasource;
     }
 
@@ -62,7 +59,7 @@ public class DataManager<Param, Data> {
     }
 
 
-    public void cacheData(Param param, Data data) {
+    public void cacheData(Param param, DataPack<Data> data) {
         if (null != mFirstNode) {
             mFirstNode.cacheData(param, data);
         }
@@ -102,6 +99,9 @@ public class DataManager<Param, Data> {
         private final IKeyConverter<Param> mDefaultConverter;
         private final List<CacheNode<Param, Data>> mNodes = new LinkedList<CacheNode<Param, Data>>();
 
+        private Long mExpiry;
+        private Long mFastFailExpiry;
+
         public static <Data> Builder<String, Data> get(IDatasource<String, Data> datasource) {
             return new Builder<String, Data>(datasource, new IKeyConverter.Std());
         }
@@ -122,8 +122,8 @@ public class DataManager<Param, Data> {
          * <br>第一次调用为一级缓存，第二次为二级缓存...以此类推
          * <br>数据查找时一级缓存最先被触发
          */
-        public Builder<Param, Data> withCache(ICacheStrategy<Param, Data> service) {
-            return withCache(service, null);
+        public Builder<Param, Data> withCache(ICacheStrategy<Param, Data> strategy) {
+            return withCache(strategy, null);
         }
 
         /**
@@ -139,28 +139,60 @@ public class DataManager<Param, Data> {
         }
 
         /**
+         * 数据失效的超时，用于一般场景
+         *
+         * @param millis 失效时间(毫秒)
+         * @return 自身，方便链式调用
+         */
+        Builder<Param, Data> expiry(long millis) {
+            mExpiry = millis;
+            return this;
+        }
+
+        /**
+         * 快速失败的超时，用于防缓存穿透等场景
+         *
+         * @param millis 失效时间(毫秒)
+         * @return 自身，方便链式调用
+         */
+        Builder<Param, Data> fastFailExpiry(long millis) {
+            mFastFailExpiry = millis;
+            return this;
+        }
+
+        /**
          * 构建出用于使用的实例
          */
         public DataManager<Param, Data> build() {
-            // 服务排序并执行回调
-            sortAndHandleNodes();
+            // 节点排序
+            Collections.sort(mNodes, new ServiceComparator());
+            // 创建调用链
+            buildChain();
+            // 设置超时
+            setupTimeout();
             // 返回管理器实例
             return mManager;
         }
 
-        private void sortAndHandleNodes() {
-            // 节点排序
-            Collections.sort(mNodes, new ServiceComparator());
-            // 节点遍历处理
-            CacheNode<Param, Data> lastNode = null;
+        private void buildChain() {
+            CacheNode<Param, Data> nextNode = null;
             for (CacheNode<Param, Data> node : mNodes) {
-                // 创建链
-                if (null == lastNode) {
-                    mManager.mFirstNode = node;
-                } else {
-                    lastNode.setNextNode(node);
+                node.setNextNode(nextNode);
+                nextNode = node;
+            }
+            mManager.mFirstNode = nextNode;
+        }
+
+        private void setupTimeout() {
+            if (null != mExpiry) {
+                for (CacheNode<Param, Data> node : mNodes) {
+                    node.getStrategy().expiry(mExpiry);
                 }
-                lastNode = node;
+            }
+            if (null != mFastFailExpiry) {
+                for (CacheNode<Param, Data> node : mNodes) {
+                    node.getStrategy().fastFailExpiry(mFastFailExpiry);
+                }
             }
         }
 
@@ -170,7 +202,7 @@ public class DataManager<Param, Data> {
         private static class ServiceComparator implements Comparator<CacheNode<?, ?>> {
             @Override
             public int compare(CacheNode o1, CacheNode o2) {
-                return o2.getStrategy().order() - o1.getStrategy().order();
+                return o1.getStrategy().order() - o2.getStrategy().order();
             }
         }
     }

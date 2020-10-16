@@ -38,17 +38,17 @@ public class ThreadCacheStrategy<Param, Data> extends BaseMemCacheStrategy<Param
         if (!holder.isNorm) {
             throw new DataException(DataFrom.CACHE, holder.exception);
         }
-        return DataPack.newCacheDataPack(holder.data);
+        return DataPack.newCacheDataPack(holder.data, holder.expiry);
     }
 
     @Override
-    public void onCacheData(Param param, String key, Data data) {
-        threadLocal.get().put(param, DataHolder.get(data));
+    public void onCacheData(Param param, String key, DataPack<Data> data) {
+        threadLocal.get().put(param, DataHolder.get(data, mExpiry));
     }
 
     @Override
     public void onCacheException(Param param, String key, Exception e) {
-        threadLocal.get().put(param, DataHolder.<Data>get(e));
+        threadLocal.get().put(param, DataHolder.<Data>get(e, mFastFailExpiry));
     }
 
     @Override
