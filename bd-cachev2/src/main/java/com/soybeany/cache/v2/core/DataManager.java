@@ -5,6 +5,8 @@ import com.soybeany.cache.v2.contract.ICacheStrategy;
 import com.soybeany.cache.v2.contract.IDatasource;
 import com.soybeany.cache.v2.contract.IKeyConverter;
 import com.soybeany.cache.v2.exception.DataException;
+import com.soybeany.cache.v2.exception.NoDataSourceException;
+import com.soybeany.cache.v2.model.DataFrom;
 import com.soybeany.cache.v2.model.DataPack;
 
 import java.util.Collections;
@@ -17,12 +19,15 @@ import java.util.LinkedList;
  */
 public class DataManager<Param, Data> {
 
-    private final IDatasource<Param, Data> mDatasource;
+    private final IDatasource<Param, Data> mDefaultDatasource;
 
     private CacheNode<Param, Data> mFirstNode; // 调用链的头
 
-    private DataManager(IDatasource<Param, Data> datasource) {
-        mDatasource = datasource;
+    /**
+     * @param defaultDatasource 默认的数据源，允许为null
+     */
+    private DataManager(IDatasource<Param, Data> defaultDatasource) {
+        mDefaultDatasource = defaultDatasource;
     }
 
     // ********************操作********************
@@ -38,13 +43,35 @@ public class DataManager<Param, Data> {
     }
 
     /**
+     * 获得数据(默认方式)
+     *
+     * @param param 用于匹配数据
+     * @return 相匹配的数据
+     */
+    public Data getData(Param param, IDatasource<Param, Data> datasource) throws DataException {
+        return getDataPack(param, datasource).data;
+    }
+
+    /**
      * 获得数据(数据包方式)
      */
     public DataPack<Data> getDataPack(Param param) throws DataException {
+        return getDataPack(param, mDefaultDatasource);
+    }
+
+    /**
+     * 获得数据(数据包方式)
+     */
+    public DataPack<Data> getDataPack(Param param, IDatasource<Param, Data> datasource) throws DataException {
+        // 没有缓存节点的情况
         if (null == mFirstNode) {
+            if (null == datasource) {
+                throw new DataException(DataFrom.SOURCE, new NoDataSourceException());
+            }
             return getDataPackDirectly(param);
         }
-        return mFirstNode.getCache(param, mDatasource);
+        // 有缓存节点的情况
+        return mFirstNode.getCache(param, datasource);
     }
 
     /**
@@ -54,16 +81,21 @@ public class DataManager<Param, Data> {
      * @return 相匹配的数据
      */
     public DataPack<Data> getDataPackDirectly(Param param) throws DataException {
-        return CacheNode.getDataDirectly(param, mDatasource);
+        return CacheNode.getDataDirectly(param, mDefaultDatasource);
     }
 
-
+    /**
+     * 缓存数据，手动模式管理
+     */
     public void cacheData(Param param, DataPack<Data> data) {
         if (null != mFirstNode) {
             mFirstNode.cacheData(param, data);
         }
     }
 
+    /**
+     * 缓存异常，手动模式管理
+     */
     public void cacheException(Param param, Exception e) {
         if (null != mFirstNode) {
             mFirstNode.cacheException(param, e);

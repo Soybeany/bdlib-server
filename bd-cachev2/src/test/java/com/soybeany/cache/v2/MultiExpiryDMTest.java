@@ -6,7 +6,7 @@ import com.soybeany.cache.v2.contract.IDatasource;
 import com.soybeany.cache.v2.core.DataManager;
 import com.soybeany.cache.v2.model.DataPack;
 import com.soybeany.cache.v2.strategy.LruMemCacheStrategy;
-import org.junit.jupiter.api.Test;
+import org.junit.Test;
 
 import java.util.UUID;
 
@@ -18,7 +18,7 @@ public class MultiExpiryDMTest {
     private final IDatasource<String, String> datasource = new IDatasource<String, String>() {
         @Override
         public String onGetData(String s) {
-            System.out.println(s + "访问了数据源");
+            System.out.println(s + "(key)access datasource");
             return UUID.randomUUID().toString();
         }
     };

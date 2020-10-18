@@ -6,7 +6,7 @@ import com.soybeany.cache.v2.exception.DataException;
 import com.soybeany.cache.v2.model.DataFrom;
 import com.soybeany.cache.v2.model.DataPack;
 import com.soybeany.cache.v2.strategy.LruMemCacheStrategy;
-import org.junit.jupiter.api.Test;
+import org.junit.Test;
 
 /**
  * <br>Created by Soybeany on 2020/10/16.
