@@ -2,7 +2,6 @@ package com.soybeany.cache.v2.strategy;
 
 
 import com.soybeany.cache.v2.exception.DataException;
-import com.soybeany.cache.v2.exception.NoCacheException;
 import com.soybeany.cache.v2.model.DataFrom;
 import com.soybeany.cache.v2.model.DataHolder;
 import com.soybeany.cache.v2.model.DataPack;
@@ -42,11 +41,11 @@ public class LruMemCacheStrategy<Param, Data> extends BaseCacheStrategy<Param, D
         // 数据依旧有效，则移到队列末尾
         mDataAccessor.moveDataToLast(key);
         // 没有数据，则抛出防穿透异常
-        if (!holder.isNorm) {
-            throw new DataException(DataFrom.CACHE, holder.exception);
+        if (holder.abnormal()) {
+            throw new DataException(DataFrom.CACHE, holder.getException());
         }
         // 返回正常缓存的数据
-        return DataPack.newCacheDataPack(this, holder.data, leftValidTime);
+        return DataPack.newCacheDataPack(this, holder.getData(), leftValidTime);
     }
 
     @Override

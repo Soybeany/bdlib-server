@@ -38,10 +38,10 @@ public class SimpleDMTest {
         String key = "key";
         // 第一次将访问数据源
         DataPack<String> data = dataManager.getDataPack(key);
-        assert datasource.equals(data.producer);
+        assert datasource.equals(data.provider);
         // 第二次将读取lru
         data = dataManager.getDataPack(key);
-        assert lruStrategy.equals(data.producer);
+        assert lruStrategy.equals(data.provider);
     }
 
     @Test

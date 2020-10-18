@@ -37,28 +37,28 @@ public class MultiExpiryDMTest {
         String key = "key";
         // 一开始没有数据，应该访问数据源
         DataPack<String> pack = dataManager.getDataPack(key);
-        System.out.println(pack.producer);
-        assert datasource.equals(pack.producer);
+        System.out.println(pack.provider);
+        assert datasource.equals(pack.provider);
         // 已经缓存了数据，应该访问lru
         pack = dataManager.getDataPack(key);
-        System.out.println(pack.producer);
-        assert lruStrategy.equals(pack.producer);
+        System.out.println(pack.provider);
+        assert lruStrategy.equals(pack.provider);
         // 休眠一个比lru时间长，但比db时间短的时间
         Thread.sleep(900);
         // lru已失效，但db未失效
         pack = dataManager.getDataPack(key);
-        System.out.println(pack.producer);
-        assert dbStrategy.equals(pack.producer);
+        System.out.println(pack.provider);
+        assert dbStrategy.equals(pack.provider);
         // lru仍生效
         pack = dataManager.getDataPack(key);
-        System.out.println(pack.producer);
-        assert lruStrategy.equals(pack.producer);
+        System.out.println(pack.provider);
+        assert lruStrategy.equals(pack.provider);
         // 休眠一个短时间，使db也失效
         Thread.sleep(100);
         // 全部缓存已失效，再次访问数据源
         pack = dataManager.getDataPack(key);
-        System.out.println(pack.producer);
-        assert datasource.equals(pack.producer);
+        System.out.println(pack.provider);
+        assert datasource.equals(pack.provider);
     }
 
 }

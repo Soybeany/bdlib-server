@@ -23,25 +23,25 @@ public class DataPack<Data> {
     public final DataFrom from;
 
     /**
-     * 数据的生产者
+     * 数据的提供者，即数据最近一次的提供者
      */
-    public final Object producer;
+    public final Object provider;
 
     /**
      * 该数据剩余的有效时间
      */
     public final long expiryInMills;
 
-    public static <Param, Data> DataPack<Data> newCacheDataPack(ICacheStrategy<Param, Data> producer, Data data, long expiryInMills) {
-        return new DataPack<Data>(producer, data, DataFrom.CACHE, expiryInMills);
+    public static <Param, Data> DataPack<Data> newCacheDataPack(ICacheStrategy<Param, Data> provider, Data data, long expiryInMills) {
+        return new DataPack<Data>(provider, data, DataFrom.CACHE, expiryInMills);
     }
 
-    public static <Param, Data> DataPack<Data> newSourceDataPack(IDatasource<Param, Data> producer, Data data) {
-        return new DataPack<Data>(producer, data, DataFrom.SOURCE, Long.MAX_VALUE);
+    public static <Param, Data> DataPack<Data> newSourceDataPack(IDatasource<Param, Data> provider, Data data) {
+        return new DataPack<Data>(provider, data, DataFrom.SOURCE, Long.MAX_VALUE);
     }
 
-    private DataPack(Object producer, Data data, DataFrom from, long expiryInMills) {
-        this.producer = producer;
+    private DataPack(Object provider, Data data, DataFrom from, long expiryInMills) {
+        this.provider = provider;
         this.data = data;
         this.from = from;
         this.expiryInMills = expiryInMills;

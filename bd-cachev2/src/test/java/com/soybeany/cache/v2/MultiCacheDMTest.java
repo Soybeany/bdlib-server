@@ -37,22 +37,22 @@ public class MultiCacheDMTest {
         String key = "key";
         // 一开始没有数据，应该访问数据源
         DataPack<String> pack = dataManager.getDataPack(key);
-        System.out.println(pack.producer);
-        assert datasource.equals(pack.producer);
+        System.out.println(pack.provider);
+        assert datasource.equals(pack.provider);
         // 已经缓存了数据，应该访问lru
         pack = dataManager.getDataPack(key);
-        System.out.println(pack.producer);
-        assert lruStrategy.equals(pack.producer);
+        System.out.println(pack.provider);
+        assert lruStrategy.equals(pack.provider);
         // 休眠一个比lru时间长的时间
         Thread.sleep(600);
         // lru缓存已失效，访问db
         pack = dataManager.getDataPack(key);
-        System.out.println(pack.producer);
-        assert dbStrategy.equals(pack.producer);
+        System.out.println(pack.provider);
+        assert dbStrategy.equals(pack.provider);
         // 缓存重新建立
         pack = dataManager.getDataPack(key);
-        System.out.println(pack.producer);
-        assert lruStrategy.equals(pack.producer);
+        System.out.println(pack.provider);
+        assert lruStrategy.equals(pack.provider);
     }
 
 }

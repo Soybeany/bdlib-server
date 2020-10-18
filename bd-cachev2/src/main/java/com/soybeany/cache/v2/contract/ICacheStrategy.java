@@ -2,7 +2,6 @@ package com.soybeany.cache.v2.contract;
 
 
 import com.soybeany.cache.v2.exception.DataException;
-import com.soybeany.cache.v2.exception.NoCacheException;
 import com.soybeany.cache.v2.model.DataPack;
 
 /**
@@ -94,4 +93,14 @@ public interface ICacheStrategy<Param, Data> {
      * 清除全部缓存
      */
     void clearCache();
+
+    /**
+     * 该异常只供框架内部使用，用户不应接触该异常
+     * <br>Created by Soybeany on 2020/10/15.
+     */
+    class NoCacheException extends Exception {
+        public NoCacheException() {
+            super("没有找到缓存");
+        }
+    }
 }

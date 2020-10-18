@@ -4,7 +4,6 @@ import com.soybeany.cache.v2.contract.ICacheStrategy;
 import com.soybeany.cache.v2.contract.IDatasource;
 import com.soybeany.cache.v2.contract.IKeyConverter;
 import com.soybeany.cache.v2.exception.DataException;
-import com.soybeany.cache.v2.exception.NoCacheException;
 import com.soybeany.cache.v2.exception.NoDataSourceException;
 import com.soybeany.cache.v2.model.DataFrom;
 import com.soybeany.cache.v2.model.DataPack;
@@ -159,7 +158,7 @@ class CacheNode<Param, Data> {
     private DataPack<Data> getDataFromCurNode(Param param, String key, ICallback1<Param, Data> listener) throws DataException {
         try {
             return mCurStrategy.onGetCache(param, key);
-        } catch (NoCacheException e) {
+        } catch (ICacheStrategy.NoCacheException e) {
             return listener.onNoCache(param, key);
         }
     }

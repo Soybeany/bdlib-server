@@ -1,7 +1,6 @@
 package com.soybeany.cache.v2.strategy;
 
 import com.soybeany.cache.v2.exception.DataException;
-import com.soybeany.cache.v2.exception.NoCacheException;
 import com.soybeany.cache.v2.model.DataFrom;
 import com.soybeany.cache.v2.model.DataHolder;
 import com.soybeany.cache.v2.model.DataPack;
@@ -31,10 +30,10 @@ public class ThreadCacheStrategy<Param, Data> extends BaseCacheStrategy<Param, D
             throw new NoCacheException();
         }
         DataHolder<Data> holder = map.get(param);
-        if (!holder.isNorm) {
-            throw new DataException(DataFrom.CACHE, holder.exception);
+        if (holder.abnormal()) {
+            throw new DataException(DataFrom.CACHE, holder.getException());
         }
-        return DataPack.newCacheDataPack(this, holder.data, holder.getLeftValidTime());
+        return DataPack.newCacheDataPack(this, holder.getData(), holder.getLeftValidTime());
     }
 
     @Override

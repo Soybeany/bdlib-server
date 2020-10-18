@@ -1,7 +1,6 @@
 package com.soybeany.cache.v2.component;
 
 import com.soybeany.cache.v2.exception.DataException;
-import com.soybeany.cache.v2.exception.NoCacheException;
 import com.soybeany.cache.v2.model.DataFrom;
 import com.soybeany.cache.v2.model.DataHolder;
 import com.soybeany.cache.v2.model.DataPack;
@@ -27,10 +26,10 @@ public class DBSimulationStrategy<Param, Data> extends BaseCacheStrategy<Param, 
             map.remove(key);
             throw new NoCacheException();
         }
-        if (!holder.isNorm) {
-            throw new DataException(DataFrom.CACHE, holder.exception);
+        if (holder.abnormal()) {
+            throw new DataException(DataFrom.CACHE, holder.getException());
         }
-        return DataPack.newCacheDataPack(this, holder.data, leftValidTime);
+        return DataPack.newCacheDataPack(this, holder.getData(), leftValidTime);
     }
 
     @Override
