@@ -21,6 +21,11 @@ public class LruMemCacheStrategy<Param, Data> extends StdCacheStrategy<Param, Da
     private final LruDataAccessor<DataHolder<Data>> mDataAccessor = new LruDataAccessor<DataHolder<Data>>();
 
     @Override
+    public String desc() {
+        return "LRU";
+    }
+
+    @Override
     public boolean supportDoubleCheck() {
         return true;
     }

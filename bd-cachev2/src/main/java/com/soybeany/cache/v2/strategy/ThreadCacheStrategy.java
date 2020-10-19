@@ -19,6 +19,11 @@ public class ThreadCacheStrategy<Param, Data> extends StdCacheStrategy<Param, Da
     private final ThreadLocal<Map<Param, DataHolder<Data>>> threadLocal = new ThreadLocal<Map<Param, DataHolder<Data>>>();
 
     @Override
+    public String desc() {
+        return "同线程";
+    }
+
+    @Override
     public boolean supportDoubleCheck() {
         return true;
     }

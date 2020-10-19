@@ -2,7 +2,6 @@ package com.soybeany.cache.v2.model;
 
 
 import com.soybeany.cache.v2.contract.ICacheStrategy;
-import com.soybeany.cache.v2.contract.IDatasource;
 
 /**
  * 数据包
@@ -36,7 +35,7 @@ public class DataPack<Data> {
         return new DataPack<Data>(provider, data, DataFrom.CACHE, expiryInMills);
     }
 
-    public static <Param, Data> DataPack<Data> newSourceDataPack(IDatasource<Param, Data> provider, Data data) {
+    public static <Data> DataPack<Data> newSourceDataPack(Object provider, Data data) {
         return new DataPack<Data>(provider, data, DataFrom.SOURCE, Long.MAX_VALUE);
     }
 

@@ -1,10 +1,11 @@
-package com.soybeany.cache.v2;
+package com.soybeany.cache.v2.dm;
 
 import com.soybeany.cache.v2.contract.ICacheStrategy;
 import com.soybeany.cache.v2.contract.IDatasource;
 import com.soybeany.cache.v2.core.DataManager;
 import com.soybeany.cache.v2.exception.DataException;
 import com.soybeany.cache.v2.exception.NoDataSourceException;
+import com.soybeany.cache.v2.log.ConsoleLogger;
 import com.soybeany.cache.v2.model.DataFrom;
 import com.soybeany.cache.v2.model.DataPack;
 import com.soybeany.cache.v2.strategy.LruMemCacheStrategy;
@@ -31,16 +32,17 @@ public class SimpleDMTest {
     private final DataManager<String, String> dataManager = DataManager.Builder
             .get(datasource)
             .withCache(lruStrategy)
+            .logger(new ConsoleLogger<String, String>())
             .build();
 
     @Test
     public void sequenceTest() throws Exception {
         String key = "key";
         // 第一次将访问数据源
-        DataPack<String> data = dataManager.getDataPack(key);
+        DataPack<String> data = dataManager.getDataPack("序列测试1", key);
         assert datasource.equals(data.provider);
         // 第二次将读取lru
-        data = dataManager.getDataPack(key);
+        data = dataManager.getDataPack("序列测试2", key);
         assert lruStrategy.equals(data.provider);
     }
 
@@ -55,7 +57,7 @@ public class SimpleDMTest {
                 @Override
                 public void run() {
                     try {
-                        DataPack<String> pack = dataManager.getDataPack(null);
+                        DataPack<String> pack = dataManager.getDataPack("并发测试", null);
                         froms[finalI] = pack.from;
                     } catch (DataException e) {
                         throw new RuntimeException(e);
@@ -78,7 +80,7 @@ public class SimpleDMTest {
     @Test
     public void specifyDatasourceTest() throws Exception {
         final String source = "新数据源";
-        String data = dataManager.getData(null, new IDatasource<String, String>() {
+        String data = dataManager.getData("特定数据源测试", null, new IDatasource<String, String>() {
             @Override
             public String onGetData(String s) {
                 return source;
@@ -90,7 +92,7 @@ public class SimpleDMTest {
     @Test
     public void noDatasourceTest() throws Exception {
         try {
-            dataManager.getData(null, null);
+            dataManager.getData("无数据源测试", null, null);
             throw new Exception("不允许不抛出异常");
         } catch (DataException e) {
             Exception originException = e.getOriginException();

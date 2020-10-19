@@ -1,8 +1,9 @@
-package com.soybeany.cache.v2;
+package com.soybeany.cache.v2.dm;
 
 import com.soybeany.cache.v2.contract.IDatasource;
 import com.soybeany.cache.v2.core.DataManager;
 import com.soybeany.cache.v2.exception.DataException;
+import com.soybeany.cache.v2.log.ConsoleLogger;
 import com.soybeany.cache.v2.model.DataFrom;
 import com.soybeany.cache.v2.model.DataPack;
 import com.soybeany.cache.v2.strategy.LruMemCacheStrategy;
@@ -21,6 +22,7 @@ public class ExceptionDMTest {
                 }
             })
             .withCache(new LruMemCacheStrategy<String, String>())
+            .logger(new ConsoleLogger<String, String>())
             .build();
 
     @Test
@@ -28,14 +30,14 @@ public class ExceptionDMTest {
         DataPack<String> data;
         // 从数据源抛出异常
         try {
-            data = dataManager.getDataPack(null);
+            data = dataManager.getDataPack("数据源异常测试", null);
             System.out.println("data:" + data);
         } catch (DataException e) {
             assert DataFrom.SOURCE == e.getDataFrom();
         }
         // 抛出的是缓存了的异常
         try {
-            data = dataManager.getDataPack(null);
+            data = dataManager.getDataPack("缓存异常测试", null);
             System.out.println("data:" + data);
         } catch (DataException e) {
             assert DataFrom.CACHE == e.getDataFrom();

@@ -4,6 +4,7 @@ package com.soybeany.cache.v2.core;
 import com.soybeany.cache.v2.contract.ICacheStrategy;
 import com.soybeany.cache.v2.contract.IDatasource;
 import com.soybeany.cache.v2.contract.IKeyConverter;
+import com.soybeany.cache.v2.contract.ILogger;
 import com.soybeany.cache.v2.exception.DataException;
 import com.soybeany.cache.v2.exception.NoDataSourceException;
 import com.soybeany.cache.v2.model.DataFrom;
@@ -22,6 +23,7 @@ public class DataManager<Param, Data> {
     private final IDatasource<Param, Data> mDefaultDatasource;
 
     private CacheNode<Param, Data> mFirstNode; // 调用链的头
+    private ILogger<Param, Data> mLogger; // 日志输出
 
     /**
      * @param defaultDatasource 默认的数据源，允许为null
@@ -35,11 +37,12 @@ public class DataManager<Param, Data> {
     /**
      * 获得数据(默认方式)
      *
+     * @param desc  描述要获取的数据
      * @param param 用于匹配数据
      * @return 相匹配的数据
      */
-    public Data getData(Param param) throws DataException {
-        return getDataPack(param).data;
+    public Data getData(String desc, Param param) throws DataException {
+        return getDataPack(desc, param).data;
     }
 
     /**
@@ -48,30 +51,35 @@ public class DataManager<Param, Data> {
      * @param param 用于匹配数据
      * @return 相匹配的数据
      */
-    public Data getData(Param param, IDatasource<Param, Data> datasource) throws DataException {
-        return getDataPack(param, datasource).data;
+    public Data getData(String desc, Param param, IDatasource<Param, Data> datasource) throws DataException {
+        return getDataPack(desc, param, datasource).data;
     }
 
     /**
      * 获得数据(数据包方式)
      */
-    public DataPack<Data> getDataPack(Param param) throws DataException {
-        return getDataPack(param, mDefaultDatasource);
+    public DataPack<Data> getDataPack(String desc, Param param) throws DataException {
+        return getDataPack(desc, param, mDefaultDatasource);
     }
 
     /**
      * 获得数据(数据包方式)
      */
-    public DataPack<Data> getDataPack(Param param, IDatasource<Param, Data> datasource) throws DataException {
-        // 没有缓存节点的情况
-        if (null == mFirstNode) {
-            if (null == datasource) {
-                throw new DataException(DataFrom.SOURCE, new NoDataSourceException());
-            }
-            return getDataPackDirectly(param);
-        }
+    public DataPack<Data> getDataPack(String desc, Param param, IDatasource<Param, Data> datasource) throws DataException {
         // 有缓存节点的情况
-        return mFirstNode.getCache(param, datasource);
+        if (null != mFirstNode) {
+            DataPack<Data> pack = mFirstNode.getCache(param, datasource);
+            // 记录日志
+            if (null != mLogger) {
+                mLogger.onGetData(desc, param, pack);
+            }
+            return pack;
+        }
+        // 没有缓存节点的情况
+        if (null == datasource) {
+            throw new DataException(DataFrom.SOURCE, new NoDataSourceException());
+        }
+        return getDataPackDirectly(desc, param);
     }
 
     /**
@@ -80,25 +88,41 @@ public class DataManager<Param, Data> {
      * @param param 用于匹配数据
      * @return 相匹配的数据
      */
-    public DataPack<Data> getDataPackDirectly(Param param) throws DataException {
-        return CacheNode.getDataDirectly(param, mDefaultDatasource);
+    public DataPack<Data> getDataPackDirectly(String desc, Param param) throws DataException {
+        DataPack<Data> pack = CacheNode.getDataDirectly(param, mDefaultDatasource);
+        // 记录日志
+        if (null != mLogger) {
+            mLogger.onGetData(desc, param, pack);
+        }
+        return pack;
     }
 
     /**
      * 缓存数据，手动模式管理
      */
-    public void cacheData(Param param, DataPack<Data> data) {
-        if (null != mFirstNode) {
-            mFirstNode.cacheData(param, data);
+    public void cacheData(String desc, Param param, Data data) {
+        if (null == mFirstNode) {
+            return;
+        }
+        DataPack<Data> pack = DataPack.newSourceDataPack("外部", data);
+        mFirstNode.cacheData(param, pack);
+        // 记录日志
+        if (null != mLogger) {
+            mLogger.onCacheData(desc, param, pack);
         }
     }
 
     /**
      * 缓存异常，手动模式管理
      */
-    public void cacheException(Param param, Exception e) {
-        if (null != mFirstNode) {
-            mFirstNode.cacheException(param, e);
+    public void cacheException(String desc, Param param, Exception e) {
+        if (null == mFirstNode) {
+            return;
+        }
+        mFirstNode.cacheException(param, e);
+        // 记录日志
+        if (null != mLogger) {
+            mLogger.onCacheException(desc, param, e);
         }
     }
 
@@ -107,18 +131,28 @@ public class DataManager<Param, Data> {
      *
      * @param param 用于匹配数据
      */
-    public void removeCache(Param param) {
-        if (null != mFirstNode) {
-            mFirstNode.removeCache(param);
+    public void removeCache(String desc, Param param) {
+        if (null == mFirstNode) {
+            return;
+        }
+        mFirstNode.removeCache(param);
+        // 记录日志
+        if (null != mLogger) {
+            mLogger.onRemoveCache(desc, param);
         }
     }
 
     /**
      * 清除全部缓存(全部策略)
      */
-    public void clearCache() {
-        if (null != mFirstNode) {
-            mFirstNode.clearCache();
+    public void clearCache(String desc) {
+        if (null == mFirstNode) {
+            return;
+        }
+        mFirstNode.clearCache();
+        // 记录日志
+        if (null != mLogger) {
+            mLogger.onClearCache(desc);
         }
     }
 
@@ -167,6 +201,14 @@ public class DataManager<Param, Data> {
         }
 
         /**
+         * 若需要记录日志，则配置该logger
+         */
+        public Builder<Param, Data> logger(ILogger<Param, Data> logger) {
+            mManager.mLogger = logger;
+            return this;
+        }
+
+        /**
          * 构建出用于使用的实例
          */
         public DataManager<Param, Data> build() {
@@ -177,6 +219,8 @@ public class DataManager<Param, Data> {
             // 返回管理器实例
             return mManager;
         }
+
+        // ********************内部方法********************
 
         private void buildChain() {
             CacheNode<Param, Data> nextNode = null;

@@ -16,6 +16,11 @@ public class DBSimulationStrategy<Param, Data> extends StdCacheStrategy<Param, D
     private final Map<String, DataHolder<Data>> map = new HashMap<String, DataHolder<Data>>();
 
     @Override
+    public String desc() {
+        return "仿数据库";
+    }
+
+    @Override
     public DataPack<Data> onGetCache(Param param, String key) throws DataException, NoCacheException {
         if (!map.containsKey(key)) {
             throw new NoCacheException();
