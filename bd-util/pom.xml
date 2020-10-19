@@ -9,20 +9,7 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>bd-cachev2</artifactId>
+    <artifactId>bd-util</artifactId>
 
-    <dependencies>
-        <dependency>
-            <groupId>com.soybeany</groupId>
-            <artifactId>bd-util</artifactId>
-            <version>1.0-SNAPSHOT</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.google.code.gson</groupId>
-            <artifactId>gson</artifactId>
-            <version>2.8.6</version>
-        </dependency>
-    </dependencies>
 
 </project>
