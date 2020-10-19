@@ -16,7 +16,7 @@ import java.util.Map;
  * @author Soybeany
  * @date 2020/1/19
  */
-public class LruMemCacheStrategy<Param, Data> extends BaseCacheStrategy<Param, Data> {
+public class LruMemCacheStrategy<Param, Data> extends StdCacheStrategy<Param, Data> {
 
     private final LruDataAccessor<DataHolder<Data>> mDataAccessor = new LruDataAccessor<DataHolder<Data>>();
 

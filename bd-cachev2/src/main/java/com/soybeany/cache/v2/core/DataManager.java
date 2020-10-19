@@ -130,9 +130,6 @@ public class DataManager<Param, Data> {
         private final IKeyConverter<Param> mDefaultConverter;
         private final LinkedList<CacheNode<Param, Data>> mNodes = new LinkedList<CacheNode<Param, Data>>();
 
-        private Long mExpiry;
-        private Long mFastFailExpiry;
-
         public static <Data> Builder<String, Data> get(IDatasource<String, Data> datasource) {
             return new Builder<String, Data>(datasource, new IKeyConverter.Std());
         }
@@ -170,28 +167,6 @@ public class DataManager<Param, Data> {
         }
 
         /**
-         * 数据失效的超时，用于一般场景
-         *
-         * @param millis 失效时间(毫秒)
-         * @return 自身，方便链式调用
-         */
-        public Builder<Param, Data> expiry(long millis) {
-            mExpiry = millis;
-            return this;
-        }
-
-        /**
-         * 快速失败的超时，用于防缓存穿透等场景
-         *
-         * @param millis 失效时间(毫秒)
-         * @return 自身，方便链式调用
-         */
-        public Builder<Param, Data> fastFailExpiry(long millis) {
-            mFastFailExpiry = millis;
-            return this;
-        }
-
-        /**
          * 构建出用于使用的实例
          */
         public DataManager<Param, Data> build() {
@@ -199,8 +174,6 @@ public class DataManager<Param, Data> {
             Collections.sort(mNodes, new ServiceComparator());
             // 创建调用链
             buildChain();
-            // 设置超时
-            setupTimeout();
             // 返回管理器实例
             return mManager;
         }
@@ -212,19 +185,6 @@ public class DataManager<Param, Data> {
                 nextNode = node;
             }
             mManager.mFirstNode = nextNode;
-        }
-
-        private void setupTimeout() {
-            if (null != mExpiry) {
-                for (CacheNode<Param, Data> node : mNodes) {
-                    node.getStrategy().expiry(mExpiry);
-                }
-            }
-            if (null != mFastFailExpiry) {
-                for (CacheNode<Param, Data> node : mNodes) {
-                    node.getStrategy().fastFailExpiry(mFastFailExpiry);
-                }
-            }
         }
 
         /**

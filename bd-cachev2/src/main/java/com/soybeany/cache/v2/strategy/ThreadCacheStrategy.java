@@ -14,7 +14,7 @@ import java.util.Map;
  * @author Soybeany
  * @date 2020/9/23
  */
-public class ThreadCacheStrategy<Param, Data> extends BaseCacheStrategy<Param, Data> {
+public class ThreadCacheStrategy<Param, Data> extends StdCacheStrategy<Param, Data> {
 
     private final ThreadLocal<Map<Param, DataHolder<Data>>> threadLocal = new ThreadLocal<Map<Param, DataHolder<Data>>>();
 

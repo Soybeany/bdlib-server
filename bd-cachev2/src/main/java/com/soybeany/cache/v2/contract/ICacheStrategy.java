@@ -34,22 +34,6 @@ public interface ICacheStrategy<Param, Data> {
      */
     boolean supportDoubleCheck();
 
-    /**
-     * 数据失效的超时，用于一般场景
-     *
-     * @param millis 失效时间(毫秒)
-     * @return 自身，方便链式调用
-     */
-    ICacheStrategy<Param, Data> expiry(long millis);
-
-    /**
-     * 快速失败的超时，用于防缓存穿透等场景
-     *
-     * @param millis 失效时间(毫秒)
-     * @return 自身，方便链式调用
-     */
-    ICacheStrategy<Param, Data> fastFailExpiry(long millis);
-
     // ********************回调类********************
 
     /**
@@ -62,7 +46,7 @@ public interface ICacheStrategy<Param, Data> {
     DataPack<Data> onGetCache(Param param, String key) throws DataException, NoCacheException;
 
     /**
-     * 缓存数据的回调，与{@link #expiry(long)}对应
+     * 缓存数据的回调
      *
      * @param param 参数
      * @param key   键
@@ -71,7 +55,7 @@ public interface ICacheStrategy<Param, Data> {
     void onCacheData(Param param, String key, DataPack<Data> data);
 
     /**
-     * 缓存异常的回调，与{@link #fastFailExpiry(long)}对应
+     * 缓存异常的回调
      *
      * @param param 参数
      * @param key   键
