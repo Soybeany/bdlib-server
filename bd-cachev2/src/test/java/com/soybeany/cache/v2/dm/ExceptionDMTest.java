@@ -15,7 +15,7 @@ import org.junit.Test;
 public class ExceptionDMTest {
 
     private final DataManager<String, String> dataManager = DataManager.Builder
-            .get(new IDatasource<String, String>() {
+            .get("异常测试", new IDatasource<String, String>() {
                 @Override
                 public String onGetData(String s) throws Exception {
                     throw new Exception("测试");
@@ -30,14 +30,14 @@ public class ExceptionDMTest {
         DataPack<String> data;
         // 从数据源抛出异常
         try {
-            data = dataManager.getDataPack("数据源异常测试", null);
+            data = dataManager.getDataPack("数据源", null);
             System.out.println("data:" + data);
         } catch (DataException e) {
             assert DataFrom.SOURCE == e.getDataFrom();
         }
         // 抛出的是缓存了的异常
         try {
-            data = dataManager.getDataPack("缓存异常测试", null);
+            data = dataManager.getDataPack("缓存", null);
             System.out.println("data:" + data);
         } catch (DataException e) {
             assert DataFrom.CACHE == e.getDataFrom();

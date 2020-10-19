@@ -11,7 +11,7 @@ import com.soybeany.cache.v2.model.DataPack;
 public class ConsoleLogger<Param, Data> implements ILogger<Param, Data> {
 
     @Override
-    public void onGetData(String desc, Param param, DataPack<Data> pack) {
+    public void onGetData(String dataDesc, String paramDesc, Param param, DataPack<Data> pack) {
         String from;
         switch (pack.from) {
             case CACHE:
@@ -23,26 +23,26 @@ public class ConsoleLogger<Param, Data> implements ILogger<Param, Data> {
             default:
                 from = "未知来源";
         }
-        System.out.println("“" + desc + "”从“" + from + "”获取了数据");
+        System.out.println("“" + dataDesc + "”从“" + from + "”获取了“" + paramDesc + "”的数据");
     }
 
     @Override
-    public void onCacheData(String desc, Param param, DataPack<Data> pack) {
-        System.out.println("“" + desc + "”缓存了数据“");
+    public void onCacheData(String dataDesc, String paramDesc, Param param, DataPack<Data> pack) {
+        System.out.println("“" + dataDesc + "”缓存了“" + paramDesc + "”的数据“");
     }
 
     @Override
-    public void onCacheException(String desc, Param param, Exception e) {
-        System.out.println("“" + desc + "”缓存了异常(" + e.getClass().getSimpleName() + ")“");
+    public void onCacheException(String dataDesc, String paramDesc, Param param, Exception e) {
+        System.out.println("“" + dataDesc + "”缓存了“" + paramDesc + "”的异常(" + e.getClass().getSimpleName() + ")“");
     }
 
     @Override
-    public void onRemoveCache(String desc, Param param) {
-        System.out.println("“" + desc + "”移除了数据“");
+    public void onRemoveCache(String dataDesc, String paramDesc, Param param) {
+        System.out.println("“" + dataDesc + "”移除了“" + paramDesc + "”的数据“");
     }
 
     @Override
-    public void onClearCache(String desc) {
-        System.out.println("“" + desc + "”清空了数据“");
+    public void onClearCache(String dataDesc) {
+        System.out.println("“" + dataDesc + "”清空了数据“");
     }
 }

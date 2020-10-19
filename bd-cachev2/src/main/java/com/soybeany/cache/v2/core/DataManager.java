@@ -20,6 +20,7 @@ import java.util.LinkedList;
  */
 public class DataManager<Param, Data> {
 
+    private final String mDataDesc;
     private final IDatasource<Param, Data> mDefaultDatasource;
 
     private CacheNode<Param, Data> mFirstNode; // 调用链的头
@@ -28,7 +29,8 @@ public class DataManager<Param, Data> {
     /**
      * @param defaultDatasource 默认的数据源，允许为null
      */
-    private DataManager(IDatasource<Param, Data> defaultDatasource) {
+    private DataManager(String dataDesc, IDatasource<Param, Data> defaultDatasource) {
+        mDataDesc = dataDesc;
         mDefaultDatasource = defaultDatasource;
     }
 
@@ -37,12 +39,12 @@ public class DataManager<Param, Data> {
     /**
      * 获得数据(默认方式)
      *
-     * @param desc  描述要获取的数据
-     * @param param 用于匹配数据
+     * @param paramDesc 描述要获取的数据
+     * @param param     用于匹配数据
      * @return 相匹配的数据
      */
-    public Data getData(String desc, Param param) throws DataException {
-        return getDataPack(desc, param).data;
+    public Data getData(String paramDesc, Param param) throws DataException {
+        return getDataPack(paramDesc, param).data;
     }
 
     /**
@@ -51,27 +53,27 @@ public class DataManager<Param, Data> {
      * @param param 用于匹配数据
      * @return 相匹配的数据
      */
-    public Data getData(String desc, Param param, IDatasource<Param, Data> datasource) throws DataException {
-        return getDataPack(desc, param, datasource).data;
+    public Data getData(String paramDesc, Param param, IDatasource<Param, Data> datasource) throws DataException {
+        return getDataPack(paramDesc, param, datasource).data;
     }
 
     /**
      * 获得数据(数据包方式)
      */
-    public DataPack<Data> getDataPack(String desc, Param param) throws DataException {
-        return getDataPack(desc, param, mDefaultDatasource);
+    public DataPack<Data> getDataPack(String paramDesc, Param param) throws DataException {
+        return getDataPack(paramDesc, param, mDefaultDatasource);
     }
 
     /**
      * 获得数据(数据包方式)
      */
-    public DataPack<Data> getDataPack(String desc, Param param, IDatasource<Param, Data> datasource) throws DataException {
+    public DataPack<Data> getDataPack(String paramDesc, Param param, IDatasource<Param, Data> datasource) throws DataException {
         // 有缓存节点的情况
         if (null != mFirstNode) {
             DataPack<Data> pack = mFirstNode.getCache(param, datasource);
             // 记录日志
             if (null != mLogger) {
-                mLogger.onGetData(desc, param, pack);
+                mLogger.onGetData(mDataDesc, paramDesc, param, pack);
             }
             return pack;
         }
@@ -79,7 +81,7 @@ public class DataManager<Param, Data> {
         if (null == datasource) {
             throw new DataException(DataFrom.SOURCE, new NoDataSourceException());
         }
-        return getDataPackDirectly(desc, param);
+        return getDataPackDirectly(paramDesc, param);
     }
 
     /**
@@ -88,11 +90,11 @@ public class DataManager<Param, Data> {
      * @param param 用于匹配数据
      * @return 相匹配的数据
      */
-    public DataPack<Data> getDataPackDirectly(String desc, Param param) throws DataException {
+    public DataPack<Data> getDataPackDirectly(String paramDesc, Param param) throws DataException {
         DataPack<Data> pack = CacheNode.getDataDirectly(param, mDefaultDatasource);
         // 记录日志
         if (null != mLogger) {
-            mLogger.onGetData(desc, param, pack);
+            mLogger.onGetData(mDataDesc, paramDesc, param, pack);
         }
         return pack;
     }
@@ -100,7 +102,7 @@ public class DataManager<Param, Data> {
     /**
      * 缓存数据，手动模式管理
      */
-    public void cacheData(String desc, Param param, Data data) {
+    public void cacheData(String paramDesc, Param param, Data data) {
         if (null == mFirstNode) {
             return;
         }
@@ -108,21 +110,21 @@ public class DataManager<Param, Data> {
         mFirstNode.cacheData(param, pack);
         // 记录日志
         if (null != mLogger) {
-            mLogger.onCacheData(desc, param, pack);
+            mLogger.onCacheData(mDataDesc, paramDesc, param, pack);
         }
     }
 
     /**
      * 缓存异常，手动模式管理
      */
-    public void cacheException(String desc, Param param, Exception e) {
+    public void cacheException(String paramDesc, Param param, Exception e) {
         if (null == mFirstNode) {
             return;
         }
         mFirstNode.cacheException(param, e);
         // 记录日志
         if (null != mLogger) {
-            mLogger.onCacheException(desc, param, e);
+            mLogger.onCacheException(mDataDesc, paramDesc, param, e);
         }
     }
 
@@ -131,28 +133,28 @@ public class DataManager<Param, Data> {
      *
      * @param param 用于匹配数据
      */
-    public void removeCache(String desc, Param param) {
+    public void removeCache(String paramDesc, Param param) {
         if (null == mFirstNode) {
             return;
         }
         mFirstNode.removeCache(param);
         // 记录日志
         if (null != mLogger) {
-            mLogger.onRemoveCache(desc, param);
+            mLogger.onRemoveCache(mDataDesc, paramDesc, param);
         }
     }
 
     /**
      * 清除全部缓存(全部策略)
      */
-    public void clearCache(String desc) {
+    public void clearCache() {
         if (null == mFirstNode) {
             return;
         }
         mFirstNode.clearCache();
         // 记录日志
         if (null != mLogger) {
-            mLogger.onClearCache(desc);
+            mLogger.onClearCache(mDataDesc);
         }
     }
 
@@ -164,16 +166,16 @@ public class DataManager<Param, Data> {
         private final IKeyConverter<Param> mDefaultConverter;
         private final LinkedList<CacheNode<Param, Data>> mNodes = new LinkedList<CacheNode<Param, Data>>();
 
-        public static <Data> Builder<String, Data> get(IDatasource<String, Data> datasource) {
-            return new Builder<String, Data>(datasource, new IKeyConverter.Std());
+        public static <Data> Builder<String, Data> get(String dataDesc, IDatasource<String, Data> datasource) {
+            return new Builder<String, Data>(dataDesc, datasource, new IKeyConverter.Std());
         }
 
-        public static <Param, Data> Builder<Param, Data> get(IDatasource<Param, Data> datasource, IKeyConverter<Param> defaultConverter) {
-            return new Builder<Param, Data>(datasource, defaultConverter);
+        public static <Param, Data> Builder<Param, Data> get(String dataDesc, IDatasource<Param, Data> datasource, IKeyConverter<Param> defaultConverter) {
+            return new Builder<Param, Data>(dataDesc, datasource, defaultConverter);
         }
 
-        private Builder(IDatasource<Param, Data> datasource, IKeyConverter<Param> defaultConverter) {
-            mManager = new DataManager<Param, Data>(datasource);
+        private Builder(String dataDesc, IDatasource<Param, Data> datasource, IKeyConverter<Param> defaultConverter) {
+            mManager = new DataManager<Param, Data>(dataDesc, datasource);
             mDefaultConverter = defaultConverter;
         }
 

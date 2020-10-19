@@ -28,7 +28,7 @@ public class MultiExpiryDMTest {
     private final StdCacheStrategy<String, String> dbStrategy = new DBSimulationStrategy<String, String>();
 
     private final DataManager<String, String> dataManager = DataManager.Builder
-            .get(datasource)
+            .get("MultiExpiry", datasource)
             .withCache(lruStrategy.expiry(800))
             .withCache(dbStrategy.expiry(1000))
             .logger(new ConsoleLogger<String, String>())
@@ -38,23 +38,23 @@ public class MultiExpiryDMTest {
     public void test() throws Exception {
         String key = "key";
         // 一开始没有数据，应该访问数据源
-        DataPack<String> pack = dataManager.getDataPack("MultiExpiry1", key);
+        DataPack<String> pack = dataManager.getDataPack("1", key);
         assert datasource.equals(pack.provider);
         // 已经缓存了数据，应该访问lru
-        pack = dataManager.getDataPack("MultiExpiry2", key);
+        pack = dataManager.getDataPack("2", key);
         assert lruStrategy.equals(pack.provider);
         // 休眠一个比lru时间长，但比db时间短的时间
         Thread.sleep(900);
         // lru已失效，但db未失效
-        pack = dataManager.getDataPack("MultiExpiry3", key);
+        pack = dataManager.getDataPack("3", key);
         assert dbStrategy.equals(pack.provider);
         // lru仍生效
-        pack = dataManager.getDataPack("MultiExpiry4", key);
+        pack = dataManager.getDataPack("4", key);
         assert lruStrategy.equals(pack.provider);
         // 休眠一个短时间，使db也失效
-        Thread.sleep(100);
+        Thread.sleep(200);
         // 全部缓存已失效，再次访问数据源
-        pack = dataManager.getDataPack("MultiExpiry5", key);
+        pack = dataManager.getDataPack("5", key);
         assert datasource.equals(pack.provider);
     }
 

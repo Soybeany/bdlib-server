@@ -30,7 +30,7 @@ public class SimpleDMTest {
     private final ICacheStrategy<String, String> lruStrategy = new LruMemCacheStrategy<String, String>();
 
     private final DataManager<String, String> dataManager = DataManager.Builder
-            .get(datasource)
+            .get("简单测试", datasource)
             .withCache(lruStrategy)
             .logger(new ConsoleLogger<String, String>())
             .build();
@@ -39,10 +39,10 @@ public class SimpleDMTest {
     public void sequenceTest() throws Exception {
         String key = "key";
         // 第一次将访问数据源
-        DataPack<String> data = dataManager.getDataPack("序列测试1", key);
+        DataPack<String> data = dataManager.getDataPack("序列1", key);
         assert datasource.equals(data.provider);
         // 第二次将读取lru
-        data = dataManager.getDataPack("序列测试2", key);
+        data = dataManager.getDataPack("序列2", key);
         assert lruStrategy.equals(data.provider);
     }
 
@@ -57,7 +57,7 @@ public class SimpleDMTest {
                 @Override
                 public void run() {
                     try {
-                        DataPack<String> pack = dataManager.getDataPack("并发测试", null);
+                        DataPack<String> pack = dataManager.getDataPack("并发", null);
                         froms[finalI] = pack.from;
                     } catch (DataException e) {
                         throw new RuntimeException(e);
@@ -80,7 +80,7 @@ public class SimpleDMTest {
     @Test
     public void specifyDatasourceTest() throws Exception {
         final String source = "新数据源";
-        String data = dataManager.getData("特定数据源测试", null, new IDatasource<String, String>() {
+        String data = dataManager.getData("特定数据源", null, new IDatasource<String, String>() {
             @Override
             public String onGetData(String s) {
                 return source;
@@ -92,7 +92,7 @@ public class SimpleDMTest {
     @Test
     public void noDatasourceTest() throws Exception {
         try {
-            dataManager.getData("无数据源测试", null, null);
+            dataManager.getData("无数据源", null, null);
             throw new Exception("不允许不抛出异常");
         } catch (DataException e) {
             Exception originException = e.getOriginException();

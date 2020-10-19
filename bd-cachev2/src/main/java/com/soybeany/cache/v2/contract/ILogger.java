@@ -13,26 +13,26 @@ public interface ILogger<Param, Data> {
     /**
      * 获取数据时的回调
      */
-    void onGetData(String desc, Param param, DataPack<Data> pack);
+    void onGetData(String dataDesc, String paramDesc, Param param, DataPack<Data> pack);
 
     /**
      * 缓存数据时的回调
      */
-    void onCacheData(String desc, Param param, DataPack<Data> pack);
+    void onCacheData(String dataDesc, String paramDesc, Param param, DataPack<Data> pack);
 
     /**
      * 缓存异常时的回调
      */
-    void onCacheException(String desc, Param param, Exception e);
+    void onCacheException(String dataDesc, String paramDesc, Param param, Exception e);
 
     /**
      * 移除缓存时的回调
      */
-    void onRemoveCache(String desc, Param param);
+    void onRemoveCache(String dataDesc, String paramDesc, Param param);
 
     /**
      * 清除缓存时的回调
      */
-    void onClearCache(String desc);
+    void onClearCache(String dataDesc);
 
 }
