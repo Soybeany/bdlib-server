@@ -83,7 +83,7 @@ public class DataException extends Exception {
     /**
      * 原始异常是否与指定的异常相同
      */
-    public boolean isOriginExceptionTheSameWith(Class<Exception> clazz) {
+    public boolean isOriginExceptionTheSameWith(Class<? extends Exception> clazz) {
         return mOriginExceptionFullName.equals(clazz.getName());
     }
 

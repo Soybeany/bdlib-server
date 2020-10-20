@@ -21,11 +21,11 @@ public class DataHolderTest {
         DataHolder<String> holder = DataHolder.get(DataPack.newSourceDataPack(null, data), 1234);
         DataHolder<String> holder2 = DataHolder.get(new RuntimeException(errMsg), 1234);
 
-        String json1 = DataHolder.toJson(holder, String.class);
-        String json2 = DataHolder.toJson(holder2, String.class);
+        String json1 = DataHolder.toJson(holder);
+        String json2 = DataHolder.toJson(holder2);
 
-        DataHolder<String> holder4 = DataHolder.fromJson(json1);
-        DataHolder<String> holder5 = DataHolder.fromJson(json2);
+        DataHolder<String> holder4 = DataHolder.fromJson(json1, String.class);
+        DataHolder<String> holder5 = DataHolder.fromJson(json2, String.class);
 
         assert data.equals(holder4.getData()) && errMsg.equals(holder5.getException().getMessage());
     }
@@ -37,12 +37,12 @@ public class DataHolderTest {
 
         DataHolder<List<Vo>> holder = DataHolder.get(DataPack.newSourceDataPack(null, list), 1234);
 
-        String json = DataHolder.toJson(holder, List.class);
-        String json2 = DataHolder.toJson(holder, new TypeToken<List<Vo>>() {
-        }.getType());
+        String json = DataHolder.toJson(holder);
+        String json2 = DataHolder.toJson(holder);
 
-        DataHolder<String> holder3 = DataHolder.fromJson(json);
-        DataHolder<String> holder4 = DataHolder.fromJson(json2);
+        DataHolder<String> holder3 = DataHolder.fromJson(json, List.class);
+        DataHolder<String> holder4 = DataHolder.fromJson(json2, new TypeToken<List<Vo>>() {
+        }.getType());
     }
 
     private static class Vo {
