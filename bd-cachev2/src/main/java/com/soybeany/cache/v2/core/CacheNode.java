@@ -97,7 +97,9 @@ class CacheNode<Param, Data> {
                     throw new DataException(DataFrom.CACHE, new NoCacheException());
                 }
                 // 否则从下一节点获取缓存
-                return mNextNode.getCache(param);
+                DataPack<Data> pack = mNextNode.getCache(param);
+                mCurStrategy.onCacheData(param, key, pack);
+                return pack;
             }
         });
     }
