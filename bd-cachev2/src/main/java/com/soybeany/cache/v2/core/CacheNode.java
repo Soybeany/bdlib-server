@@ -113,11 +113,16 @@ class CacheNode<Param, Data> {
         });
     }
 
-    void cacheException(final Param param, final Exception e) {
+    void cacheException(final Param param, Exception e) {
+        final DataException exception = new DataException(DataFrom.SOURCE, e);
         traverse(param, new ICallback2<Param, Data>() {
             @Override
             public void onInvoke(String key, CacheNode<Param, Data> node) {
-                node.mCurStrategy.onCacheException(param, key, e);
+                try {
+                    node.mCurStrategy.onHandleException(param, key, exception);
+                } catch (DataException dataException) {
+                    // 不作处理
+                }
             }
         });
     }
@@ -170,8 +175,7 @@ class CacheNode<Param, Data> {
             mCurStrategy.onCacheData(param, key, pack);
             return pack;
         } catch (DataException e) {
-            mCurStrategy.onCacheException(param, key, e.getOriginException());
-            throw e;
+            return mCurStrategy.onHandleException(param, key, e);
         }
     }
 

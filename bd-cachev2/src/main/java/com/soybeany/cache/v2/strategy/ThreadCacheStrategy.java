@@ -47,11 +47,6 @@ public class ThreadCacheStrategy<Param, Data> extends StdCacheStrategy<Param, Da
     }
 
     @Override
-    public void onCacheException(Param param, String key, Exception e) {
-        threadLocal.get().put(param, DataHolder.<Data>get(e, mFastFailExpiry));
-    }
-
-    @Override
     public void removeCache(Param param, String key) {
         threadLocal.get().remove(param);
     }
@@ -59,6 +54,11 @@ public class ThreadCacheStrategy<Param, Data> extends StdCacheStrategy<Param, Da
     @Override
     public void clearCache() {
         threadLocal.get().clear();
+    }
+
+    @Override
+    protected void onCacheException(Param param, String key, Exception e) {
+        threadLocal.get().put(param, DataHolder.<Data>get(e, mFastFailExpiry));
     }
 
     // ********************操作方法********************

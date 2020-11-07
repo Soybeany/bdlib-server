@@ -59,11 +59,6 @@ public class LruMemCacheStrategy<Param, Data> extends StdCacheStrategy<Param, Da
     }
 
     @Override
-    public void onCacheException(Param param, String key, Exception e) {
-        mDataAccessor.putData(key, DataHolder.<Data>get(e, mFastFailExpiry));
-    }
-
-    @Override
     public void removeCache(Param param, String key) {
         mDataAccessor.removeData(key);
     }
@@ -71,6 +66,11 @@ public class LruMemCacheStrategy<Param, Data> extends StdCacheStrategy<Param, Da
     @Override
     public void clearCache() {
         mDataAccessor.clear();
+    }
+
+    @Override
+    protected void onCacheException(Param param, String key, Exception e) {
+        mDataAccessor.putData(key, DataHolder.<Data>get(e, mFastFailExpiry));
     }
 
     public LruMemCacheStrategy<Param, Data> capacity(int size) {

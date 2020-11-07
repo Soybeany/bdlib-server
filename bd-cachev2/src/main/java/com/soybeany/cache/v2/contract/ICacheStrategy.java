@@ -62,13 +62,13 @@ public interface ICacheStrategy<Param, Data> {
     void onCacheData(Param param, String key, DataPack<Data> data);
 
     /**
-     * 缓存异常的回调
+     * 处理异常的回调，一般的实现为缓存异常并重新抛出异常
      *
      * @param param 参数
      * @param key   键
      * @param e     待缓存的异常
      */
-    void onCacheException(Param param, String key, Exception e);
+    DataPack<Data> onHandleException(Param param, String key, DataException e) throws DataException;
 
     // ********************触发类********************
 

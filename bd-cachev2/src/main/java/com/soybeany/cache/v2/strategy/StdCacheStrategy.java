@@ -2,6 +2,8 @@ package com.soybeany.cache.v2.strategy;
 
 
 import com.soybeany.cache.v2.contract.ICacheStrategy;
+import com.soybeany.cache.v2.exception.DataException;
+import com.soybeany.cache.v2.model.DataPack;
 
 /**
  * @author Soybeany
@@ -20,6 +22,12 @@ public abstract class StdCacheStrategy<Param, Data> implements ICacheStrategy<Pa
     @Override
     public boolean supportDoubleCheck() {
         return false;
+    }
+
+    @Override
+    public DataPack<Data> onHandleException(Param param, String key, DataException e) throws DataException {
+        onCacheException(param, key, e.getOriginException());
+        throw e;
     }
 
     /**
@@ -43,4 +51,9 @@ public abstract class StdCacheStrategy<Param, Data> implements ICacheStrategy<Pa
         mFastFailExpiry = millis;
         return this;
     }
+
+    /**
+     * 缓存异常时的回调
+     */
+    protected abstract void onCacheException(Param param, String key, Exception e);
 }

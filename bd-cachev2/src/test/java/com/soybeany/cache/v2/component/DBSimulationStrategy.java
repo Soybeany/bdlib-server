@@ -43,11 +43,6 @@ public class DBSimulationStrategy<Param, Data> extends StdCacheStrategy<Param, D
     }
 
     @Override
-    public void onCacheException(Param param, String key, Exception e) {
-        map.put(key, DataHolder.<Data>get(e, mFastFailExpiry));
-    }
-
-    @Override
     public void removeCache(Param param, String key) {
         map.remove(key);
     }
@@ -55,5 +50,10 @@ public class DBSimulationStrategy<Param, Data> extends StdCacheStrategy<Param, D
     @Override
     public void clearCache() {
         map.clear();
+    }
+
+    @Override
+    protected void onCacheException(Param param, String key, Exception e) {
+        map.put(key, DataHolder.<Data>get(e, mFastFailExpiry));
     }
 }
