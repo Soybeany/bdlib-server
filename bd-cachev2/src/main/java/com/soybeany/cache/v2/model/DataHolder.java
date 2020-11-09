@@ -15,7 +15,7 @@ public class DataHolder<Data> {
 
     private transient Data data; // 数据
     private transient Exception exception; // 相关的异常
-    private final long expiry; // 超时
+    private long expiry; // 超时
 
     private final long mCreateStamp; // 创建时的时间戳
 
@@ -92,6 +92,14 @@ public class DataHolder<Data> {
 
     public long getExpiry() {
         return expiry;
+    }
+
+    public void setExpiry(long expiry) {
+        this.expiry = expiry;
+    }
+
+    public long getmCreateStamp() {
+        return mCreateStamp;
     }
 
     /**
