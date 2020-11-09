@@ -13,7 +13,7 @@ import java.util.Map;
  * <br>Created by Soybeany on 2020/10/16.
  */
 public class DBSimulationStrategy<Param, Data> extends StdCacheStrategy<Param, Data> {
-    private final Map<String, DataHolder<Data>> map = new HashMap<String, DataHolder<Data>>();
+    private final Map<String, TimeWrapper<Data>> map = new HashMap<String, TimeWrapper<Data>>();
 
     @Override
     public String desc() {
@@ -25,21 +25,22 @@ public class DBSimulationStrategy<Param, Data> extends StdCacheStrategy<Param, D
         if (!map.containsKey(key)) {
             throw new NoCacheException();
         }
-        DataHolder<Data> holder = map.get(key);
-        long leftValidTime = holder.getLeftValidTime();
-        if (DataHolder.isExpired(leftValidTime)) {
+        TimeWrapper<Data> wrapper = map.get(key);
+        long remainingValidTime = wrapper.getRemainingValidTimeInMills(TimeWrapper.currentTimeMillis());
+        if (TimeWrapper.isExpired(remainingValidTime)) {
             map.remove(key);
             throw new NoCacheException();
         }
+        DataHolder<Data> holder = wrapper.target;
         if (holder.abnormal()) {
             throw new DataException(DataFrom.CACHE, holder.getException());
         }
-        return DataPack.newCacheDataPack(this, holder.getData(), leftValidTime);
+        return DataPack.newCacheDataPack(this, holder.getData(), remainingValidTime);
     }
 
     @Override
     public void onCacheData(Param param, String key, DataPack<Data> data) {
-        map.put(key, DataHolder.get(data, mExpiry));
+        map.put(key, TimeWrapper.get(data, mExpiry, TimeWrapper.currentTimeMillis()));
     }
 
     @Override
@@ -54,6 +55,6 @@ public class DBSimulationStrategy<Param, Data> extends StdCacheStrategy<Param, D
 
     @Override
     protected void onCacheException(Param param, String key, Exception e) {
-        map.put(key, DataHolder.<Data>get(e, mFastFailExpiry));
+        map.put(key, TimeWrapper.<Data>get(e, mFastFailExpiry, TimeWrapper.currentTimeMillis()));
     }
 }

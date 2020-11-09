@@ -38,7 +38,7 @@ public class ThreadCacheStrategy<Param, Data> extends StdCacheStrategy<Param, Da
         if (holder.abnormal()) {
             throw new DataException(DataFrom.CACHE, holder.getException());
         }
-        return DataPack.newCacheDataPack(this, holder.getData(), holder.getLeftValidTime());
+        return DataPack.newCacheDataPack(this, holder.getData(), holder.getExpiryMillis());
     }
 
     @Override

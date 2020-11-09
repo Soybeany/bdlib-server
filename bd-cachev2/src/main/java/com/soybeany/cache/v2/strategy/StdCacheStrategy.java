@@ -3,6 +3,7 @@ package com.soybeany.cache.v2.strategy;
 
 import com.soybeany.cache.v2.contract.ICacheStrategy;
 import com.soybeany.cache.v2.exception.DataException;
+import com.soybeany.cache.v2.model.DataHolder;
 import com.soybeany.cache.v2.model.DataPack;
 
 /**
@@ -56,4 +57,37 @@ public abstract class StdCacheStrategy<Param, Data> implements ICacheStrategy<Pa
      * 缓存异常时的回调
      */
     protected abstract void onCacheException(Param param, String key, Exception e);
+
+
+    protected static class TimeWrapper<Data> {
+
+        public final DataHolder<Data> target; // 目标dataHolder
+        public final long createStamp; // 创建时的时间戳
+
+        public static <Data> TimeWrapper<Data> get(DataPack<Data> data, long expiryMillis, long createStamp) {
+            return new TimeWrapper<Data>(DataHolder.get(data, expiryMillis), createStamp);
+        }
+
+        public static <Data> TimeWrapper<Data> get(Exception exception, long expiryMillis, long createStamp) {
+            return new TimeWrapper<Data>(DataHolder.<Data>get(exception, expiryMillis), createStamp);
+        }
+
+        public static boolean isExpired(long remainingValidTime) {
+            return remainingValidTime <= 0;
+        }
+
+        public static long currentTimeMillis() {
+            return System.currentTimeMillis();
+        }
+
+        public TimeWrapper(DataHolder<Data> target, long createStamp) {
+            this.target = target;
+            this.createStamp = createStamp;
+        }
+
+        public long getRemainingValidTimeInMills(long curTimeInMills) {
+            long expiredTime = createStamp + target.getExpiryMillis();
+            return expiredTime - curTimeInMills;
+        }
+    }
 }

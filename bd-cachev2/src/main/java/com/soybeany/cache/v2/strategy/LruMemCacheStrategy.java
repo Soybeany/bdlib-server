@@ -18,7 +18,7 @@ import java.util.Map;
  */
 public class LruMemCacheStrategy<Param, Data> extends StdCacheStrategy<Param, Data> {
 
-    private final LruDataAccessor<DataHolder<Data>> mDataAccessor = new LruDataAccessor<DataHolder<Data>>();
+    private final LruDataAccessor<TimeWrapper<Data>> mDataAccessor = new LruDataAccessor<TimeWrapper<Data>>();
 
     @Override
     public String desc() {
@@ -32,30 +32,31 @@ public class LruMemCacheStrategy<Param, Data> extends StdCacheStrategy<Param, Da
 
     @Override
     public DataPack<Data> onGetCache(Param param, String key) throws DataException, NoCacheException {
-        DataHolder<Data> holder = mDataAccessor.get(key);
+        TimeWrapper<Data> wrapper = mDataAccessor.get(key);
         // 若缓存中没有数据，则直接抛出无数据异常
-        if (null == holder) {
+        if (null == wrapper) {
             throw new NoCacheException();
         }
         // 若缓存中的数据过期，则移除数据后抛出无数据异常
-        long leftValidTime = holder.getLeftValidTime();
-        if (DataHolder.isExpired(leftValidTime)) {
+        long remainingValidTime = wrapper.getRemainingValidTimeInMills(TimeWrapper.currentTimeMillis());
+        if (TimeWrapper.isExpired(remainingValidTime)) {
             mDataAccessor.removeData(key);
             throw new NoCacheException();
         }
         // 数据依旧有效，则移到队列末尾
         mDataAccessor.moveDataToLast(key);
+        DataHolder<Data> holder = wrapper.target;
         // 没有数据，则抛出防穿透异常
         if (holder.abnormal()) {
             throw new DataException(DataFrom.CACHE, holder.getException());
         }
         // 返回正常缓存的数据
-        return DataPack.newCacheDataPack(this, holder.getData(), leftValidTime);
+        return DataPack.newCacheDataPack(this, holder.getData(), remainingValidTime);
     }
 
     @Override
     public void onCacheData(Param param, String key, DataPack<Data> data) {
-        mDataAccessor.putData(key, DataHolder.get(data, mExpiry));
+        mDataAccessor.putData(key, TimeWrapper.get(data, mExpiry, TimeWrapper.currentTimeMillis()));
     }
 
     @Override
@@ -70,7 +71,7 @@ public class LruMemCacheStrategy<Param, Data> extends StdCacheStrategy<Param, Da
 
     @Override
     protected void onCacheException(Param param, String key, Exception e) {
-        mDataAccessor.putData(key, DataHolder.<Data>get(e, mFastFailExpiry));
+        mDataAccessor.putData(key, TimeWrapper.<Data>get(e, mFastFailExpiry, TimeWrapper.currentTimeMillis()));
     }
 
     public LruMemCacheStrategy<Param, Data> capacity(int size) {
