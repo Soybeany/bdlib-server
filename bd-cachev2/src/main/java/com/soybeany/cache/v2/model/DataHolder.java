@@ -15,7 +15,6 @@ public class DataHolder<Data> {
 
     private transient Data data; // 数据
     private transient Exception exception; // 相关的异常
-    private long expiryMillis; // 超时时间，静态
 
     private String dataJson;
     private Info exceptionJson;
@@ -46,25 +45,18 @@ public class DataHolder<Data> {
         return holder;
     }
 
-    public static <Data> DataHolder<Data> get(DataPack<Data> data, long expiryMillis) {
-        return new DataHolder<Data>(data, null, true, expiryMillis);
+    public static <Data> DataHolder<Data> get(Data data) {
+        return new DataHolder<Data>(data, null, true);
     }
 
-    public static <Data> DataHolder<Data> get(Exception exception, long expiryMillis) {
-        return new DataHolder<Data>(null, exception, false, expiryMillis);
+    public static <Data> DataHolder<Data> get(Exception exception) {
+        return new DataHolder<Data>(null, exception, false);
     }
 
-    public DataHolder(DataPack<Data> data, Exception exception, boolean norm, long expiryMillis) {
+    public DataHolder(Data data, Exception exception, boolean norm) {
         this.exception = exception;
         this.norm = norm;
-
-        if (null != data) {
-            this.data = data.data;
-            this.expiryMillis = Math.min(data.expiryMillis, expiryMillis);
-        } else {
-            this.data = null;
-            this.expiryMillis = expiryMillis;
-        }
+        this.data = data;
     }
 
     public boolean abnormal() {
@@ -77,14 +69,6 @@ public class DataHolder<Data> {
 
     public Exception getException() {
         return exception;
-    }
-
-    public long getExpiryMillis() {
-        return expiryMillis;
-    }
-
-    public void setExpiryMillis(long time) {
-        this.expiryMillis = time;
     }
 
     // ****************************************内部方法****************************************

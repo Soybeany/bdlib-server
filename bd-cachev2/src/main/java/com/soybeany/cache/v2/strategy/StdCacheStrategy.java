@@ -64,12 +64,19 @@ public abstract class StdCacheStrategy<Param, Data> implements ICacheStrategy<Pa
         public final DataHolder<Data> target; // 目标dataHolder
         public final long createStamp; // 创建时的时间戳
 
-        public static <Data> TimeWrapper<Data> get(DataPack<Data> data, long expiryMillis, long createStamp) {
-            return new TimeWrapper<Data>(DataHolder.get(data, expiryMillis), createStamp);
+        private final long expiryMillis; // 超时时间，静态
+
+        public static <Data> TimeWrapper<Data> get(DataPack<Data> dataPack, long expiryMillis, long createStamp) {
+            Data data = null;
+            if (null != dataPack) {
+                data = dataPack.data;
+                expiryMillis = Math.min(dataPack.expiryMillis, expiryMillis);
+            }
+            return new TimeWrapper<Data>(DataHolder.get(data), expiryMillis, createStamp);
         }
 
         public static <Data> TimeWrapper<Data> get(Exception exception, long expiryMillis, long createStamp) {
-            return new TimeWrapper<Data>(DataHolder.<Data>get(exception, expiryMillis), createStamp);
+            return new TimeWrapper<Data>(DataHolder.<Data>get(exception), expiryMillis, createStamp);
         }
 
         public static boolean isExpired(long remainingValidTime) {
@@ -80,13 +87,14 @@ public abstract class StdCacheStrategy<Param, Data> implements ICacheStrategy<Pa
             return System.currentTimeMillis();
         }
 
-        public TimeWrapper(DataHolder<Data> target, long createStamp) {
+        public TimeWrapper(DataHolder<Data> target, long expiryMillis, long createStamp) {
             this.target = target;
             this.createStamp = createStamp;
+            this.expiryMillis = expiryMillis;
         }
 
         public long getRemainingValidTimeInMills(long curTimeInMills) {
-            long expiredTime = createStamp + target.getExpiryMillis();
+            long expiredTime = createStamp + expiryMillis;
             return expiredTime - curTimeInMills;
         }
     }

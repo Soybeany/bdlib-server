@@ -2,7 +2,6 @@ package com.soybeany.cache.v2;
 
 import com.google.gson.reflect.TypeToken;
 import com.soybeany.cache.v2.model.DataHolder;
-import com.soybeany.cache.v2.model.DataPack;
 import org.junit.Test;
 
 import java.util.LinkedList;
@@ -18,8 +17,8 @@ public class DataHolderTest {
         String data = "sdf";
         String errMsg = "测试异常";
 
-        DataHolder<String> holder = DataHolder.get(DataPack.newSourceDataPack(null, data), 1234);
-        DataHolder<String> holder2 = DataHolder.get(new RuntimeException(errMsg), 1234);
+        DataHolder<String> holder = DataHolder.get(data);
+        DataHolder<String> holder2 = DataHolder.get(new RuntimeException(errMsg));
 
         String json1 = DataHolder.toJson(holder);
         String json2 = DataHolder.toJson(holder2);
@@ -35,7 +34,7 @@ public class DataHolderTest {
         List<Vo> list = new LinkedList<Vo>();
         list.add(new Vo("字段"));
 
-        DataHolder<List<Vo>> holder = DataHolder.get(DataPack.newSourceDataPack(null, list), 1234);
+        DataHolder<List<Vo>> holder = DataHolder.get(list);
 
         String json = DataHolder.toJson(holder);
         String json2 = DataHolder.toJson(holder);

@@ -1,5 +1,6 @@
 package com.soybeany.cache.v2.strategy;
 
+import com.soybeany.cache.v2.contract.ICacheStrategy;
 import com.soybeany.cache.v2.exception.DataException;
 import com.soybeany.cache.v2.model.DataFrom;
 import com.soybeany.cache.v2.model.DataHolder;
@@ -14,9 +15,14 @@ import java.util.Map;
  * @author Soybeany
  * @date 2020/9/23
  */
-public class ThreadCacheStrategy<Param, Data> extends StdCacheStrategy<Param, Data> {
+public class ThreadCacheStrategy<Param, Data> implements ICacheStrategy<Param, Data> {
 
     private final ThreadLocal<Map<Param, DataHolder<Data>>> threadLocal = new ThreadLocal<Map<Param, DataHolder<Data>>>();
+
+    @Override
+    public int order() {
+        return ORDER_DEFAULT;
+    }
 
     @Override
     public String desc() {
@@ -38,12 +44,18 @@ public class ThreadCacheStrategy<Param, Data> extends StdCacheStrategy<Param, Da
         if (holder.abnormal()) {
             throw new DataException(DataFrom.CACHE, holder.getException());
         }
-        return DataPack.newCacheDataPack(this, holder.getData(), holder.getExpiryMillis());
+        return DataPack.newCacheDataPack(this, holder.getData(), Long.MAX_VALUE);
     }
 
     @Override
     public void onCacheData(Param param, String key, DataPack<Data> data) {
-        threadLocal.get().put(param, DataHolder.get(data, mExpiry));
+        threadLocal.get().put(param, DataHolder.get(data.data));
+    }
+
+    @Override
+    public DataPack<Data> onHandleException(Param param, String key, DataException e) throws DataException {
+        threadLocal.get().put(param, DataHolder.<Data>get(e));
+        throw e;
     }
 
     @Override
@@ -54,11 +66,6 @@ public class ThreadCacheStrategy<Param, Data> extends StdCacheStrategy<Param, Da
     @Override
     public void clearCache() {
         threadLocal.get().clear();
-    }
-
-    @Override
-    protected void onCacheException(Param param, String key, Exception e) {
-        threadLocal.get().put(param, DataHolder.<Data>get(e, mFastFailExpiry));
     }
 
     // ********************操作方法********************
