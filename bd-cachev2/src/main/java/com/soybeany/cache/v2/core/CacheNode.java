@@ -4,6 +4,7 @@ import com.soybeany.cache.v2.contract.ICacheStrategy;
 import com.soybeany.cache.v2.contract.IDatasource;
 import com.soybeany.cache.v2.contract.IKeyConverter;
 import com.soybeany.cache.v2.exception.DataException;
+import com.soybeany.cache.v2.exception.NoCacheException;
 import com.soybeany.cache.v2.exception.NoDataSourceException;
 import com.soybeany.cache.v2.model.DataFrom;
 import com.soybeany.cache.v2.model.DataPack;
@@ -63,11 +64,33 @@ class CacheNode<Param, Data> {
         mNextNode = node;
     }
 
-    DataPack<Data> getCache(Param param, final IDatasource<Param, Data> datasource) throws DataException {
+    /**
+     * 获取数据并自动缓存
+     */
+    DataPack<Data> getDataPackAndAutoCache(Param param, final IDatasource<Param, Data> datasource) throws DataException {
         return getDataFromCurNode(param, mConverter.getKey(param), new ICallback1<Param, Data>() {
             @Override
             public DataPack<Data> onNoCache(Param param2, String key) throws DataException {
                 return getDataFromTmpMapOrNextNode(datasource, param2, key);
+            }
+        });
+    }
+
+    /**
+     * 仅仅获取缓存
+     */
+    DataPack<Data> getCache(Param param) throws DataException {
+        return getDataFromCurNode(param, mConverter.getKey(param), new ICallback1<Param, Data>() {
+            @Override
+            public DataPack<Data> onNoCache(Param param, String key) throws DataException {
+                // 若已无下一节点，抛出异常
+                if (null == mNextNode) {
+                    throw new DataException(DataFrom.CACHE, new NoCacheException());
+                }
+                // 否则从下一节点获取缓存
+                DataPack<Data> pack = mNextNode.getCache(param);
+                mCurStrategy.onCacheData(param, key, pack);
+                return pack;
             }
         });
     }
@@ -81,11 +104,16 @@ class CacheNode<Param, Data> {
         });
     }
 
-    void cacheException(final Param param, final Exception e) {
+    void cacheException(final Param param, Exception e) {
+        final DataException exception = new DataException(DataFrom.SOURCE, e);
         traverse(param, new ICallback2<Param, Data>() {
             @Override
             public void onInvoke(String key, CacheNode<Param, Data> node) {
-                node.mCurStrategy.onCacheException(param, key, e);
+                try {
+                    node.mCurStrategy.onHandleException(param, key, exception);
+                } catch (DataException dataException) {
+                    // 不作处理
+                }
             }
         });
     }
@@ -156,13 +184,12 @@ class CacheNode<Param, Data> {
             }
             // 否则从下一节点获取缓存
             else {
-                pack = mNextNode.getCache(param, datasource);
+                pack = mNextNode.getDataPackAndAutoCache(param, datasource);
             }
             mCurStrategy.onCacheData(param, key, pack);
             return pack;
         } catch (DataException e) {
-            mCurStrategy.onCacheException(param, key, e.getOriginException());
-            throw e;
+            return mCurStrategy.onHandleException(param, key, e);
         }
     }
 

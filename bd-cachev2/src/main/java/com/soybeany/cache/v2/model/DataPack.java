@@ -29,10 +29,10 @@ public class DataPack<Data> {
     /**
      * 该数据剩余的有效时间
      */
-    public final long expiryInMills;
+    public final long expiryMillis;
 
-    public static <Param, Data> DataPack<Data> newCacheDataPack(ICacheStrategy<Param, Data> provider, Data data, long expiryInMills) {
-        return new DataPack<Data>(provider, data, DataFrom.CACHE, expiryInMills);
+    public static <Param, Data> DataPack<Data> newCacheDataPack(ICacheStrategy<Param, Data> provider, Data data, long expiryMillis) {
+        return new DataPack<Data>(provider, data, DataFrom.CACHE, expiryMillis);
     }
 
     public static <Data> DataPack<Data> newTempCacheDataPack(DataPack<Data> dataPack) {
@@ -43,10 +43,10 @@ public class DataPack<Data> {
         return new DataPack<Data>(provider, data, DataFrom.SOURCE, Long.MAX_VALUE);
     }
 
-    private DataPack(Object provider, Data data, DataFrom from, long expiryInMills) {
+    private DataPack(Object provider, Data data, DataFrom from, long expiryMillis) {
         this.provider = provider;
         this.data = data;
         this.from = from;
-        this.expiryInMills = expiryInMills;
+        this.expiryMillis = expiryMillis;
     }
 }

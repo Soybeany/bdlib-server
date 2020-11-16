@@ -15,9 +15,6 @@ public class DataHolder<Data> {
 
     private transient Data data; // 数据
     private transient Exception exception; // 相关的异常
-    private final long expiry; // 超时
-
-    private final long mCreateStamp; // 创建时的时间戳
 
     private String dataJson;
     private Info exceptionJson;
@@ -48,34 +45,18 @@ public class DataHolder<Data> {
         return holder;
     }
 
-    public static <Data> DataHolder<Data> get(DataPack<Data> data, long expiryInMills) {
-        return new DataHolder<Data>(data, null, true, expiryInMills);
+    public static <Data> DataHolder<Data> get(Data data) {
+        return new DataHolder<Data>(data, null, true);
     }
 
-    public static <Data> DataHolder<Data> get(Exception exception, long expiryInMills) {
-        return new DataHolder<Data>(null, exception, false, expiryInMills);
+    public static <Data> DataHolder<Data> get(Exception exception) {
+        return new DataHolder<Data>(null, exception, false);
     }
 
-    public static boolean isExpired(long leftValidTime) {
-        return leftValidTime < 0;
-    }
-
-    public DataHolder(DataPack<Data> data, Exception exception, boolean norm, long expiryInMills) {
-        this(data, exception, norm, expiryInMills, System.currentTimeMillis());
-    }
-
-    public DataHolder(DataPack<Data> data, Exception exception, boolean norm, long expiryInMills, long createStamp) {
+    public DataHolder(Data data, Exception exception, boolean norm) {
         this.exception = exception;
         this.norm = norm;
-
-        if (null != data) {
-            this.data = data.data;
-            this.expiry = Math.min(data.expiryInMills, expiryInMills);
-        } else {
-            this.data = null;
-            this.expiry = expiryInMills;
-        }
-        this.mCreateStamp = createStamp;
+        this.data = data;
     }
 
     public boolean abnormal() {
@@ -88,28 +69,6 @@ public class DataHolder<Data> {
 
     public Exception getException() {
         return exception;
-    }
-
-    public long getExpiry() {
-        return expiry;
-    }
-
-    /**
-     * 剩余的有效时间
-     */
-    public long getLeftValidTime() {
-        return getLeftValidTime(System.currentTimeMillis());
-    }
-
-    public long getLeftValidTime(long curTimeMills) {
-        return expiry - (curTimeMills - mCreateStamp);
-    }
-
-    /**
-     * 判断此数据是否已经失效
-     */
-    public boolean isExpired() {
-        return isExpired(getLeftValidTime());
     }
 
     // ****************************************内部方法****************************************
