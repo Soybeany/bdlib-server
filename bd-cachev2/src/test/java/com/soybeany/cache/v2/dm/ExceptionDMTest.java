@@ -15,14 +15,11 @@ import org.junit.Test;
 public class ExceptionDMTest {
 
     private final DataManager<String, String> dataManager = DataManager.Builder
-            .get("异常测试", new IDatasource<String, String>() {
-                @Override
-                public String onGetData(String s) throws Exception {
-                    throw new Exception("测试");
-                }
+            .get("异常测试", (IDatasource<String, String>) s -> {
+                throw new Exception("测试");
             })
-            .withCache(new LruMemCacheStrategy<String, String>())
-            .logger(new ConsoleLogger<String, String>())
+            .withCache(new LruMemCacheStrategy<>())
+            .logger(new ConsoleLogger<>())
             .build();
 
     @Test

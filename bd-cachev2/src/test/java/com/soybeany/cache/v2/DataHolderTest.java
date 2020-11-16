@@ -31,7 +31,7 @@ public class DataHolderTest {
 
     @Test
     public void test2() throws Exception {
-        List<Vo> list = new LinkedList<Vo>();
+        List<Vo> list = new LinkedList<>();
         list.add(new Vo("字段"));
 
         DataHolder<List<Vo>> holder = DataHolder.get(list);
@@ -45,7 +45,7 @@ public class DataHolderTest {
     }
 
     private static class Vo {
-        public String field;
+        public final String field;
 
         public Vo(String field) {
             this.field = field;

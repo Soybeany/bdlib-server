@@ -20,14 +20,14 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 class CacheNode<Param, Data> {
 
-    private final Map<String, Lock> mKeyMap = new WeakHashMap<String, Lock>();
+    private final Map<String, Lock> mKeyMap = new WeakHashMap<>();
 
     private final ICacheStrategy<Param, Data> mCurStrategy;
     private final IKeyConverter<Param> mConverter;
 
     private CacheNode<Param, Data> mNextNode;
 
-    private final Map<Lock, DataPack<Data>> mTmpDataPackMap = new ConcurrentHashMap<Lock, DataPack<Data>>();
+    private final Map<Lock, DataPack<Data>> mTmpDataPackMap = new ConcurrentHashMap<>();
 
     static <Param, Data> DataPack<Data> getDataDirectly(Param param, IDatasource<Param, Data> datasource) throws DataException {
         try {
@@ -68,72 +68,46 @@ class CacheNode<Param, Data> {
      * 获取数据并自动缓存
      */
     DataPack<Data> getDataPackAndAutoCache(Param param, final IDatasource<Param, Data> datasource) throws DataException {
-        return getDataFromCurNode(param, mConverter.getKey(param), new ICallback1<Param, Data>() {
-            @Override
-            public DataPack<Data> onNoCache(Param param2, String key) throws DataException {
-                return getDataFromTmpMapOrNextNode(datasource, param2, key);
-            }
-        });
+        return getDataFromCurNode(param, mConverter.getKey(param), (param2, key) -> getDataFromTmpMapOrNextNode(datasource, param2, key));
     }
 
     /**
      * 仅仅获取缓存
      */
     DataPack<Data> getCache(Param param) throws DataException {
-        return getDataFromCurNode(param, mConverter.getKey(param), new ICallback1<Param, Data>() {
-            @Override
-            public DataPack<Data> onNoCache(Param param, String key) throws DataException {
-                // 若已无下一节点，抛出异常
-                if (null == mNextNode) {
-                    throw new DataException(DataFrom.CACHE, new NoCacheException());
-                }
-                // 否则从下一节点获取缓存
-                DataPack<Data> pack = mNextNode.getCache(param);
-                mCurStrategy.onCacheData(param, key, pack);
-                return pack;
+        return getDataFromCurNode(param, mConverter.getKey(param), (param1, key) -> {
+            // 若已无下一节点，抛出异常
+            if (null == mNextNode) {
+                throw new DataException(DataFrom.CACHE, new NoCacheException());
             }
+            // 否则从下一节点获取缓存
+            DataPack<Data> pack = mNextNode.getCache(param1);
+            mCurStrategy.onCacheData(param1, key, pack);
+            return pack;
         });
     }
 
     void cacheData(final Param param, final DataPack<Data> data) {
-        traverse(param, new ICallback2<Param, Data>() {
-            @Override
-            public void onInvoke(String key, CacheNode<Param, Data> node) {
-                node.mCurStrategy.onCacheData(param, key, data);
-            }
-        });
+        traverse(param, (key, node) -> node.mCurStrategy.onCacheData(param, key, data));
     }
 
     void cacheException(final Param param, Exception e) {
         final DataException exception = new DataException(DataFrom.SOURCE, e);
-        traverse(param, new ICallback2<Param, Data>() {
-            @Override
-            public void onInvoke(String key, CacheNode<Param, Data> node) {
-                try {
-                    node.mCurStrategy.onHandleException(param, key, exception);
-                } catch (DataException dataException) {
-                    // 不作处理
-                }
+        traverse(param, (key, node) -> {
+            try {
+                node.mCurStrategy.onHandleException(param, key, exception);
+            } catch (DataException dataException) {
+                // 不作处理
             }
         });
     }
 
     void removeCache(final Param param) {
-        traverse(param, new ICallback2<Param, Data>() {
-            @Override
-            public void onInvoke(String key, CacheNode<Param, Data> node) {
-                node.mCurStrategy.removeCache(param, key);
-            }
-        });
+        traverse(param, (key, node) -> node.mCurStrategy.removeCache(param, key));
     }
 
     void clearCache() {
-        traverse(null, new ICallback2<Param, Data>() {
-            @Override
-            public void onInvoke(String key, CacheNode<Param, Data> node) {
-                node.mCurStrategy.clearCache();
-            }
-        });
+        traverse(null, (key, node) -> node.mCurStrategy.clearCache());
     }
 
     // ****************************************内部方法****************************************

@@ -17,7 +17,7 @@ import java.util.Map;
  */
 public class ThreadCacheStrategy<Param, Data> implements ICacheStrategy<Param, Data> {
 
-    private final ThreadLocal<Map<Param, DataHolder<Data>>> threadLocal = new ThreadLocal<Map<Param, DataHolder<Data>>>();
+    private final ThreadLocal<Map<Param, DataHolder<Data>>> threadLocal = new ThreadLocal<>();
 
     @Override
     public int order() {
@@ -49,7 +49,7 @@ public class ThreadCacheStrategy<Param, Data> implements ICacheStrategy<Param, D
 
     @Override
     public DataPack<Data> onHandleException(Param param, String key, DataException e) throws DataException {
-        threadLocal.get().put(param, DataHolder.<Data>get(e));
+        threadLocal.get().put(param, DataHolder.get(e));
         throw e;
     }
 
@@ -66,7 +66,7 @@ public class ThreadCacheStrategy<Param, Data> implements ICacheStrategy<Param, D
     // ********************操作方法********************
 
     public void start() {
-        threadLocal.set(new HashMap<Param, DataHolder<Data>>());
+        threadLocal.set(new HashMap<>());
     }
 
     public void finish() {

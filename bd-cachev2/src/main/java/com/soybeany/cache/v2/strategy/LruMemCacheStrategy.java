@@ -18,7 +18,7 @@ import java.util.Map;
  */
 public class LruMemCacheStrategy<Param, Data> extends StdCacheStrategy<Param, Data> {
 
-    private final LruDataAccessor<TimeWrapper<Data>> mDataAccessor = new LruDataAccessor<TimeWrapper<Data>>();
+    private final LruDataAccessor<TimeWrapper<Data>> mDataAccessor = new LruDataAccessor<>();
 
     @Override
     public String desc() {
@@ -66,7 +66,7 @@ public class LruMemCacheStrategy<Param, Data> extends StdCacheStrategy<Param, Da
 
     @Override
     protected void onCacheException(Param param, String key, Exception e) {
-        mDataAccessor.putData(key, TimeWrapper.<Data>get(e, mFastFailExpiry, TimeWrapper.currentTimeMillis()));
+        mDataAccessor.putData(key, TimeWrapper.get(e, mFastFailExpiry, TimeWrapper.currentTimeMillis()));
     }
 
     public LruMemCacheStrategy<Param, Data> capacity(int size) {
@@ -75,8 +75,8 @@ public class LruMemCacheStrategy<Param, Data> extends StdCacheStrategy<Param, Da
     }
 
     private static class LruDataAccessor<Data> {
-        private final Map<String, Data> mCacheMap = new HashMap<String, Data>();
-        private final LinkedList<String> mOrderList = new LinkedList<String>(); // 用于记录访问顺序
+        private final Map<String, Data> mCacheMap = new HashMap<>();
+        private final LinkedList<String> mOrderList = new LinkedList<>(); // 用于记录访问顺序
 
         int capacity = 100;
 

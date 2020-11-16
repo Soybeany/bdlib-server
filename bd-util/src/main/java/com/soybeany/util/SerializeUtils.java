@@ -24,14 +24,8 @@ public class SerializeUtils {
 
     @SuppressWarnings("unchecked")
     public static <T> T deserialize(byte[] arr) throws IOException, ClassNotFoundException {
-        ObjectInputStream objIStream = null;
-        try {
-            objIStream = new ObjectInputStream(new ByteArrayInputStream(arr));
+        try (ObjectInputStream objIStream = new ObjectInputStream(new ByteArrayInputStream(arr))) {
             return (T) objIStream.readObject();
-        } finally {
-            if (objIStream != null) {
-                objIStream.close();
-            }
         }
     }
 

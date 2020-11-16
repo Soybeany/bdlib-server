@@ -32,15 +32,15 @@ public class DataPack<Data> {
     public final long expiryMillis;
 
     public static <Param, Data> DataPack<Data> newCacheDataPack(ICacheStrategy<Param, Data> provider, Data data, long expiryMillis) {
-        return new DataPack<Data>(provider, data, DataFrom.CACHE, expiryMillis);
+        return new DataPack<>(provider, data, DataFrom.CACHE, expiryMillis);
     }
 
     public static <Data> DataPack<Data> newTempCacheDataPack(DataPack<Data> dataPack) {
-        return new DataPack<Data>(dataPack.provider, dataPack.data, DataFrom.TEMP_CACHE, dataPack.expiryMillis);
+        return new DataPack<>(dataPack.provider, dataPack.data, DataFrom.TEMP_CACHE, dataPack.expiryMillis);
     }
 
     public static <Data> DataPack<Data> newSourceDataPack(Object provider, Data data) {
-        return new DataPack<Data>(provider, data, DataFrom.SOURCE, Long.MAX_VALUE);
+        return new DataPack<>(provider, data, DataFrom.SOURCE, Long.MAX_VALUE);
     }
 
     private DataPack(Object provider, Data data, DataFrom from, long expiryMillis) {

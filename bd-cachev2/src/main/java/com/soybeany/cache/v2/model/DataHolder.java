@@ -46,11 +46,11 @@ public class DataHolder<Data> {
     }
 
     public static <Data> DataHolder<Data> get(Data data) {
-        return new DataHolder<Data>(data, null, true);
+        return new DataHolder<>(data, null, true);
     }
 
     public static <Data> DataHolder<Data> get(Exception exception) {
-        return new DataHolder<Data>(null, exception, false);
+        return new DataHolder<>(null, exception, false);
     }
 
     public DataHolder(Data data, Exception exception, boolean norm) {
@@ -81,8 +81,8 @@ public class DataHolder<Data> {
     // ****************************************内部类****************************************
 
     private static class Info {
-        public String clazz;
-        public String json;
+        public final String clazz;
+        public final String json;
 
         public Info(String clazz, String json) {
             this.clazz = clazz;

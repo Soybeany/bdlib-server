@@ -11,7 +11,6 @@ import com.soybeany.cache.v2.exception.NoDataSourceException;
 import com.soybeany.cache.v2.model.DataFrom;
 import com.soybeany.cache.v2.model.DataPack;
 
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedList;
 
@@ -193,18 +192,18 @@ public class DataManager<Param, Data> {
 
         private final DataManager<Param, Data> mManager;
         private final IKeyConverter<Param> mDefaultConverter;
-        private final LinkedList<CacheNode<Param, Data>> mNodes = new LinkedList<CacheNode<Param, Data>>();
+        private final LinkedList<CacheNode<Param, Data>> mNodes = new LinkedList<>();
 
         public static <Data> Builder<String, Data> get(String dataDesc, IDatasource<String, Data> datasource) {
-            return new Builder<String, Data>(dataDesc, datasource, new IKeyConverter.Std());
+            return new Builder<>(dataDesc, datasource, new IKeyConverter.Std());
         }
 
         public static <Param, Data> Builder<Param, Data> get(String dataDesc, IDatasource<Param, Data> datasource, IKeyConverter<Param> defaultConverter) {
-            return new Builder<Param, Data>(dataDesc, datasource, defaultConverter);
+            return new Builder<>(dataDesc, datasource, defaultConverter);
         }
 
         private Builder(String dataDesc, IDatasource<Param, Data> datasource, IKeyConverter<Param> defaultConverter) {
-            mManager = new DataManager<Param, Data>(dataDesc, datasource);
+            mManager = new DataManager<>(dataDesc, datasource);
             mDefaultConverter = defaultConverter;
         }
 
@@ -227,7 +226,7 @@ public class DataManager<Param, Data> {
                 converter = mDefaultConverter;
             }
             // 添加到服务列表
-            mNodes.addFirst(new CacheNode<Param, Data>(strategy, converter));
+            mNodes.addFirst(new CacheNode<>(strategy, converter));
             return this;
         }
 
@@ -244,7 +243,7 @@ public class DataManager<Param, Data> {
          */
         public DataManager<Param, Data> build() {
             // 节点排序
-            Collections.sort(mNodes, new ServiceComparator());
+            mNodes.sort(new ServiceComparator());
             // 创建调用链
             buildChain();
             // 返回管理器实例

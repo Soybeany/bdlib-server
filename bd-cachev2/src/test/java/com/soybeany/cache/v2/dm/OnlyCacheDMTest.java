@@ -19,20 +19,17 @@ import java.util.UUID;
  */
 public class OnlyCacheDMTest {
 
-    private final IDatasource<String, String> datasource = new IDatasource<String, String>() {
-        @Override
-        public String onGetData(String s) {
-            System.out.println(s + "(key)access datasource");
-            return UUID.randomUUID().toString();
-        }
+    private final IDatasource<String, String> datasource = s -> {
+        System.out.println(s + "(key)access datasource");
+        return UUID.randomUUID().toString();
     };
 
-    private final StdCacheStrategy<String, String> lruStrategy = new LruMemCacheStrategy<String, String>();
+    private final StdCacheStrategy<String, String> lruStrategy = new LruMemCacheStrategy<>();
 
     private final DataManager<String, String> dataManager = DataManager.Builder
             .get("只查缓存测试", datasource)
             .withCache(lruStrategy.expiry(1000))
-            .logger(new ConsoleLogger<String, String>())
+            .logger(new ConsoleLogger<>())
             .build();
 
     @Test

@@ -19,20 +19,17 @@ import java.util.concurrent.CountDownLatch;
  */
 public class SimpleDMTest {
 
-    private final IDatasource<String, String> datasource = new IDatasource<String, String>() {
-        @Override
-        public String onGetData(String s) {
-            System.out.println(s + "(key)access datasource");
-            return UUID.randomUUID().toString();
-        }
+    private final IDatasource<String, String> datasource = s -> {
+        System.out.println(s + "(key)access datasource");
+        return UUID.randomUUID().toString();
     };
 
-    private final ICacheStrategy<String, String> lruStrategy = new LruMemCacheStrategy<String, String>();
+    private final ICacheStrategy<String, String> lruStrategy = new LruMemCacheStrategy<>();
 
     private final DataManager<String, String> dataManager = DataManager.Builder
             .get("简单测试", datasource)
             .withCache(lruStrategy)
-            .logger(new ConsoleLogger<String, String>())
+            .logger(new ConsoleLogger<>())
             .build();
 
     @Test
@@ -53,17 +50,14 @@ public class SimpleDMTest {
         final CountDownLatch latch = new CountDownLatch(count);
         for (int i = 0; i < count; i++) {
             final int finalI = i;
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        DataPack<String> pack = dataManager.getDataPack("并发", null);
-                        froms[finalI] = pack.from;
-                    } catch (DataException e) {
-                        throw new RuntimeException(e);
-                    } finally {
-                        latch.countDown();
-                    }
+            new Thread(() -> {
+                try {
+                    DataPack<String> pack = dataManager.getDataPack("并发", null);
+                    froms[finalI] = pack.from;
+                } catch (DataException e) {
+                    throw new RuntimeException(e);
+                } finally {
+                    latch.countDown();
                 }
             }).start();
         }
@@ -81,12 +75,7 @@ public class SimpleDMTest {
     @Test
     public void specifyDatasourceTest() throws Exception {
         final String source = "新数据源";
-        String data = dataManager.getData("特定数据源", null, new IDatasource<String, String>() {
-            @Override
-            public String onGetData(String s) {
-                return source;
-            }
-        });
+        String data = dataManager.getData("特定数据源", null, s -> source);
         assert source.equals(data);
     }
 

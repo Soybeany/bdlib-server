@@ -13,7 +13,7 @@ import java.util.Map;
  * <br>Created by Soybeany on 2020/10/16.
  */
 public class DBSimulationStrategy<Param, Data> extends StdCacheStrategy<Param, Data> {
-    private final Map<String, TimeWrapper<Data>> map = new HashMap<String, TimeWrapper<Data>>();
+    private final Map<String, TimeWrapper<Data>> map = new HashMap<>();
 
     @Override
     public String desc() {
@@ -55,6 +55,6 @@ public class DBSimulationStrategy<Param, Data> extends StdCacheStrategy<Param, D
 
     @Override
     protected void onCacheException(Param param, String key, Exception e) {
-        map.put(key, TimeWrapper.<Data>get(e, mFastFailExpiry, TimeWrapper.currentTimeMillis()));
+        map.put(key, TimeWrapper.get(e, mFastFailExpiry, TimeWrapper.currentTimeMillis()));
     }
 }

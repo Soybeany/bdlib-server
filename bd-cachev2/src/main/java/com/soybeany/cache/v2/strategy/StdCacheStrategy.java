@@ -67,11 +67,11 @@ public abstract class StdCacheStrategy<Param, Data> implements ICacheStrategy<Pa
                 data = dataPack.data;
                 expiryMillis = Math.min(dataPack.expiryMillis, expiryMillis);
             }
-            return new TimeWrapper<Data>(DataHolder.get(data), expiryMillis, createStamp);
+            return new TimeWrapper<>(DataHolder.get(data), expiryMillis, createStamp);
         }
 
         public static <Data> TimeWrapper<Data> get(Exception exception, long expiryMillis, long createStamp) {
-            return new TimeWrapper<Data>(DataHolder.<Data>get(exception), expiryMillis, createStamp);
+            return new TimeWrapper<>(DataHolder.get(exception), expiryMillis, createStamp);
         }
 
         public static boolean isExpired(long remainingValidTime) {
