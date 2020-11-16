@@ -68,6 +68,7 @@ public class SimpleDMTest {
             }).start();
         }
         latch.await();
+        dataManager.getDataPack("单发", null);
         int accessCount = 0;
         for (DataFrom from : froms) {
             if (DataFrom.SOURCE == from) {

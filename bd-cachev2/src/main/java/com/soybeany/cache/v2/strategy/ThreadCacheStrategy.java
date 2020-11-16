@@ -24,11 +24,6 @@ public class ThreadCacheStrategy<Param, Data> extends StdCacheStrategy<Param, Da
     }
 
     @Override
-    public boolean supportDoubleCheck() {
-        return true;
-    }
-
-    @Override
     public DataPack<Data> onGetCache(Param param, String key) throws DataException, NoCacheException {
         Map<Param, DataHolder<Data>> map = threadLocal.get();
         if (!map.containsKey(param)) {

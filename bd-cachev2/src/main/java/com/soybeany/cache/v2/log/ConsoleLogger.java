@@ -17,6 +17,9 @@ public class ConsoleLogger<Param, Data> implements ILogger<Param, Data> {
             case CACHE:
                 from = "缓存(" + ((ICacheStrategy<?, ?>) pack.provider).desc() + ")";
                 break;
+            case TEMP_CACHE:
+                from = "临时缓存";
+                break;
             case SOURCE:
                 from = "数据源";
                 break;

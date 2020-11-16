@@ -26,11 +26,6 @@ public class LruMemCacheStrategy<Param, Data> extends StdCacheStrategy<Param, Da
     }
 
     @Override
-    public boolean supportDoubleCheck() {
-        return true;
-    }
-
-    @Override
     public DataPack<Data> onGetCache(Param param, String key) throws DataException, NoCacheException {
         DataHolder<Data> holder = mDataAccessor.get(key);
         // 若缓存中没有数据，则直接抛出无数据异常

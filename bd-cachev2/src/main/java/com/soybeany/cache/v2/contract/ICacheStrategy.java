@@ -33,14 +33,6 @@ public interface ICacheStrategy<Param, Data> {
      */
     String desc();
 
-    /**
-     * 标识是否支持双重检查，即加锁后是否能够再次调用{@link #onGetCache}方法
-     * <br>默认为false，但查询过程资源消耗小的服务，可以将此值设为true
-     *
-     * @return true表示支持，false表示不支持
-     */
-    boolean supportDoubleCheck();
-
     // ********************回调类********************
 
     /**

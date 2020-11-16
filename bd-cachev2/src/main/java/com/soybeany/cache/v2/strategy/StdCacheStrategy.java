@@ -17,11 +17,6 @@ public abstract class StdCacheStrategy<Param, Data> implements ICacheStrategy<Pa
         return ORDER_DEFAULT;
     }
 
-    @Override
-    public boolean supportDoubleCheck() {
-        return false;
-    }
-
     /**
      * 数据失效的超时，用于一般场景
      *

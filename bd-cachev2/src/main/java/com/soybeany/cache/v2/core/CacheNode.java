@@ -10,6 +10,8 @@ import com.soybeany.cache.v2.model.DataPack;
 
 import java.util.Map;
 import java.util.WeakHashMap;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author Soybeany
@@ -17,12 +19,14 @@ import java.util.WeakHashMap;
  */
 class CacheNode<Param, Data> {
 
-    private final Map<String, String> mKeyMap = new WeakHashMap<String, String>();
+    private final Map<String, Lock> mKeyMap = new WeakHashMap<String, Lock>();
 
     private final ICacheStrategy<Param, Data> mCurStrategy;
     private final IKeyConverter<Param> mConverter;
 
     private CacheNode<Param, Data> mNextNode;
+
+    private final Map<Lock, DataPack<Data>> mTmpDataPackMap = new ConcurrentHashMap<Lock, DataPack<Data>>();
 
     static <Param, Data> DataPack<Data> getDataDirectly(Param param, IDatasource<Param, Data> datasource) throws DataException {
         try {
@@ -63,20 +67,7 @@ class CacheNode<Param, Data> {
         return getDataFromCurNode(param, mConverter.getKey(param), new ICallback1<Param, Data>() {
             @Override
             public DataPack<Data> onNoCache(Param param2, String key) throws DataException {
-                // 加锁，避免并发时数据重复获取
-                synchronized (getLock(CacheNode.this, key)) {
-                    // 若不支持双重检测，则直接访问下一节点
-                    if (!mCurStrategy.supportDoubleCheck()) {
-                        return getDataFromNextNode(param2, key, datasource);
-                    }
-                    // 否则再次访问当前节点，没有缓存再访问下一节点
-                    return getDataFromCurNode(param2, key, new ICallback1<Param, Data>() {
-                        @Override
-                        public DataPack<Data> onNoCache(Param param3, String key) throws DataException {
-                            return getDataFromNextNode(param3, key, datasource);
-                        }
-                    });
-                }
+                return getDataFromTmpMapOrNextNode(datasource, param2, key);
             }
         });
     }
@@ -103,7 +94,7 @@ class CacheNode<Param, Data> {
         traverse(param, new ICallback2<Param, Data>() {
             @Override
             public void onInvoke(String key, CacheNode<Param, Data> node) {
-                node.mCurStrategy.removeCache(param, node.mConverter.getKey(param));
+                node.mCurStrategy.removeCache(param, key);
             }
         });
     }
@@ -123,10 +114,33 @@ class CacheNode<Param, Data> {
         CacheNode<Param, Data> node = this;
         while (null != node) {
             String key = node.mConverter.getKey(param);
-            synchronized (getLock(node, key)) {
+            synchronized (getLock(key)) {
                 callback.onInvoke(key, node);
             }
             node = node.mNextNode;
+        }
+    }
+
+    @SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
+    private DataPack<Data> getDataFromTmpMapOrNextNode(IDatasource<Param, Data> datasource, Param param, String key) throws DataException {
+        // 加锁，避免并发时数据重复获取
+        Lock lock = getLock(key);
+        lock.countOfGet.incrementAndGet();
+        synchronized (lock) {
+            try {
+                DataPack<Data> dataPack = mTmpDataPackMap.get(lock);
+                // 若临时数据缓存没有时，再访问下一节点，以免并发时多次访问下一级节点
+                if (null == dataPack) {
+                    dataPack = getDataFromNextNode(param, key, datasource);
+                    mTmpDataPackMap.put(lock, DataPack.newTempCacheDataPack(dataPack));
+                }
+                return dataPack;
+            } finally {
+                int count = lock.countOfGet.decrementAndGet();
+                if (0 == count) {
+                    mTmpDataPackMap.remove(lock);
+                }
+            }
         }
     }
 
@@ -163,17 +177,17 @@ class CacheNode<Param, Data> {
         }
     }
 
-    private String getLock(CacheNode<Param, Data> node, String key) {
-        String result = mKeyMap.get(key);
-        if (null == result) {
+    private Lock getLock(String key) {
+        Lock lock = mKeyMap.get(key);
+        if (null == lock) {
             synchronized (this) {
-                result = mKeyMap.get(key);
-                if (null == result) {
-                    mKeyMap.put(key, result = node.toString() + key);
+                lock = mKeyMap.get(key);
+                if (null == lock) {
+                    mKeyMap.put(key, lock = new Lock());
                 }
             }
         }
-        return result;
+        return lock;
     }
 
     // ****************************************内部类****************************************
@@ -184,6 +198,10 @@ class CacheNode<Param, Data> {
 
     private interface ICallback2<Param, Data> {
         void onInvoke(String key, CacheNode<Param, Data> node);
+    }
+
+    private static class Lock {
+        final AtomicInteger countOfGet = new AtomicInteger();
     }
 
 }
