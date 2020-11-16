@@ -36,19 +36,19 @@ public interface ICacheStrategy<Param, Data> {
     // ********************回调类********************
 
     /**
-     * 获取缓存时的回调
+     * 获取缓存的回调(没有做线程安全保障，需实现类自行保证)
      *
-     * @param param 参数
-     * @param key   键
+     * @param param 自定义参数
+     * @param key   使用{@link IKeyConverter}对{@link Param}进行转化后的键，用于KV
      * @return 数据
      */
     DataPack<Data> onGetCache(Param param, String key) throws DataException, NoCacheException;
 
     /**
-     * 缓存数据的回调
+     * 缓存数据的回调(有线程安全保障)
      *
-     * @param param 参数
-     * @param key   键
+     * @param param 自定义参数
+     * @param key   使用{@link IKeyConverter}对{@link Param}进行转化后的键，用于KV
      * @param data  待缓存的数据
      */
     void onCacheData(Param param, String key, DataPack<Data> data);
@@ -56,8 +56,8 @@ public interface ICacheStrategy<Param, Data> {
     /**
      * 处理异常的回调，一般的实现为缓存异常并重新抛出异常
      *
-     * @param param 参数
-     * @param key   键
+     * @param param 自定义参数
+     * @param key   使用{@link IKeyConverter}对{@link Param}进行转化后的键，用于KV
      * @param e     待缓存的异常
      */
     DataPack<Data> onHandleException(Param param, String key, DataException e) throws DataException;
@@ -67,8 +67,8 @@ public interface ICacheStrategy<Param, Data> {
     /**
      * 移除指定的缓存
      *
-     * @param param 参数
-     * @param key   键
+     * @param param 自定义参数
+     * @param key   使用{@link IKeyConverter}对{@link Param}进行转化后的键，用于KV
      */
     void removeCache(Param param, String key);
 

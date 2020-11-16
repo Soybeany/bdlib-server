@@ -15,6 +15,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
+ * 链式设计中的节点，若需访问下一节点，需加锁
+ *
  * @author Soybeany
  * @date 2020/1/20
  */
@@ -81,9 +83,11 @@ class CacheNode<Param, Data> {
                 throw new DataException(DataFrom.CACHE, new NoCacheException());
             }
             // 否则从下一节点获取缓存
-            DataPack<Data> pack = mNextNode.getCache(param1);
-            mCurStrategy.onCacheData(param1, key, pack);
-            return pack;
+            synchronized (getLock(key)) {
+                DataPack<Data> pack = mNextNode.getCache(param1);
+                mCurStrategy.onCacheData(param1, key, pack);
+                return pack;
+            }
         });
     }
 
@@ -131,7 +135,7 @@ class CacheNode<Param, Data> {
         synchronized (lock) {
             try {
                 DataPack<Data> dataPack = mTmpDataPackMap.get(lock);
-                // 若临时数据缓存没有时，再访问下一节点，以免并发时多次访问下一级节点
+                // 若临时数据缓存没有时，再访问下一节点，以免并发时多次访问下一级节点(double check机制)
                 if (null == dataPack) {
                     dataPack = getDataFromNextNode(param, key, datasource);
                     mTmpDataPackMap.put(lock, DataPack.newTempCacheDataPack(dataPack));
@@ -203,6 +207,16 @@ class CacheNode<Param, Data> {
 
     private static class Lock {
         final AtomicInteger countOfGet = new AtomicInteger();
+
+        @Override
+        public boolean equals(Object o) {
+            return this == o;
+        }
+
+        @Override
+        public int hashCode() {
+            return super.hashCode();
+        }
     }
 
 }
