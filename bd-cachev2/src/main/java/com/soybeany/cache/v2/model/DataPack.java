@@ -36,7 +36,7 @@ public class DataPack<Data> {
     }
 
     public static <Data> DataPack<Data> newTempCacheDataPack(DataPack<Data> dataPack) {
-        return new DataPack<Data>(dataPack.provider, dataPack.data, DataFrom.TEMP_CACHE, dataPack.expiryInMills);
+        return new DataPack<Data>(dataPack.provider, dataPack.data, DataFrom.TEMP_CACHE, dataPack.expiryMillis);
     }
 
     public static <Data> DataPack<Data> newSourceDataPack(Object provider, Data data) {
