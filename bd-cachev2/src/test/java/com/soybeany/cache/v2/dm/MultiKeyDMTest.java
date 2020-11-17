@@ -18,7 +18,11 @@ public class MultiKeyDMTest {
     private final StdCacheStrategy<String, String> lruStrategy = new TestStrategy<>();
 
     private final DataManager<String, String> dataManager = DataManager.Builder
-            .get("MultiExpiry", s -> s)
+            .get("MultiExpiry", s -> {
+                System.out.println("“" + s + "”access datasource");
+                Thread.sleep(500);
+                return s;
+            })
             .withCache(lruStrategy.expiry(800))
             .logger(new ConsoleLogger<>())
             .build();
@@ -44,7 +48,9 @@ public class MultiKeyDMTest {
         }
         long delta = System.currentTimeMillis() - start;
         System.out.println("时差:" + delta);
-        assert delta > 3000;
+        // 不能低于3秒：数据操作不允许并发
+        // 不能高于8秒：访问数据源不允许串行
+        assert delta > 3000 && delta < 8000;
     }
 
     private static class TestStrategy<Param, Data> extends LruMemCacheStrategy<Param, Data> {
