@@ -26,7 +26,7 @@ public class DBSimulationStrategy<Param, Data> extends StdCacheStrategy<Param, D
             throw new NoCacheException();
         }
         TimeWrapper<Data> wrapper = map.get(key);
-        long remainingValidTime = wrapper.getRemainingValidTimeInMills(TimeWrapper.currentTimeMillis());
+        long remainingValidTime = wrapper.getRemainingValidTimeInMillis(TimeWrapper.currentTimeMillis());
         if (TimeWrapper.isExpired(remainingValidTime)) {
             map.remove(key);
             throw new NoCacheException();

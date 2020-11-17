@@ -88,9 +88,9 @@ public abstract class StdCacheStrategy<Param, Data> implements ICacheStrategy<Pa
             this.expiryMillis = expiryMillis;
         }
 
-        public long getRemainingValidTimeInMills(long curTimeInMills) {
+        public long getRemainingValidTimeInMillis(long curTimeInMillis) {
             long expiredTime = createStamp + expiryMillis;
-            return expiredTime - curTimeInMills;
+            return expiredTime - curTimeInMillis;
         }
     }
 }

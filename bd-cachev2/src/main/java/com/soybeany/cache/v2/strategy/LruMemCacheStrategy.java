@@ -33,7 +33,7 @@ public class LruMemCacheStrategy<Param, Data> extends StdCacheStrategy<Param, Da
             throw new NoCacheException();
         }
         // 若缓存中的数据过期，则移除数据后抛出无数据异常
-        long remainingValidTime = wrapper.getRemainingValidTimeInMills(TimeWrapper.currentTimeMillis());
+        long remainingValidTime = wrapper.getRemainingValidTimeInMillis(TimeWrapper.currentTimeMillis());
         if (TimeWrapper.isExpired(remainingValidTime)) {
             mDataAccessor.removeData(key);
             throw new NoCacheException();
