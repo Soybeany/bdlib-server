@@ -12,7 +12,6 @@ import com.soybeany.cache.v2.strategy.LruMemCacheStrategy;
 import org.junit.Test;
 
 import java.util.UUID;
-import java.util.concurrent.CountDownLatch;
 
 /**
  * <br>Created by Soybeany on 2020/10/11.
@@ -20,7 +19,7 @@ import java.util.concurrent.CountDownLatch;
 public class SimpleDMTest {
 
     private final IDatasource<String, String> datasource = s -> {
-        System.out.println(s + "(key)access datasource");
+        System.out.println("“" + s + "”access datasource");
         return UUID.randomUUID().toString();
     };
 
@@ -47,21 +46,22 @@ public class SimpleDMTest {
     public void concurrentTest() throws Exception {
         int count = 10;
         final DataFrom[] froms = new DataFrom[count];
-        final CountDownLatch latch = new CountDownLatch(count);
+        Thread[] threads = new Thread[count];
         for (int i = 0; i < count; i++) {
             final int finalI = i;
-            new Thread(() -> {
+            threads[i] = new Thread(() -> {
                 try {
                     DataPack<String> pack = dataManager.getDataPack("并发", null);
                     froms[finalI] = pack.from;
                 } catch (DataException e) {
                     throw new RuntimeException(e);
-                } finally {
-                    latch.countDown();
                 }
-            }).start();
+            });
+            threads[i].start();
         }
-        latch.await();
+        for (Thread thread : threads) {
+            thread.join();
+        }
         dataManager.getDataPack("单发", null);
         int accessCount = 0;
         for (DataFrom from : froms) {

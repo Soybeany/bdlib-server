@@ -54,7 +54,7 @@ public interface ICacheStrategy<Param, Data> {
     void onCacheData(Param param, String key, DataPack<Data> data);
 
     /**
-     * 处理异常的回调，一般的实现为缓存异常并重新抛出异常
+     * 处理异常的回调，一般的实现为缓存异常并重新抛出异常(有线程安全保障)
      *
      * @param param 自定义参数
      * @param key   使用{@link IKeyConverter}对{@link Param}进行转化后的键，用于KV
@@ -65,7 +65,7 @@ public interface ICacheStrategy<Param, Data> {
     // ********************触发类********************
 
     /**
-     * 移除指定的缓存
+     * 移除指定的缓存(有线程安全保障)
      *
      * @param param 自定义参数
      * @param key   使用{@link IKeyConverter}对{@link Param}进行转化后的键，用于KV
@@ -73,7 +73,7 @@ public interface ICacheStrategy<Param, Data> {
     void removeCache(Param param, String key);
 
     /**
-     * 清除全部缓存
+     * 清除全部缓存(有线程安全保障)
      */
     void clearCache();
 

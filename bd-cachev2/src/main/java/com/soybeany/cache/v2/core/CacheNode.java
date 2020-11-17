@@ -120,7 +120,7 @@ class CacheNode<Param, Data> {
         CacheNode<Param, Data> node = this;
         while (null != node) {
             String key = node.mConverter.getKey(param);
-            synchronized (getLock(key)) {
+            synchronized (node.getDefaultLock()) {
                 callback.onInvoke(key, node);
             }
             node = node.mNextNode;
@@ -164,10 +164,14 @@ class CacheNode<Param, Data> {
             else {
                 pack = mNextNode.getDataPackAndAutoCache(param, datasource);
             }
-            mCurStrategy.onCacheData(param, key, pack);
+            synchronized (getDefaultLock()) {
+                mCurStrategy.onCacheData(param, key, pack);
+            }
             return pack;
         } catch (DataException e) {
-            return mCurStrategy.onHandleException(param, key, e);
+            synchronized (getDefaultLock()) {
+                return mCurStrategy.onHandleException(param, key, e);
+            }
         }
     }
 
@@ -182,14 +186,19 @@ class CacheNode<Param, Data> {
         }
     }
 
+    private Object getDefaultLock() {
+        return mCurStrategy;
+    }
+
     private Lock getLock(String key) {
         Lock lock = mKeyMap.get(key);
-        if (null == lock) {
-            synchronized (this) {
-                lock = mKeyMap.get(key);
-                if (null == lock) {
-                    mKeyMap.put(key, lock = new Lock());
-                }
+        if (null != lock) {
+            return lock;
+        }
+        synchronized (mKeyMap) {
+            lock = mKeyMap.get(key);
+            if (null == lock) {
+                mKeyMap.put(key, lock = new Lock());
             }
         }
         return lock;
