@@ -2,6 +2,7 @@ package com.soybeany.cache.v2.strategy;
 
 
 import com.soybeany.cache.v2.exception.DataException;
+import com.soybeany.cache.v2.model.DataContext;
 import com.soybeany.cache.v2.model.DataFrom;
 import com.soybeany.cache.v2.model.DataHolder;
 import com.soybeany.cache.v2.model.DataPack;
@@ -26,7 +27,7 @@ public class LruMemCacheStrategy<Param, Data> extends StdCacheStrategy<Param, Da
     }
 
     @Override
-    public DataPack<Data> onGetCache(Param param, String key) throws DataException, NoCacheException {
+    public DataPack<Data> onGetCache(DataContext<Param> context, String key) throws DataException, NoCacheException {
         TimeWrapper<Data> wrapper = mDataAccessor.get(key);
         // 若缓存中没有数据，则直接抛出无数据异常
         if (null == wrapper) {
@@ -50,22 +51,22 @@ public class LruMemCacheStrategy<Param, Data> extends StdCacheStrategy<Param, Da
     }
 
     @Override
-    public void onCacheData(Param param, String key, DataPack<Data> data) {
+    public void onCacheData(DataContext<Param> context, String key, DataPack<Data> data) {
         mDataAccessor.putData(key, TimeWrapper.get(data, mExpiry, TimeWrapper.currentTimeMillis()));
     }
 
     @Override
-    public void removeCache(Param param, String key) {
+    public void removeCache(DataContext<Param> context, String key) {
         mDataAccessor.removeData(key);
     }
 
     @Override
-    public void clearCache() {
+    public void clearCache(String dataDesc) {
         mDataAccessor.clear();
     }
 
     @Override
-    protected void onCacheException(Param param, String key, Exception e) {
+    protected void onCacheException(DataContext<Param> context, String key, Exception e) {
         mDataAccessor.putData(key, TimeWrapper.get(e, mFastFailExpiry, TimeWrapper.currentTimeMillis()));
     }
 

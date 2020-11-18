@@ -8,6 +8,7 @@ import com.soybeany.cache.v2.contract.ILogger;
 import com.soybeany.cache.v2.exception.DataException;
 import com.soybeany.cache.v2.exception.NoCacheException;
 import com.soybeany.cache.v2.exception.NoDataSourceException;
+import com.soybeany.cache.v2.model.DataContext;
 import com.soybeany.cache.v2.model.DataFrom;
 import com.soybeany.cache.v2.model.DataPack;
 
@@ -70,10 +71,11 @@ public class DataManager<Param, Data> {
     public DataPack<Data> getDataPack(String paramDesc, Param param, IDatasource<Param, Data> datasource) throws DataException {
         // 有缓存节点的情况
         if (null != mFirstNode) {
-            DataPack<Data> pack = mFirstNode.getDataPackAndAutoCache(param, datasource);
+            DataContext<Param> context = getNewDataContext(paramDesc, param);
+            DataPack<Data> pack = mFirstNode.getDataPackAndAutoCache(context, datasource);
             // 记录日志
             if (null != mLogger) {
-                mLogger.onGetData(mDataDesc, paramDesc, param, pack);
+                mLogger.onGetData(context, pack);
             }
             return pack;
         }
@@ -94,7 +96,7 @@ public class DataManager<Param, Data> {
         DataPack<Data> pack = CacheNode.getDataDirectly(param, mDefaultDatasource);
         // 记录日志
         if (null != mLogger) {
-            mLogger.onGetData(mDataDesc, paramDesc, param, pack);
+            mLogger.onGetData(getNewDataContext(paramDesc, param), pack);
         }
         return pack;
     }
@@ -116,10 +118,11 @@ public class DataManager<Param, Data> {
     public DataPack<Data> getCacheDataPack(String paramDesc, Param param) throws DataException {
         // 有缓存节点的情况
         if (null != mFirstNode) {
-            DataPack<Data> pack = mFirstNode.getCache(param);
+            DataContext<Param> context = getNewDataContext(paramDesc, param);
+            DataPack<Data> pack = mFirstNode.getCache(context);
             // 记录日志
             if (null != mLogger) {
-                mLogger.onGetData(mDataDesc, paramDesc, param, pack);
+                mLogger.onGetData(context, pack);
             }
             return pack;
         }
@@ -134,11 +137,12 @@ public class DataManager<Param, Data> {
         if (null == mFirstNode) {
             return;
         }
+        DataContext<Param> context = getNewDataContext(paramDesc, param);
         DataPack<Data> pack = DataPack.newSourceDataPack("外部", data);
-        mFirstNode.cacheData(param, pack);
+        mFirstNode.cacheData(context, pack);
         // 记录日志
         if (null != mLogger) {
-            mLogger.onCacheData(mDataDesc, paramDesc, param, pack);
+            mLogger.onCacheData(context, pack);
         }
     }
 
@@ -149,10 +153,11 @@ public class DataManager<Param, Data> {
         if (null == mFirstNode) {
             return;
         }
-        mFirstNode.cacheException(param, e);
+        DataContext<Param> context = getNewDataContext(paramDesc, param);
+        mFirstNode.cacheException(context, e);
         // 记录日志
         if (null != mLogger) {
-            mLogger.onCacheException(mDataDesc, paramDesc, param, e);
+            mLogger.onCacheException(context, e);
         }
     }
 
@@ -165,10 +170,10 @@ public class DataManager<Param, Data> {
         if (null == mFirstNode) {
             return;
         }
-        mFirstNode.removeCache(param);
+        mFirstNode.removeCache(getNewDataContext(paramDesc, param));
         // 记录日志
         if (null != mLogger) {
-            mLogger.onRemoveCache(mDataDesc, paramDesc, param);
+            mLogger.onRemoveCache(getNewDataContext(paramDesc, param));
         }
     }
 
@@ -179,11 +184,17 @@ public class DataManager<Param, Data> {
         if (null == mFirstNode) {
             return;
         }
-        mFirstNode.clearCache();
+        mFirstNode.clearCache(mDataDesc);
         // 记录日志
         if (null != mLogger) {
             mLogger.onClearCache(mDataDesc);
         }
+    }
+
+    // ********************内部方法********************
+
+    DataContext<Param> getNewDataContext(String paramDesc, Param param) {
+        return new DataContext<>(mDataDesc, paramDesc, param);
     }
 
     // ********************内部类********************

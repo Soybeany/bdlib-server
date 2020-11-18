@@ -3,6 +3,7 @@ package com.soybeany.cache.v2.strategy;
 
 import com.soybeany.cache.v2.contract.ICacheStrategy;
 import com.soybeany.cache.v2.exception.DataException;
+import com.soybeany.cache.v2.model.DataContext;
 import com.soybeany.cache.v2.model.DataHolder;
 import com.soybeany.cache.v2.model.DataPack;
 
@@ -21,8 +22,8 @@ public abstract class StdCacheStrategy<Param, Data> implements ICacheStrategy<Pa
     }
 
     @Override
-    public DataPack<Data> onHandleException(Param param, String key, DataException e) throws DataException {
-        onCacheException(param, key, e.getOriginException());
+    public DataPack<Data> onHandleException(DataContext<Param> context, String key, DataException e) throws DataException {
+        onCacheException(context, key, e.getOriginException());
         throw e;
     }
 
@@ -51,7 +52,7 @@ public abstract class StdCacheStrategy<Param, Data> implements ICacheStrategy<Pa
     /**
      * 缓存异常时的回调
      */
-    protected abstract void onCacheException(Param param, String key, Exception e);
+    protected abstract void onCacheException(DataContext<Param> context, String key, Exception e);
 
 
     protected static class TimeWrapper<Data> {

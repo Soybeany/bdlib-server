@@ -1,6 +1,7 @@
 package com.soybeany.cache.v2.component;
 
 import com.soybeany.cache.v2.exception.DataException;
+import com.soybeany.cache.v2.model.DataContext;
 import com.soybeany.cache.v2.model.DataFrom;
 import com.soybeany.cache.v2.model.DataHolder;
 import com.soybeany.cache.v2.model.DataPack;
@@ -21,7 +22,7 @@ public class DBSimulationStrategy<Param, Data> extends StdCacheStrategy<Param, D
     }
 
     @Override
-    public DataPack<Data> onGetCache(Param param, String key) throws DataException, NoCacheException {
+    public DataPack<Data> onGetCache(DataContext<Param> context, String key) throws DataException, NoCacheException {
         if (!map.containsKey(key)) {
             throw new NoCacheException();
         }
@@ -39,22 +40,22 @@ public class DBSimulationStrategy<Param, Data> extends StdCacheStrategy<Param, D
     }
 
     @Override
-    public void onCacheData(Param param, String key, DataPack<Data> data) {
+    public void onCacheData(DataContext<Param> context, String key, DataPack<Data> data) {
         map.put(key, TimeWrapper.get(data, mExpiry, TimeWrapper.currentTimeMillis()));
     }
 
     @Override
-    public void removeCache(Param param, String key) {
+    public void removeCache(DataContext<Param> context, String key) {
         map.remove(key);
     }
 
     @Override
-    public void clearCache() {
+    public void clearCache(String dataDesc) {
         map.clear();
     }
 
     @Override
-    protected void onCacheException(Param param, String key, Exception e) {
+    protected void onCacheException(DataContext<Param> context, String key, Exception e) {
         map.put(key, TimeWrapper.get(e, mFastFailExpiry, TimeWrapper.currentTimeMillis()));
     }
 }

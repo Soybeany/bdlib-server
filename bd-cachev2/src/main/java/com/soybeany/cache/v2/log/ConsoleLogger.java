@@ -2,6 +2,7 @@ package com.soybeany.cache.v2.log;
 
 import com.soybeany.cache.v2.contract.ICacheStrategy;
 import com.soybeany.cache.v2.contract.ILogger;
+import com.soybeany.cache.v2.model.DataContext;
 import com.soybeany.cache.v2.model.DataPack;
 
 /**
@@ -11,7 +12,7 @@ import com.soybeany.cache.v2.model.DataPack;
 public class ConsoleLogger<Param, Data> implements ILogger<Param, Data> {
 
     @Override
-    public void onGetData(String dataDesc, String paramDesc, Param param, DataPack<Data> pack) {
+    public void onGetData(DataContext<Param> context, DataPack<Data> pack) {
         String from;
         switch (pack.from) {
             case CACHE:
@@ -26,22 +27,22 @@ public class ConsoleLogger<Param, Data> implements ILogger<Param, Data> {
             default:
                 from = "未知来源";
         }
-        System.out.println("“" + dataDesc + "”从“" + from + "”获取了“" + paramDesc + "”的数据");
+        System.out.println("“" + context.dataDesc + "”从“" + from + "”获取了“" + context.paramDesc + "”的数据");
     }
 
     @Override
-    public void onCacheData(String dataDesc, String paramDesc, Param param, DataPack<Data> pack) {
-        System.out.println("“" + dataDesc + "”缓存了“" + paramDesc + "”的数据“");
+    public void onCacheData(DataContext<Param> context, DataPack<Data> pack) {
+        System.out.println("“" + context.dataDesc + "”缓存了“" + context.paramDesc + "”的数据“");
     }
 
     @Override
-    public void onCacheException(String dataDesc, String paramDesc, Param param, Exception e) {
-        System.out.println("“" + dataDesc + "”缓存了“" + paramDesc + "”的异常(" + e.getClass().getSimpleName() + ")“");
+    public void onCacheException(DataContext<Param> context, Exception e) {
+        System.out.println("“" + context.dataDesc + "”缓存了“" + context.paramDesc + "”的异常(" + e.getClass().getSimpleName() + ")“");
     }
 
     @Override
-    public void onRemoveCache(String dataDesc, String paramDesc, Param param) {
-        System.out.println("“" + dataDesc + "”移除了“" + paramDesc + "”的数据“");
+    public void onRemoveCache(DataContext<Param> context) {
+        System.out.println("“" + context.dataDesc + "”移除了“" + context.paramDesc + "”的数据“");
     }
 
     @Override

@@ -3,6 +3,7 @@ package com.soybeany.cache.v2.dm;
 import com.soybeany.cache.v2.core.DataManager;
 import com.soybeany.cache.v2.exception.DataException;
 import com.soybeany.cache.v2.log.ConsoleLogger;
+import com.soybeany.cache.v2.model.DataContext;
 import com.soybeany.cache.v2.model.DataPack;
 import com.soybeany.cache.v2.strategy.LruMemCacheStrategy;
 import com.soybeany.cache.v2.strategy.StdCacheStrategy;
@@ -55,14 +56,14 @@ public class MultiKeyDMTest {
 
     private static class TestStrategy<Param, Data> extends LruMemCacheStrategy<Param, Data> {
         @Override
-        public void onCacheData(Param param, String key, DataPack<Data> data) {
+        public void onCacheData(DataContext<Param> context, String key, DataPack<Data> data) {
             System.out.println("存数据:" + key);
             try {
                 Thread.sleep(500);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-            super.onCacheData(param, key, data);
+            super.onCacheData(context, key, data);
         }
     }
 
