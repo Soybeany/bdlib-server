@@ -70,25 +70,18 @@ class CacheNode<Param, Data> {
      * 获取数据并自动缓存
      */
     DataPack<Data> getDataPackAndAutoCache(Param param, final IDatasource<Param, Data> datasource) throws DataException {
-        return getDataFromCurNode(param, mConverter.getKey(param), (param2, key) -> getDataFromTmpMapOrNextNode(datasource, param2, key));
+        return getDataFromCurNode(param, mConverter.getKey(param), (param2, key) -> getDataFromTmpMapOrNextNode(key,
+                () -> getDataFromNextNode(param2, key, datasource)
+        ));
     }
 
     /**
      * 仅仅获取缓存
      */
     DataPack<Data> getCache(Param param) throws DataException {
-        return getDataFromCurNode(param, mConverter.getKey(param), (param1, key) -> {
-            // 若已无下一节点，抛出异常
-            if (null == mNextNode) {
-                throw new DataException(DataFrom.CACHE, new NoCacheException());
-            }
-            // 否则从下一节点获取缓存
-            synchronized (getLock(key)) {
-                DataPack<Data> pack = mNextNode.getCache(param1);
-                mCurStrategy.onCacheData(param1, key, pack);
-                return pack;
-            }
-        });
+        return getDataFromCurNode(param, mConverter.getKey(param), (param2, key) -> getDataFromTmpMapOrNextNode(key,
+                () -> getCacheFromNextNode(param2, key)
+        ));
     }
 
     void cacheData(final Param param, final DataPack<Data> data) {
@@ -128,7 +121,7 @@ class CacheNode<Param, Data> {
     }
 
     @SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
-    private DataPack<Data> getDataFromTmpMapOrNextNode(IDatasource<Param, Data> datasource, Param param, String key) throws DataException {
+    private DataPack<Data> getDataFromTmpMapOrNextNode(String key, ICallback3<Data> callback) throws DataException {
         // 加锁，避免并发时数据重复获取
         Lock lock = getLock(key);
         lock.countOfGet.incrementAndGet();
@@ -137,7 +130,7 @@ class CacheNode<Param, Data> {
                 DataPack<Data> dataPack = mTmpDataPackMap.get(lock);
                 // 若临时数据缓存没有时，再访问下一节点，以免并发时多次访问下一级节点(double check机制)
                 if (null == dataPack) {
-                    dataPack = getDataFromNextNode(param, key, datasource);
+                    dataPack = callback.onGetDataFromNextNode();
                     mTmpDataPackMap.put(lock, DataPack.newTempCacheDataPack(dataPack));
                 }
                 return dataPack;
@@ -150,8 +143,21 @@ class CacheNode<Param, Data> {
         }
     }
 
+    private DataPack<Data> getCacheFromNextNode(Param param, String key) throws DataException {
+        // 若已无下一节点，抛出异常
+        if (null == mNextNode) {
+            throw new DataException(DataFrom.CACHE, new NoCacheException());
+        }
+        // 否则从下一节点获取缓存
+        DataPack<Data> pack = mNextNode.getCache(param);
+        synchronized (getDefaultLock()) {
+            mCurStrategy.onCacheData(param, key, pack);
+        }
+        return pack;
+    }
+
     /**
-     * 从下一节点获取缓存
+     * 从下一节点获取数据
      */
     private DataPack<Data> getDataFromNextNode(Param param, String key, IDatasource<Param, Data> datasource) throws DataException {
         try {
@@ -212,6 +218,10 @@ class CacheNode<Param, Data> {
 
     private interface ICallback2<Param, Data> {
         void onInvoke(String key, CacheNode<Param, Data> node);
+    }
+
+    private interface ICallback3<Data> {
+        DataPack<Data> onGetDataFromNextNode() throws DataException;
     }
 
     private static class Lock {
