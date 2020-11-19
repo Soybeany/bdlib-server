@@ -4,7 +4,6 @@ package com.soybeany.cache.v2.strategy;
 import com.soybeany.cache.v2.contract.ICacheStrategy;
 import com.soybeany.cache.v2.exception.DataException;
 import com.soybeany.cache.v2.model.DataContext;
-import com.soybeany.cache.v2.model.DataHolder;
 import com.soybeany.cache.v2.model.DataPack;
 
 /**
@@ -15,10 +14,16 @@ public abstract class StdCacheStrategy<Param, Data> implements ICacheStrategy<Pa
 
     protected long mExpiry = Long.MAX_VALUE; // 永不超时
     protected long mFastFailExpiry = 60000; // 1分钟;
+    protected long mAntiPenetrateMillis; // 默认不做防穿透
 
     @Override
     public int order() {
         return ORDER_DEFAULT;
+    }
+
+    @Override
+    public long antiPenetrateMillis() {
+        return mAntiPenetrateMillis;
     }
 
     @Override
@@ -34,7 +39,7 @@ public abstract class StdCacheStrategy<Param, Data> implements ICacheStrategy<Pa
      * @return 自身，方便链式调用
      */
     public StdCacheStrategy<Param, Data> expiry(long millis) {
-        mExpiry = millis;
+        mExpiry = getCheckedTime(millis);
         return this;
     }
 
@@ -45,8 +50,23 @@ public abstract class StdCacheStrategy<Param, Data> implements ICacheStrategy<Pa
      * @return 自身，方便链式调用
      */
     public StdCacheStrategy<Param, Data> fastFailExpiry(long millis) {
-        mFastFailExpiry = millis;
+        mFastFailExpiry = getCheckedTime(millis);
         return this;
+    }
+
+    /**
+     * 用于防护“缓存穿透”的时间，获取数据后，将在这段时间内
+     *
+     * @param millis 失效时间(毫秒)
+     * @return 自身，方便链式调用
+     */
+    public StdCacheStrategy<Param, Data> antiPenetrateMillis(long millis) {
+        mAntiPenetrateMillis = getCheckedTime(millis);
+        return this;
+    }
+
+    private long getCheckedTime(long millis) {
+        return millis > 0 ? millis : 0;
     }
 
     /**
@@ -55,43 +75,4 @@ public abstract class StdCacheStrategy<Param, Data> implements ICacheStrategy<Pa
     protected abstract void onCacheException(DataContext<Param> context, String key, Exception e);
 
 
-    protected static class TimeWrapper<Data> {
-
-        public final DataHolder<Data> target; // 目标dataHolder
-        public final long createStamp; // 创建时的时间戳
-
-        private final long expiryMillis; // 超时时间，静态
-
-        public static <Data> TimeWrapper<Data> get(DataPack<Data> dataPack, long expiryMillis, long createStamp) {
-            Data data = null;
-            if (null != dataPack) {
-                data = dataPack.data;
-                expiryMillis = Math.min(dataPack.expiryMillis, expiryMillis);
-            }
-            return new TimeWrapper<>(DataHolder.get(data), expiryMillis, createStamp);
-        }
-
-        public static <Data> TimeWrapper<Data> get(Exception exception, long expiryMillis, long createStamp) {
-            return new TimeWrapper<>(DataHolder.get(exception), expiryMillis, createStamp);
-        }
-
-        public static boolean isExpired(long remainingValidTime) {
-            return remainingValidTime <= 0;
-        }
-
-        public static long currentTimeMillis() {
-            return System.currentTimeMillis();
-        }
-
-        public TimeWrapper(DataHolder<Data> target, long expiryMillis, long createStamp) {
-            this.target = target;
-            this.createStamp = createStamp;
-            this.expiryMillis = expiryMillis;
-        }
-
-        public long getRemainingValidTimeInMillis(long curTimeInMillis) {
-            long expiredTime = createStamp + expiryMillis;
-            return expiredTime - curTimeInMillis;
-        }
-    }
 }

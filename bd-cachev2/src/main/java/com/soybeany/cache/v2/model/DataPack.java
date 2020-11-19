@@ -35,15 +35,11 @@ public class DataPack<Data> {
         return new DataPack<>(provider, data, DataFrom.CACHE, expiryMillis);
     }
 
-    public static <Data> DataPack<Data> newTempCacheDataPack(DataPack<Data> dataPack) {
-        return new DataPack<>(dataPack.provider, dataPack.data, DataFrom.TEMP_CACHE, dataPack.expiryMillis);
-    }
-
     public static <Data> DataPack<Data> newSourceDataPack(Object provider, Data data) {
         return new DataPack<>(provider, data, DataFrom.SOURCE, Long.MAX_VALUE);
     }
 
-    private DataPack(Object provider, Data data, DataFrom from, long expiryMillis) {
+    public DataPack(Object provider, Data data, DataFrom from, long expiryMillis) {
         this.provider = provider;
         this.data = data;
         this.from = from;

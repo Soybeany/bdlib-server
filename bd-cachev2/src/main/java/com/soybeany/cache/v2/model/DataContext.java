@@ -12,7 +12,6 @@ public class DataContext<Param> {
     public final String paramDesc;
     public final Param param;
 
-
     public DataContext(String dataDesc, String paramDesc, Param param) {
         this.dataDesc = dataDesc;
         this.paramDesc = paramDesc;

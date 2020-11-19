@@ -2,10 +2,7 @@ package com.soybeany.cache.v2.strategy;
 
 
 import com.soybeany.cache.v2.exception.DataException;
-import com.soybeany.cache.v2.model.DataContext;
-import com.soybeany.cache.v2.model.DataFrom;
-import com.soybeany.cache.v2.model.DataHolder;
-import com.soybeany.cache.v2.model.DataPack;
+import com.soybeany.cache.v2.model.*;
 
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -19,7 +16,7 @@ import java.util.Map;
  */
 public class LruMemCacheStrategy<Param, Data> extends StdCacheStrategy<Param, Data> {
 
-    private final LruDataAccessor<TimeWrapper<Data>> mDataAccessor = new LruDataAccessor<>();
+    private final LruDataAccessor<DataHolderTimeWrapper<Data>> mDataAccessor = new LruDataAccessor<>();
 
     @Override
     public String desc() {
@@ -28,14 +25,14 @@ public class LruMemCacheStrategy<Param, Data> extends StdCacheStrategy<Param, Da
 
     @Override
     public DataPack<Data> onGetCache(DataContext<Param> context, String key) throws DataException, NoCacheException {
-        TimeWrapper<Data> wrapper = mDataAccessor.get(key);
+        DataHolderTimeWrapper<Data> wrapper = mDataAccessor.get(key);
         // 若缓存中没有数据，则直接抛出无数据异常
         if (null == wrapper) {
             throw new NoCacheException();
         }
         // 若缓存中的数据过期，则移除数据后抛出无数据异常
-        long remainingValidTime = wrapper.getRemainingValidTimeInMillis(TimeWrapper.currentTimeMillis());
-        if (TimeWrapper.isExpired(remainingValidTime)) {
+        long remainingValidTime = wrapper.getRemainingValidTimeInMillis();
+        if (DataHolderTimeWrapper.isExpired(remainingValidTime)) {
             mDataAccessor.removeData(key);
             throw new NoCacheException();
         }
@@ -52,7 +49,7 @@ public class LruMemCacheStrategy<Param, Data> extends StdCacheStrategy<Param, Da
 
     @Override
     public void onCacheData(DataContext<Param> context, String key, DataPack<Data> data) {
-        mDataAccessor.putData(key, TimeWrapper.get(data, mExpiry, TimeWrapper.currentTimeMillis()));
+        mDataAccessor.putData(key, DataHolderTimeWrapper.get(data, mExpiry));
     }
 
     @Override
@@ -67,7 +64,7 @@ public class LruMemCacheStrategy<Param, Data> extends StdCacheStrategy<Param, Da
 
     @Override
     protected void onCacheException(DataContext<Param> context, String key, Exception e) {
-        mDataAccessor.putData(key, TimeWrapper.get(e, mFastFailExpiry, TimeWrapper.currentTimeMillis()));
+        mDataAccessor.putData(key, DataHolderTimeWrapper.get(e, mFastFailExpiry));
     }
 
     public LruMemCacheStrategy<Param, Data> capacity(int size) {

@@ -6,13 +6,14 @@ import com.soybeany.cache.v2.contract.IKeyConverter;
 import com.soybeany.cache.v2.exception.DataException;
 import com.soybeany.cache.v2.exception.NoCacheException;
 import com.soybeany.cache.v2.exception.NoDataSourceException;
-import com.soybeany.cache.v2.model.DataContext;
-import com.soybeany.cache.v2.model.DataFrom;
-import com.soybeany.cache.v2.model.DataPack;
+import com.soybeany.cache.v2.model.*;
 
 import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -23,6 +24,8 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 class CacheNode<Param, Data> {
 
+    private static final ScheduledExecutorService TMP_DATA_REMOVE_SERVICE = Executors.newSingleThreadScheduledExecutor();
+
     private final Map<String, Lock> mKeyMap = new WeakHashMap<>();
 
     private final ICacheStrategy<Param, Data> mCurStrategy;
@@ -30,9 +33,9 @@ class CacheNode<Param, Data> {
 
     private CacheNode<Param, Data> mNextNode;
 
-    private final Map<Lock, DataPack<Data>> mTmpDataPackMap = new ConcurrentHashMap<>();
+    private final Map<Lock, DataHolderTimeWrapper<Data>> mTmpDataPackMap = new ConcurrentHashMap<>();
 
-    static <Param, Data> DataPack<Data> getDataDirectly(Param param, IDatasource<Param, Data> datasource) throws DataException {
+    public static <Param, Data> DataPack<Data> getDataDirectly(Param param, IDatasource<Param, Data> datasource) throws DataException {
         try {
             if (null == datasource) {
                 throw new NoDataSourceException();
@@ -41,6 +44,10 @@ class CacheNode<Param, Data> {
         } catch (Exception e) {
             throw new DataException(DataFrom.SOURCE, e);
         }
+    }
+
+    public static void shutdownTmpCacheService() {
+        TMP_DATA_REMOVE_SERVICE.shutdown();
     }
 
     public CacheNode(ICacheStrategy<Param, Data> curStrategy, IKeyConverter<Param> converter) {
@@ -121,24 +128,41 @@ class CacheNode<Param, Data> {
         }
     }
 
-    @SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
     private DataPack<Data> getDataFromTmpMapOrNextNode(String key, ICallback3<Data> callback) throws DataException {
         // 加锁，避免并发时数据重复获取
         Lock lock = getLock(key);
         lock.countOfGet.incrementAndGet();
         synchronized (lock) {
+            long antiPenetrateMillis = mCurStrategy.antiPenetrateMillis();
             try {
-                DataPack<Data> dataPack = mTmpDataPackMap.get(lock);
+                DataHolderTimeWrapper<Data> wrapper = mTmpDataPackMap.get(lock);
+                Object provider = this;
+                DataFrom dataFrom = DataFrom.TEMP_CACHE;
                 // 若临时数据缓存没有时，再访问下一节点，以免并发时多次访问下一级节点(double check机制)
-                if (null == dataPack) {
-                    dataPack = callback.onGetDataFromNextNode();
-                    mTmpDataPackMap.put(lock, DataPack.newTempCacheDataPack(dataPack));
+                if (null == wrapper || wrapper.isExpired()) {
+                    try {
+                        DataPack<Data> dataPack = callback.onGetDataFromNextNode();
+                        provider = dataPack.provider;
+                        dataFrom = dataPack.from;
+                        wrapper = DataHolderTimeWrapper.get(dataPack, dataPack.expiryMillis);
+                    } catch (DataException e) {
+                        dataFrom = e.getDataFrom();
+                        wrapper = DataHolderTimeWrapper.get(e.getOriginException(), antiPenetrateMillis);
+                    }
+                    mTmpDataPackMap.put(lock, wrapper);
                 }
-                return dataPack;
+                // 处理结果
+                DataHolder<Data> dataHolder = wrapper.target;
+                if (dataHolder.abnormal()) {
+                    throw new DataException(dataFrom, dataHolder.getException());
+                }
+                return new DataPack<>(provider, dataHolder.getData(), dataFrom, wrapper.getRemainingValidTimeInMillis());
             } finally {
                 int count = lock.countOfGet.decrementAndGet();
                 if (0 == count) {
-                    mTmpDataPackMap.remove(lock);
+                    TMP_DATA_REMOVE_SERVICE.schedule(() -> {
+                        mTmpDataPackMap.remove(lock);
+                    }, antiPenetrateMillis, TimeUnit.MILLISECONDS);
                 }
             }
         }

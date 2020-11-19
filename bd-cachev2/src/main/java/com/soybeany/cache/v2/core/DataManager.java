@@ -28,6 +28,13 @@ public class DataManager<Param, Data> {
     private ILogger<Param, Data> mLogger; // 日志输出
 
     /**
+     * 关闭应用时，需使用此方法释放资源
+     */
+    public static void destroy() {
+        CacheNode.shutdownTmpCacheService();
+    }
+
+    /**
      * @param defaultDatasource 默认的数据源，允许为null
      */
     private DataManager(String dataDesc, IDatasource<Param, Data> defaultDatasource) {

@@ -31,6 +31,11 @@ public class ThreadCacheStrategy<Param, Data> implements ICacheStrategy<Param, D
     }
 
     @Override
+    public long antiPenetrateMillis() {
+        return 0;
+    }
+
+    @Override
     public DataPack<Data> onGetCache(DataContext<Param> context, String key) throws DataException, NoCacheException {
         Map<Param, DataHolder<Data>> map = threadLocal.get();
         if (!map.containsKey(context.param)) {
