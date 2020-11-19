@@ -1,6 +1,7 @@
 package com.soybeany.cache.v2.log;
 
 import com.soybeany.cache.v2.contract.ICacheStrategy;
+import com.soybeany.cache.v2.contract.IDatasource;
 import com.soybeany.cache.v2.contract.ILogger;
 import com.soybeany.cache.v2.model.DataContext;
 import com.soybeany.cache.v2.model.DataPack;
@@ -14,18 +15,12 @@ public class ConsoleLogger<Param, Data> implements ILogger<Param, Data> {
     @Override
     public void onGetData(DataContext<Param> context, DataPack<Data> pack) {
         String from;
-        switch (pack.from) {
-            case CACHE:
-                from = "缓存(" + ((ICacheStrategy<?, ?>) pack.provider).desc() + ")";
-                break;
-            case TEMP_CACHE:
-                from = "临时缓存";
-                break;
-            case SOURCE:
-                from = "数据源";
-                break;
-            default:
-                from = "未知来源";
+        if (pack.provider instanceof ICacheStrategy) {
+            from = "缓存(" + ((ICacheStrategy<?, ?>) pack.provider).desc() + ")";
+        } else if (pack.provider instanceof IDatasource) {
+            from = "数据源";
+        } else {
+            from = "其它来源(" + pack.provider + ")";
         }
         System.out.println("“" + context.dataDesc + "”从“" + from + "”获取了“" + context.paramDesc + "”的数据");
     }

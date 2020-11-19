@@ -1,7 +1,5 @@
 package com.soybeany.cache.v2.exception;
 
-import com.soybeany.cache.v2.model.DataFrom;
-
 /**
  * 没有找到数据时抛出的异常
  *
@@ -10,35 +8,29 @@ import com.soybeany.cache.v2.model.DataFrom;
  */
 public class DataException extends Exception {
 
-    private final DataFrom mDataFrom;
-    private final String mOriginExceptionFullName;
+    /**
+     * 异常产生来源
+     */
+    public final Object producer;
+
+    /**
+     * 原始异常的全名
+     */
+    public final String originExceptionFullName;
 
     private Class<?> mOriginExceptionClass;
     private Exception mOriginException;
 
-    public DataException(DataFrom dataFrom, String originExceptionFullName, String errMsg) {
+    public DataException(Object producer, String originExceptionFullName, String errMsg) {
         super(errMsg);
-        mDataFrom = dataFrom;
-        mOriginExceptionFullName = originExceptionFullName;
+        this.producer = producer;
+        this.originExceptionFullName = originExceptionFullName;
     }
 
-    public DataException(DataFrom dataFrom, Exception originException) {
-        super(originException.getMessage());
-        mDataFrom = dataFrom;
-        mOriginException = originException;
+    public DataException(Object producer, Exception originException) {
+        this(producer, originException.getClass().getName(), originException.getMessage());
         mOriginExceptionClass = originException.getClass();
-        mOriginExceptionFullName = mOriginExceptionClass.getName();
-    }
-
-    public DataFrom getDataFrom() {
-        return mDataFrom;
-    }
-
-    /**
-     * 获取原始异常的全名称
-     */
-    public String getOriginExceptionFullName() {
-        return mOriginExceptionFullName;
+        mOriginException = originException;
     }
 
     /**
@@ -46,14 +38,15 @@ public class DataException extends Exception {
      */
     @SuppressWarnings("unchecked")
     public <T> Class<T> getOriginExceptionClass() {
-        if (null == mOriginExceptionClass) {
-            synchronized (this) {
-                if (null == mOriginExceptionClass) {
-                    try {
-                        mOriginExceptionClass = Class.forName(mOriginExceptionFullName);
-                    } catch (Exception e) {
-                        throw new RuntimeException(e);
-                    }
+        if (null != mOriginExceptionClass) {
+            return (Class<T>) mOriginExceptionClass;
+        }
+        synchronized (this) {
+            if (null == mOriginExceptionClass) {
+                try {
+                    mOriginExceptionClass = Class.forName(originExceptionFullName);
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
                 }
             }
         }
@@ -64,16 +57,17 @@ public class DataException extends Exception {
      * 获取原始异常的实例
      */
     public Exception getOriginException() {
-        if (null == mOriginException) {
-            synchronized (this) {
-                if (null == mOriginException) {
-                    try {
-                        mOriginException = (Exception) getOriginExceptionClass()
-                                .getConstructor(String.class)
-                                .newInstance(getMessage());
-                    } catch (Exception e) {
-                        throw new RuntimeException(e);
-                    }
+        if (null != mOriginException) {
+            return mOriginException;
+        }
+        synchronized (this) {
+            if (null == mOriginException) {
+                try {
+                    mOriginException = (Exception) getOriginExceptionClass()
+                            .getConstructor(String.class)
+                            .newInstance(getMessage());
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
                 }
             }
         }
@@ -84,7 +78,7 @@ public class DataException extends Exception {
      * 原始异常是否与指定的异常相同
      */
     public boolean isOriginExceptionTheSameWith(Class<? extends Exception> clazz) {
-        return mOriginExceptionFullName.equals(clazz.getName());
+        return originExceptionFullName.equals(clazz.getName());
     }
 
 }

@@ -1,8 +1,6 @@
 package com.soybeany.cache.v2.model;
 
 
-import com.soybeany.cache.v2.contract.ICacheStrategy;
-
 /**
  * 数据包
  *
@@ -17,9 +15,9 @@ public class DataPack<Data> {
     public final Data data;
 
     /**
-     * 数据来源
+     * 数据的生产者，即数据第一次的提供者
      */
-    public final DataFrom from;
+    public final Object producer;
 
     /**
      * 数据的提供者，即数据最近一次的提供者
@@ -31,18 +29,14 @@ public class DataPack<Data> {
      */
     public final long expiryMillis;
 
-    public static <Param, Data> DataPack<Data> newCacheDataPack(ICacheStrategy<Param, Data> provider, Data data, long expiryMillis) {
-        return new DataPack<>(provider, data, DataFrom.CACHE, expiryMillis);
+    public static <Data> DataPack<Data> newSourceDataPack(Object producer, Object provider, Data data) {
+        return new DataPack<>(producer, provider, data, Long.MAX_VALUE);
     }
 
-    public static <Data> DataPack<Data> newSourceDataPack(Object provider, Data data) {
-        return new DataPack<>(provider, data, DataFrom.SOURCE, Long.MAX_VALUE);
-    }
-
-    public DataPack(Object provider, Data data, DataFrom from, long expiryMillis) {
+    public DataPack(Object producer, Object provider, Data data, long expiryMillis) {
+        this.producer = producer;
         this.provider = provider;
         this.data = data;
-        this.from = from;
         this.expiryMillis = expiryMillis;
     }
 }

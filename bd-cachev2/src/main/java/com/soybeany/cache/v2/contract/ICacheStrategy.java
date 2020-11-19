@@ -34,11 +34,6 @@ public interface ICacheStrategy<Param, Data> {
      */
     String desc();
 
-    /**
-     * 防护“缓存穿透”的时间
-     */
-    long antiPenetrateMillis();
-
     // ********************回调类********************
 
     /**

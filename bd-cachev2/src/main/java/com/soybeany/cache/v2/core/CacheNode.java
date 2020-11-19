@@ -6,14 +6,13 @@ import com.soybeany.cache.v2.contract.IKeyConverter;
 import com.soybeany.cache.v2.exception.DataException;
 import com.soybeany.cache.v2.exception.NoCacheException;
 import com.soybeany.cache.v2.exception.NoDataSourceException;
-import com.soybeany.cache.v2.model.*;
+import com.soybeany.cache.v2.model.DataContext;
+import com.soybeany.cache.v2.model.DataHolder;
+import com.soybeany.cache.v2.model.DataPack;
 
 import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -24,8 +23,6 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 class CacheNode<Param, Data> {
 
-    private static final ScheduledExecutorService TMP_DATA_REMOVE_SERVICE = Executors.newSingleThreadScheduledExecutor();
-
     private final Map<String, Lock> mKeyMap = new WeakHashMap<>();
 
     private final ICacheStrategy<Param, Data> mCurStrategy;
@@ -33,21 +30,17 @@ class CacheNode<Param, Data> {
 
     private CacheNode<Param, Data> mNextNode;
 
-    private final Map<Lock, DataHolderTimeWrapper<Data>> mTmpDataPackMap = new ConcurrentHashMap<>();
+    private final AntiPenetrator<Data> mAntiPenetrator = new AntiPenetrator<>();
 
-    public static <Param, Data> DataPack<Data> getDataDirectly(Param param, IDatasource<Param, Data> datasource) throws DataException {
-        try {
-            if (null == datasource) {
-                throw new NoDataSourceException();
-            }
-            return DataPack.newSourceDataPack(datasource, datasource.onGetData(param));
-        } catch (Exception e) {
-            throw new DataException(DataFrom.SOURCE, e);
+    public static <Param, Data> DataPack<Data> getDataDirectly(Object invoker, Param param, IDatasource<Param, Data> datasource) throws DataException {
+        if (null == datasource) {
+            throw new DataException(invoker, new NoDataSourceException());
         }
-    }
-
-    public static void shutdownTmpCacheService() {
-        TMP_DATA_REMOVE_SERVICE.shutdown();
+        try {
+            return DataPack.newSourceDataPack(datasource, datasource, datasource.onGetData(param));
+        } catch (Exception e) {
+            throw new DataException(datasource, e);
+        }
     }
 
     public CacheNode(ICacheStrategy<Param, Data> curStrategy, IKeyConverter<Param> converter) {
@@ -96,8 +89,8 @@ class CacheNode<Param, Data> {
         traverse(context, (key, node) -> node.mCurStrategy.onCacheData(context, key, data));
     }
 
-    void cacheException(DataContext<Param> context, Exception e) {
-        final DataException exception = new DataException(DataFrom.SOURCE, e);
+    void cacheException(Object thrower, DataContext<Param> context, Exception e) {
+        final DataException exception = new DataException(thrower, e);
         traverse(context, (key, node) -> {
             try {
                 node.mCurStrategy.onHandleException(context, key, exception);
@@ -128,41 +121,33 @@ class CacheNode<Param, Data> {
         }
     }
 
+    @SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
     private DataPack<Data> getDataFromTmpMapOrNextNode(String key, ICallback3<Data> callback) throws DataException {
         // 加锁，避免并发时数据重复获取
         Lock lock = getLock(key);
         lock.countOfGet.incrementAndGet();
         synchronized (lock) {
-            long antiPenetrateMillis = mCurStrategy.antiPenetrateMillis();
             try {
-                DataHolderTimeWrapper<Data> wrapper = mTmpDataPackMap.get(lock);
-                Object provider = this;
-                DataFrom dataFrom = DataFrom.TEMP_CACHE;
+                DataHolder<Data> holder = mAntiPenetrator.get(lock);
+                Object provider = mAntiPenetrator;
                 // 若临时数据缓存没有时，再访问下一节点，以免并发时多次访问下一级节点(double check机制)
-                if (null == wrapper || wrapper.isExpired()) {
+                if (null == holder) {
                     try {
                         DataPack<Data> dataPack = callback.onGetDataFromNextNode();
                         provider = dataPack.provider;
-                        dataFrom = dataPack.from;
-                        wrapper = DataHolderTimeWrapper.get(dataPack, dataPack.expiryMillis);
+                        holder = DataHolder.get(dataPack, null);
                     } catch (DataException e) {
-                        dataFrom = e.getDataFrom();
-                        wrapper = DataHolderTimeWrapper.get(e.getOriginException(), antiPenetrateMillis);
+                        provider = e.producer;
+                        holder = DataHolder.get(e.producer, e.getOriginException(), null);
                     }
-                    mTmpDataPackMap.put(lock, wrapper);
+                    mAntiPenetrator.put(lock, holder);
                 }
-                // 处理结果
-                DataHolder<Data> dataHolder = wrapper.target;
-                if (dataHolder.abnormal()) {
-                    throw new DataException(dataFrom, dataHolder.getException());
-                }
-                return new DataPack<>(provider, dataHolder.getData(), dataFrom, wrapper.getRemainingValidTimeInMillis());
+                // 返回结果
+                return holder.toDataPack(provider);
             } finally {
                 int count = lock.countOfGet.decrementAndGet();
                 if (0 == count) {
-                    TMP_DATA_REMOVE_SERVICE.schedule(() -> {
-                        mTmpDataPackMap.remove(lock);
-                    }, antiPenetrateMillis, TimeUnit.MILLISECONDS);
+                    mAntiPenetrator.remove(lock);
                 }
             }
         }
@@ -171,14 +156,20 @@ class CacheNode<Param, Data> {
     private DataPack<Data> getCacheFromNextNode(DataContext<Param> context, String key) throws DataException {
         // 若已无下一节点，抛出异常
         if (null == mNextNode) {
-            throw new DataException(DataFrom.CACHE, new NoCacheException());
+            throw new DataException(this, new NoCacheException());
         }
         // 否则从下一节点获取缓存
-        DataPack<Data> pack = mNextNode.getCache(context);
-        synchronized (getDefaultLock()) {
-            mCurStrategy.onCacheData(context, key, pack);
+        try {
+            DataPack<Data> pack = mNextNode.getCache(context);
+            synchronized (getDefaultLock()) {
+                mCurStrategy.onCacheData(context, key, pack);
+            }
+            return pack;
+        } catch (DataException e) {
+            synchronized (getDefaultLock()) {
+                return mCurStrategy.onHandleException(context, key, e);
+            }
         }
-        return pack;
     }
 
     /**
@@ -189,7 +180,7 @@ class CacheNode<Param, Data> {
             DataPack<Data> pack;
             // 若没有下一节点，则从数据源获取
             if (null == mNextNode) {
-                pack = getDataDirectly(context.param, datasource);
+                pack = getDataDirectly(this, context.param, datasource);
             }
             // 否则从下一节点获取缓存
             else {
@@ -260,6 +251,27 @@ class CacheNode<Param, Data> {
         @Override
         public int hashCode() {
             return super.hashCode();
+        }
+    }
+
+    private static class AntiPenetrator<Data> {
+        private final Map<Lock, DataHolder<Data>> mTarget = new ConcurrentHashMap<>();
+
+        DataHolder<Data> get(Lock lock) {
+            return mTarget.get(lock);
+        }
+
+        void put(Lock lock, DataHolder<Data> dataHolder) {
+            mTarget.put(lock, dataHolder);
+        }
+
+        void remove(Lock lock) {
+            mTarget.remove(lock);
+        }
+
+        @Override
+        public String toString() {
+            return "缓存穿透防御器";
         }
     }
 

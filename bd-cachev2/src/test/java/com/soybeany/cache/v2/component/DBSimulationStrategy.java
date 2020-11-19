@@ -1,7 +1,9 @@
 package com.soybeany.cache.v2.component;
 
 import com.soybeany.cache.v2.exception.DataException;
-import com.soybeany.cache.v2.model.*;
+import com.soybeany.cache.v2.model.DataContext;
+import com.soybeany.cache.v2.model.DataHolder;
+import com.soybeany.cache.v2.model.DataPack;
 import com.soybeany.cache.v2.strategy.StdCacheStrategy;
 
 import java.util.HashMap;
@@ -11,7 +13,7 @@ import java.util.Map;
  * <br>Created by Soybeany on 2020/10/16.
  */
 public class DBSimulationStrategy<Param, Data> extends StdCacheStrategy<Param, Data> {
-    private final Map<String, DataHolderTimeWrapper<Data>> map = new HashMap<>();
+    private final Map<String, DataHolder<Data>> map = new HashMap<>();
 
     @Override
     public String desc() {
@@ -23,22 +25,17 @@ public class DBSimulationStrategy<Param, Data> extends StdCacheStrategy<Param, D
         if (!map.containsKey(key)) {
             throw new NoCacheException();
         }
-        DataHolderTimeWrapper<Data> wrapper = map.get(key);
-        long remainingValidTime = wrapper.getRemainingValidTimeInMillis();
-        if (DataHolderTimeWrapper.isExpired(remainingValidTime)) {
+        DataHolder<Data> dataHolder = map.get(key);
+        if (dataHolder.isExpired()) {
             map.remove(key);
             throw new NoCacheException();
         }
-        DataHolder<Data> holder = wrapper.target;
-        if (holder.abnormal()) {
-            throw new DataException(DataFrom.CACHE, holder.getException());
-        }
-        return DataPack.newCacheDataPack(this, holder.getData(), remainingValidTime);
+        return dataHolder.toDataPack(this);
     }
 
     @Override
     public void onCacheData(DataContext<Param> context, String key, DataPack<Data> data) {
-        map.put(key, DataHolderTimeWrapper.get(data, mExpiry));
+        map.put(key, DataHolder.get(data, mExpiry));
     }
 
     @Override
@@ -52,7 +49,7 @@ public class DBSimulationStrategy<Param, Data> extends StdCacheStrategy<Param, D
     }
 
     @Override
-    protected void onCacheException(DataContext<Param> context, String key, Exception e) {
-        map.put(key, DataHolderTimeWrapper.get(e, mFastFailExpiry));
+    protected void onCacheException(DataContext<Param> context, String key, Object producer, Exception e) {
+        map.put(key, DataHolder.get(producer, e, mFastFailExpiry));
     }
 }

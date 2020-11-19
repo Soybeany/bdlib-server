@@ -9,7 +9,6 @@ import com.soybeany.cache.v2.exception.DataException;
 import com.soybeany.cache.v2.exception.NoCacheException;
 import com.soybeany.cache.v2.exception.NoDataSourceException;
 import com.soybeany.cache.v2.model.DataContext;
-import com.soybeany.cache.v2.model.DataFrom;
 import com.soybeany.cache.v2.model.DataPack;
 
 import java.util.Comparator;
@@ -26,13 +25,6 @@ public class DataManager<Param, Data> {
 
     private CacheNode<Param, Data> mFirstNode; // 调用链的头
     private ILogger<Param, Data> mLogger; // 日志输出
-
-    /**
-     * 关闭应用时，需使用此方法释放资源
-     */
-    public static void destroy() {
-        CacheNode.shutdownTmpCacheService();
-    }
 
     /**
      * @param defaultDatasource 默认的数据源，允许为null
@@ -88,7 +80,7 @@ public class DataManager<Param, Data> {
         }
         // 没有缓存节点的情况
         if (null == datasource) {
-            throw new DataException(DataFrom.SOURCE, new NoDataSourceException());
+            throw new DataException(this, new NoDataSourceException());
         }
         return getDataPackDirectly(paramDesc, param);
     }
@@ -100,7 +92,7 @@ public class DataManager<Param, Data> {
      * @return 相匹配的数据
      */
     public DataPack<Data> getDataPackDirectly(String paramDesc, Param param) throws DataException {
-        DataPack<Data> pack = CacheNode.getDataDirectly(param, mDefaultDatasource);
+        DataPack<Data> pack = CacheNode.getDataDirectly(this, param, mDefaultDatasource);
         // 记录日志
         if (null != mLogger) {
             mLogger.onGetData(getNewDataContext(paramDesc, param), pack);
@@ -123,18 +115,18 @@ public class DataManager<Param, Data> {
      * 获得缓存，不查询数据源(数据包方式)
      */
     public DataPack<Data> getCacheDataPack(String paramDesc, Param param) throws DataException {
-        // 有缓存节点的情况
-        if (null != mFirstNode) {
-            DataContext<Param> context = getNewDataContext(paramDesc, param);
-            DataPack<Data> pack = mFirstNode.getCache(context);
-            // 记录日志
-            if (null != mLogger) {
-                mLogger.onGetData(context, pack);
-            }
-            return pack;
-        }
         // 没有缓存节点的情况
-        throw new DataException(DataFrom.SOURCE, new NoCacheException());
+        if (null == mFirstNode) {
+            throw new DataException(this, new NoCacheException());
+        }
+        // 有缓存节点的情况
+        DataContext<Param> context = getNewDataContext(paramDesc, param);
+        DataPack<Data> pack = mFirstNode.getCache(context);
+        // 记录日志
+        if (null != mLogger) {
+            mLogger.onGetData(context, pack);
+        }
+        return pack;
     }
 
     /**
@@ -145,7 +137,7 @@ public class DataManager<Param, Data> {
             return;
         }
         DataContext<Param> context = getNewDataContext(paramDesc, param);
-        DataPack<Data> pack = DataPack.newSourceDataPack("外部", data);
+        DataPack<Data> pack = DataPack.newSourceDataPack("外部", "外部", data);
         mFirstNode.cacheData(context, pack);
         // 记录日志
         if (null != mLogger) {
@@ -161,7 +153,7 @@ public class DataManager<Param, Data> {
             return;
         }
         DataContext<Param> context = getNewDataContext(paramDesc, param);
-        mFirstNode.cacheException(context, e);
+        mFirstNode.cacheException(this, context, e);
         // 记录日志
         if (null != mLogger) {
             mLogger.onCacheException(context, e);

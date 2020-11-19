@@ -14,7 +14,6 @@ public abstract class StdCacheStrategy<Param, Data> implements ICacheStrategy<Pa
 
     protected long mExpiry = Long.MAX_VALUE; // 永不超时
     protected long mFastFailExpiry = 60000; // 1分钟;
-    protected long mAntiPenetrateMillis; // 默认不做防穿透
 
     @Override
     public int order() {
@@ -22,13 +21,8 @@ public abstract class StdCacheStrategy<Param, Data> implements ICacheStrategy<Pa
     }
 
     @Override
-    public long antiPenetrateMillis() {
-        return mAntiPenetrateMillis;
-    }
-
-    @Override
     public DataPack<Data> onHandleException(DataContext<Param> context, String key, DataException e) throws DataException {
-        onCacheException(context, key, e.getOriginException());
+        onCacheException(context, key, e.producer, e.getOriginException());
         throw e;
     }
 
@@ -54,17 +48,6 @@ public abstract class StdCacheStrategy<Param, Data> implements ICacheStrategy<Pa
         return this;
     }
 
-    /**
-     * 用于防护“缓存穿透”的时间，获取数据后，将在这段时间内
-     *
-     * @param millis 失效时间(毫秒)
-     * @return 自身，方便链式调用
-     */
-    public StdCacheStrategy<Param, Data> antiPenetrateMillis(long millis) {
-        mAntiPenetrateMillis = getCheckedTime(millis);
-        return this;
-    }
-
     private long getCheckedTime(long millis) {
         return millis > 0 ? millis : 0;
     }
@@ -72,7 +55,6 @@ public abstract class StdCacheStrategy<Param, Data> implements ICacheStrategy<Pa
     /**
      * 缓存异常时的回调
      */
-    protected abstract void onCacheException(DataContext<Param> context, String key, Exception e);
-
+    protected abstract void onCacheException(DataContext<Param> context, String key, Object producer, Exception e);
 
 }

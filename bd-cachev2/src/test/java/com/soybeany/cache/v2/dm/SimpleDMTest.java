@@ -6,7 +6,6 @@ import com.soybeany.cache.v2.core.DataManager;
 import com.soybeany.cache.v2.exception.DataException;
 import com.soybeany.cache.v2.exception.NoDataSourceException;
 import com.soybeany.cache.v2.log.ConsoleLogger;
-import com.soybeany.cache.v2.model.DataFrom;
 import com.soybeany.cache.v2.model.DataPack;
 import com.soybeany.cache.v2.strategy.LruMemCacheStrategy;
 import org.junit.Test;
@@ -23,7 +22,7 @@ public class SimpleDMTest {
         return UUID.randomUUID().toString();
     };
 
-    private final ICacheStrategy<String, String> lruStrategy = new LruMemCacheStrategy<>();
+    private final ICacheStrategy<String, String> lruStrategy = new LruMemCacheStrategy<String, String>().expiry(100);
 
     private final DataManager<String, String> dataManager = DataManager.Builder
             .get("简单测试", datasource)
@@ -45,14 +44,14 @@ public class SimpleDMTest {
     @Test
     public void concurrentTest() throws Exception {
         int count = 10;
-        final DataFrom[] froms = new DataFrom[count];
+        final Object[] providers = new Object[count];
         Thread[] threads = new Thread[count];
         for (int i = 0; i < count; i++) {
             final int finalI = i;
             threads[i] = new Thread(() -> {
                 try {
                     DataPack<String> pack = dataManager.getDataPack("并发", null);
-                    froms[finalI] = pack.from;
+                    providers[finalI] = pack.provider;
                 } catch (DataException e) {
                     throw new RuntimeException(e);
                 }
@@ -62,14 +61,20 @@ public class SimpleDMTest {
         for (Thread thread : threads) {
             thread.join();
         }
-        dataManager.getDataPack("单发", null);
+        // 并发限制
         int accessCount = 0;
-        for (DataFrom from : froms) {
-            if (DataFrom.SOURCE == from) {
+        for (Object provider : providers) {
+            if (datasource == provider) {
                 accessCount++;
             }
         }
+        // 单发限制
         assert accessCount == 1;
+        DataPack<String> pack1 = dataManager.getDataPack("单发LRU", null);
+        assert lruStrategy == pack1.provider;
+        Thread.sleep(100);
+        DataPack<String> pack2 = dataManager.getDataPack("单发源", null);
+        assert datasource == pack2.provider;
     }
 
     @Test

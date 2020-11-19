@@ -3,7 +3,6 @@ package com.soybeany.cache.v2.strategy;
 import com.soybeany.cache.v2.contract.ICacheStrategy;
 import com.soybeany.cache.v2.exception.DataException;
 import com.soybeany.cache.v2.model.DataContext;
-import com.soybeany.cache.v2.model.DataFrom;
 import com.soybeany.cache.v2.model.DataHolder;
 import com.soybeany.cache.v2.model.DataPack;
 
@@ -31,31 +30,23 @@ public class ThreadCacheStrategy<Param, Data> implements ICacheStrategy<Param, D
     }
 
     @Override
-    public long antiPenetrateMillis() {
-        return 0;
-    }
-
-    @Override
     public DataPack<Data> onGetCache(DataContext<Param> context, String key) throws DataException, NoCacheException {
         Map<Param, DataHolder<Data>> map = threadLocal.get();
         if (!map.containsKey(context.param)) {
             throw new NoCacheException();
         }
         DataHolder<Data> holder = map.get(context.param);
-        if (holder.abnormal()) {
-            throw new DataException(DataFrom.CACHE, holder.getException());
-        }
-        return DataPack.newCacheDataPack(this, holder.getData(), Long.MAX_VALUE);
+        return holder.toDataPack(this);
     }
 
     @Override
     public void onCacheData(DataContext<Param> context, String key, DataPack<Data> data) {
-        threadLocal.get().put(context.param, DataHolder.get(data.data));
+        threadLocal.get().put(context.param, DataHolder.get(data, null));
     }
 
     @Override
     public DataPack<Data> onHandleException(DataContext<Param> context, String key, DataException e) throws DataException {
-        threadLocal.get().put(context.param, DataHolder.get(e));
+        threadLocal.get().put(context.param, DataHolder.get(e.producer, e.getOriginException(), null));
         throw e;
     }
 

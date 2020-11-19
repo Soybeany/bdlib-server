@@ -1,10 +1,10 @@
 package com.soybeany.cache.v2.dm;
 
+import com.soybeany.cache.v2.contract.ICacheStrategy;
 import com.soybeany.cache.v2.contract.IDatasource;
 import com.soybeany.cache.v2.core.DataManager;
 import com.soybeany.cache.v2.exception.DataException;
 import com.soybeany.cache.v2.log.ConsoleLogger;
-import com.soybeany.cache.v2.model.DataFrom;
 import com.soybeany.cache.v2.model.DataPack;
 import com.soybeany.cache.v2.strategy.LruMemCacheStrategy;
 import org.junit.Test;
@@ -14,11 +14,15 @@ import org.junit.Test;
  */
 public class ExceptionDMTest {
 
+    IDatasource<String, String> datasource = s -> {
+        throw new Exception("测试");
+    };
+
+    ICacheStrategy<String, String> cacheStrategy = new LruMemCacheStrategy<>();
+
     private final DataManager<String, String> dataManager = DataManager.Builder
-            .get("异常测试", (IDatasource<String, String>) s -> {
-                throw new Exception("测试");
-            })
-            .withCache(new LruMemCacheStrategy<>())
+            .get("异常测试", datasource)
+            .withCache(cacheStrategy)
             .logger(new ConsoleLogger<>())
             .build();
 
@@ -30,14 +34,14 @@ public class ExceptionDMTest {
             data = dataManager.getDataPack("数据源", null);
             System.out.println("data:" + data);
         } catch (DataException e) {
-            assert DataFrom.SOURCE == e.getDataFrom();
+            assert datasource == e.producer;
         }
         // 抛出的是缓存了的异常
         try {
             data = dataManager.getDataPack("缓存", null);
             System.out.println("data:" + data);
         } catch (DataException e) {
-            assert DataFrom.CACHE == e.getDataFrom();
+            assert cacheStrategy == e.producer;
         }
     }
 
