@@ -43,7 +43,7 @@ public interface ICacheStrategy<Param, Data> {
      * @param key     使用{@link IKeyConverter}对{@link Param}进行转化后的键，用于KV
      * @return 数据
      */
-    DataPack<Data> onGetCache(DataContext<Param> context, String key) throws DataException, NoCacheException;
+    DataPack<Data> onGetCache(Channel channel, DataContext<Param> context, String key) throws DataException, NoCacheException;
 
     /**
      * 缓存数据的回调(有线程安全保障)
@@ -52,16 +52,17 @@ public interface ICacheStrategy<Param, Data> {
      * @param key     使用{@link IKeyConverter}对{@link Param}进行转化后的键，用于KV
      * @param data    待缓存的数据
      */
-    void onCacheData(DataContext<Param> context, String key, DataPack<Data> data);
+    void onCacheData(Channel channel, DataContext<Param> context, String key, DataPack<Data> data);
 
     /**
      * 处理异常的回调，一般的实现为缓存异常并重新抛出异常(有线程安全保障)
      *
+     * @param channel 使用的频道
      * @param context 上下文，含有当前环境的一些信息
      * @param key     使用{@link IKeyConverter}对{@link Param}进行转化后的键，用于KV
-     * @param e       待缓存的异常
+     * @param e       待处理的异常
      */
-    DataPack<Data> onHandleException(DataContext<Param> context, String key, DataException e) throws DataException;
+    DataPack<Data> onHandleException(Channel channel, DataContext<Param> context, String key, DataException e) throws DataException;
 
     // ********************触发类********************
 
@@ -87,4 +88,10 @@ public interface ICacheStrategy<Param, Data> {
             super("没有找到缓存");
         }
     }
+
+    enum Channel {
+        // 获取数据  获取缓存
+        GET_DATA, GET_CACHE
+    }
+
 }

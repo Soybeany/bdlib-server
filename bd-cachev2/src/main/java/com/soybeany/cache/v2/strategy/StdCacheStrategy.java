@@ -21,8 +21,43 @@ public abstract class StdCacheStrategy<Param, Data> implements ICacheStrategy<Pa
     }
 
     @Override
-    public DataPack<Data> onHandleException(DataContext<Param> context, String key, DataException e) throws DataException {
-        onCacheException(context, key, e.provider, e.getOriginException());
+    public DataPack<Data> onGetCache(Channel channel, DataContext<Param> context, String key) throws DataException, NoCacheException {
+        switch (channel) {
+            case GET_DATA:
+                return onGetCache(context, key);
+            case GET_CACHE:
+                return onGetCacheWithGetCacheChannel(context, key);
+            default:
+                throw new RuntimeException("使用了未知的channel");
+        }
+    }
+
+    @Override
+    public void onCacheData(Channel channel, DataContext<Param> context, String key, DataPack<Data> data) {
+        switch (channel) {
+            case GET_DATA:
+                onCacheData(context, key, data);
+                break;
+            case GET_CACHE:
+                onCacheDataWithGetCacheChannel(context, key, data);
+                break;
+            default:
+                throw new RuntimeException("使用了未知的channel");
+        }
+    }
+
+    @Override
+    public DataPack<Data> onHandleException(Channel channel, DataContext<Param> context, String key, DataException e) throws DataException {
+        switch (channel) {
+            case GET_DATA:
+                onCacheException(context, key, e.provider, e.getOriginException());
+                break;
+            case GET_CACHE:
+                onCacheExceptionWithGetCacheChannel(context, key, e.provider, e.getOriginException());
+                break;
+            default:
+                throw new RuntimeException("使用了未知的channel");
+        }
         throw e;
     }
 
@@ -48,9 +83,31 @@ public abstract class StdCacheStrategy<Param, Data> implements ICacheStrategy<Pa
         return this;
     }
 
+    // ********************子类按需重写的方法********************
+
+    protected DataPack<Data> onGetCacheWithGetCacheChannel(DataContext<Param> context, String key) throws DataException, NoCacheException {
+        throw new NoCacheException();
+    }
+
+    protected void onCacheDataWithGetCacheChannel(DataContext<Param> context, String key, DataPack<Data> data) {
+        onCacheData(context, key, data);
+    }
+
+    protected void onCacheExceptionWithGetCacheChannel(DataContext<Param> context, String key, Object producer, Exception e) {
+        // 默认不作操作
+    }
+
+    // ********************内部方法********************
+
     private long getCheckedTime(long millis) {
         return millis > 0 ? millis : 0;
     }
+
+    // ********************子类抽象方法********************
+
+    protected abstract DataPack<Data> onGetCache(DataContext<Param> context, String key) throws DataException, NoCacheException;
+
+    protected abstract void onCacheData(DataContext<Param> context, String key, DataPack<Data> data);
 
     /**
      * 缓存异常时的回调

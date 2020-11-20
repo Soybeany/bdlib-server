@@ -86,14 +86,14 @@ class CacheNode<Param, Data> {
     }
 
     void cacheData(DataContext<Param> context, final DataPack<Data> data) {
-        traverse(context.param, (key, node) -> node.mCurStrategy.onCacheData(context, key, data));
+        traverse(context.param, (key, node) -> node.mCurStrategy.onCacheData(ICacheStrategy.Channel.GET_DATA, context, key, data));
     }
 
     void cacheException(DataContext<Param> context, Exception e) {
         final DataException exception = new DataException(this, e);
         traverse(context.param, (key, node) -> {
             try {
-                node.mCurStrategy.onHandleException(context, key, exception);
+                node.mCurStrategy.onHandleException(ICacheStrategy.Channel.GET_DATA, context, key, exception);
             } catch (DataException dataException) {
                 // 不作处理
             }
@@ -155,6 +155,11 @@ class CacheNode<Param, Data> {
     }
 
     private DataPack<Data> getCacheFromNextNode(DataContext<Param> context, String key) throws DataException {
+        // 尝试从缓存频道中获取
+        try {
+            return mCurStrategy.onGetCache(ICacheStrategy.Channel.GET_CACHE, context, key);
+        } catch (ICacheStrategy.NoCacheException ignore) {
+        }
         // 若已无下一节点，抛出异常
         if (null == mNextNode) {
             throw new DataException(this, new NoCacheException());
@@ -163,12 +168,12 @@ class CacheNode<Param, Data> {
         try {
             DataPack<Data> pack = mNextNode.getCache(context);
             synchronized (getDefaultLock()) {
-                mCurStrategy.onCacheData(context, key, pack);
+                mCurStrategy.onCacheData(ICacheStrategy.Channel.GET_CACHE, context, key, pack);
             }
             return pack;
         } catch (DataException e) {
             synchronized (getDefaultLock()) {
-                return mCurStrategy.onHandleException(context, key, e);
+                return mCurStrategy.onHandleException(ICacheStrategy.Channel.GET_CACHE, context, key, e);
             }
         }
     }
@@ -188,12 +193,12 @@ class CacheNode<Param, Data> {
                 pack = mNextNode.getDataPackAndAutoCache(context, datasource);
             }
             synchronized (getDefaultLock()) {
-                mCurStrategy.onCacheData(context, key, pack);
+                mCurStrategy.onCacheData(ICacheStrategy.Channel.GET_DATA, context, key, pack);
             }
             return pack;
         } catch (DataException e) {
             synchronized (getDefaultLock()) {
-                return mCurStrategy.onHandleException(context, key, e);
+                return mCurStrategy.onHandleException(ICacheStrategy.Channel.GET_DATA, context, key, e);
             }
         }
     }
@@ -203,7 +208,7 @@ class CacheNode<Param, Data> {
      */
     private DataPack<Data> getDataFromCurNode(DataContext<Param> context, String key, ICallback1<Param, Data> listener) throws DataException {
         try {
-            return mCurStrategy.onGetCache(context, key);
+            return mCurStrategy.onGetCache(ICacheStrategy.Channel.GET_DATA, context, key);
         } catch (ICacheStrategy.NoCacheException e) {
             return listener.onNoCache(context, key);
         }

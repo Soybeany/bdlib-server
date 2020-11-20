@@ -95,4 +95,10 @@ public class SimpleDMTest {
         }
     }
 
+    @Test
+    public void test() throws Exception {
+        String data = dataManager.getData("测试", null);
+        String cache = dataManager.getCache("测试2", null);
+    }
+
 }
