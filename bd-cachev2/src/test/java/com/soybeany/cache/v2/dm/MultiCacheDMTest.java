@@ -1,12 +1,12 @@
 package com.soybeany.cache.v2.dm;
 
 import com.soybeany.cache.v2.component.DBSimulationStrategy;
+import com.soybeany.cache.v2.contract.ICacheStrategy;
 import com.soybeany.cache.v2.contract.IDatasource;
 import com.soybeany.cache.v2.core.DataManager;
 import com.soybeany.cache.v2.log.ConsoleLogger;
 import com.soybeany.cache.v2.model.DataPack;
 import com.soybeany.cache.v2.strategy.LruMemCacheStrategy;
-import com.soybeany.cache.v2.strategy.StdCacheStrategy;
 import org.junit.Test;
 
 import java.util.UUID;
@@ -21,12 +21,12 @@ public class MultiCacheDMTest {
         return UUID.randomUUID().toString();
     };
 
-    private final StdCacheStrategy<String, String> lruStrategy = new LruMemCacheStrategy<>();
-    private final StdCacheStrategy<String, String> dbStrategy = new DBSimulationStrategy<>();
+    private final ICacheStrategy<String, String> lruStrategy = new LruMemCacheStrategy<String, String>().expiry(500);
+    private final ICacheStrategy<String, String> dbStrategy = new DBSimulationStrategy<>();
 
     private final DataManager<String, String> dataManager = DataManager.Builder
             .get("MultiCache", datasource)
-            .withCache(lruStrategy.expiry(500))
+            .withCache(lruStrategy)
             .withCache(dbStrategy)
             .logger(new ConsoleLogger<>())
             .build();

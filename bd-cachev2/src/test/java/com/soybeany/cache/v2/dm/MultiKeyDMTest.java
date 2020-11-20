@@ -1,12 +1,12 @@
 package com.soybeany.cache.v2.dm;
 
+import com.soybeany.cache.v2.contract.ICacheStrategy;
 import com.soybeany.cache.v2.core.DataManager;
 import com.soybeany.cache.v2.exception.DataException;
 import com.soybeany.cache.v2.log.ConsoleLogger;
 import com.soybeany.cache.v2.model.DataContext;
 import com.soybeany.cache.v2.model.DataPack;
 import com.soybeany.cache.v2.strategy.LruMemCacheStrategy;
-import com.soybeany.cache.v2.strategy.StdCacheStrategy;
 import org.junit.Test;
 
 import java.util.UUID;
@@ -16,7 +16,7 @@ import java.util.UUID;
  */
 public class MultiKeyDMTest {
 
-    private final StdCacheStrategy<String, String> lruStrategy = new TestStrategy<>();
+    private final ICacheStrategy<String, String> lruStrategy = new TestStrategy<String, String>().expiry(800);
 
     private final DataManager<String, String> dataManager = DataManager.Builder
             .get("MultiExpiry", s -> {
@@ -24,7 +24,7 @@ public class MultiKeyDMTest {
                 Thread.sleep(500);
                 return s;
             })
-            .withCache(lruStrategy.expiry(800))
+            .withCache(lruStrategy)
             .logger(new ConsoleLogger<>())
             .build();
 
