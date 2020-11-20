@@ -33,6 +33,7 @@ public class LruMemCacheStrategy<Param, Data> extends StdCacheStrategy<Param, Da
     @Override
     public void removeCache(DataContext<Param> context, String key) {
         mDataAccessor.removeData(KEY_PREFIX_NORM, key);
+        mDataAccessor.removeData(KEY_PREFIX_TEMP, key);
     }
 
     @Override

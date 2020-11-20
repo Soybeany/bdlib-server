@@ -23,7 +23,7 @@ public class MultiOnlyCacheExceptionDMTest {
         throw new Exception("假设数据源异常");
     };
 
-    private final ICacheStrategy<String, String> lruStrategy = new LruMemCacheStrategy<String, String>().tempExpiry(100).fastFailExpiry(100);
+    private final ICacheStrategy<String, String> lruStrategy = new LruMemCacheStrategy<String, String>().tempExpiry(100).fastFailExpiry(150);
     private final ICacheStrategy<String, String> dbStrategy = new DBSimulationStrategy<String, String>().fastFailExpiry(200);
 
     private final DataManager<String, String> dataManager = DataManager.Builder
@@ -57,7 +57,7 @@ public class MultiOnlyCacheExceptionDMTest {
         } catch (DataException e) {
             assert lruStrategy == e.provider;
         }
-        Thread.sleep(100);
+        Thread.sleep(150);
         // 从db缓存中获取缓存
         try {
             dataManager.getCacheDataPack("1", key);
@@ -79,6 +79,26 @@ public class MultiOnlyCacheExceptionDMTest {
             throw new Exception("不允许获取得到数据");
         } catch (DataException e) {
             assert NoCacheException.class.equals(e.getOriginExceptionClass());
+        }
+    }
+
+    @Test
+    public void testRemove() throws Exception {
+        String key = "testKey";
+        // 从db缓存中获取缓存
+        try {
+            dataManager.getCacheDataPack("1", key);
+            throw new Exception("不允许获取得到数据");
+        } catch (DataException e) {
+            assert dbStrategy == e.provider;
+        }
+        dataManager.removeCache("2", key);
+        // 重新从db缓存中获取缓存
+        try {
+            dataManager.getCacheDataPack("2", key);
+            throw new Exception("不允许获取得到数据");
+        } catch (DataException e) {
+            assert dbStrategy == e.provider;
         }
     }
 }

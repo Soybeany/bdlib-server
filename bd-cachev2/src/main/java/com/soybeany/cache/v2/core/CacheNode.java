@@ -90,7 +90,7 @@ class CacheNode<Param, Data> {
     }
 
     void cacheException(DataContext<Param> context, Exception e) {
-        final DataException exception = new DataException(this, e);
+        final DataException exception = new DataException(mCurStrategy, e);
         traverse(context.param, (key, node) -> {
             try {
                 node.mCurStrategy.onHandleException(ICacheStrategy.Channel.GET_DATA, context, key, exception);
@@ -131,7 +131,7 @@ class CacheNode<Param, Data> {
                 DataHolder<Data> holder = mPenetratorProtector.get(lock);
                 // 若临时数据缓存有数据，则不再访问下一节点，以免并发时多次访问下一级节点(double check机制)
                 if (null != holder) {
-                    return holder.toDataPack(mPenetratorProtector);
+                    return holder.toDataPack(mCurStrategy);
                 }
                 Object provider;
                 try {
@@ -162,7 +162,7 @@ class CacheNode<Param, Data> {
         }
         // 若已无下一节点，抛出异常
         if (null == mNextNode) {
-            throw new DataException(this, new NoCacheException());
+            throw new DataException(mCurStrategy, new NoCacheException());
         }
         // 否则从下一节点获取缓存
         try {
@@ -186,7 +186,7 @@ class CacheNode<Param, Data> {
             DataPack<Data> pack;
             // 若没有下一节点，则从数据源获取
             if (null == mNextNode) {
-                pack = getDataDirectly(this, context.param, datasource);
+                pack = getDataDirectly(mCurStrategy, context.param, datasource);
             }
             // 否则从下一节点获取缓存
             else {
@@ -251,11 +251,6 @@ class CacheNode<Param, Data> {
 
         DataHolder<Data> get(Lock lock) {
             return mTarget.get(lock);
-        }
-
-        @Override
-        public String toString() {
-            return "穿透保护器";
         }
 
         void put(Lock lock, DataHolder<Data> dataHolder) {
