@@ -34,14 +34,14 @@ public class ExceptionDMTest {
             data = dataManager.getDataPack("数据源", null);
             System.out.println("data:" + data);
         } catch (DataException e) {
-            assert datasource == e.producer;
+            assert datasource == e.provider;
         }
         // 抛出的是缓存了的异常
         try {
             data = dataManager.getDataPack("缓存", null);
             System.out.println("data:" + data);
         } catch (DataException e) {
-            assert cacheStrategy == e.producer;
+            assert cacheStrategy == e.provider;
         }
     }
 

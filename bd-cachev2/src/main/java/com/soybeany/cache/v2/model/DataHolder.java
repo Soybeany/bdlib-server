@@ -9,7 +9,6 @@ import com.soybeany.cache.v2.exception.DataException;
 public class DataHolder<Data> {
 
     public final boolean norm; // 是否为正常数据
-    public final Object producer; // 数据/异常的生产者
     public final Data data; // 数据
     public final Exception exception; // 相关的异常
     public final long createStamp = currentTimeMillis(); // 创建时的时间戳
@@ -21,16 +20,15 @@ public class DataHolder<Data> {
         if (null != expiryMillis && expiryMillis < dataPack.expiryMillis) {
             expiry = expiryMillis;
         }
-        return new DataHolder<>(true, dataPack.producer, dataPack.data, null, expiry);
+        return new DataHolder<>(true, dataPack.data, null, expiry);
     }
 
-    public static <Data> DataHolder<Data> get(Object producer, Exception exception, Long expiryMillis) {
-        return new DataHolder<>(false, producer, null, exception, expiryMillis);
+    public static <Data> DataHolder<Data> get(Exception exception, Long expiryMillis) {
+        return new DataHolder<>(false, null, exception, expiryMillis);
     }
 
-    public DataHolder(boolean norm, Object producer, Data data, Exception exception, Long expiryMillis) {
+    public DataHolder(boolean norm, Data data, Exception exception, Long expiryMillis) {
         this.norm = norm;
-        this.producer = producer;
         this.data = data;
         this.exception = exception;
         this.expiryMillis = null != expiryMillis ? expiryMillis : 0;
@@ -40,7 +38,7 @@ public class DataHolder<Data> {
         if (!norm) {
             throw new DataException(provider, exception);
         }
-        return new DataPack<>(producer, provider, data, getRemainingValidTimeInMillis());
+        return new DataPack<>(provider, data, getRemainingValidTimeInMillis());
     }
 
     public boolean isExpired() {

@@ -15,11 +15,6 @@ public class DataPack<Data> {
     public final Data data;
 
     /**
-     * 数据的生产者，即数据第一次的提供者
-     */
-    public final Object producer;
-
-    /**
      * 数据的提供者，即数据最近一次的提供者
      */
     public final Object provider;
@@ -29,12 +24,11 @@ public class DataPack<Data> {
      */
     public final long expiryMillis;
 
-    public static <Data> DataPack<Data> newSourceDataPack(Object producer, Object provider, Data data) {
-        return new DataPack<>(producer, provider, data, Long.MAX_VALUE);
+    public static <Data> DataPack<Data> newSourceDataPack(Object provider, Data data) {
+        return new DataPack<>(provider, data, Long.MAX_VALUE);
     }
 
-    public DataPack(Object producer, Object provider, Data data, long expiryMillis) {
-        this.producer = producer;
+    public DataPack(Object provider, Data data, long expiryMillis) {
         this.provider = provider;
         this.data = data;
         this.expiryMillis = expiryMillis;

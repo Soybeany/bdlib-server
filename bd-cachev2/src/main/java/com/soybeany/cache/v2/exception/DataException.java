@@ -11,7 +11,7 @@ public class DataException extends Exception {
     /**
      * 异常产生来源
      */
-    public final Object producer;
+    public final Object provider;
 
     /**
      * 原始异常的全名
@@ -21,14 +21,14 @@ public class DataException extends Exception {
     private Class<?> mOriginExceptionClass;
     private Exception mOriginException;
 
-    public DataException(Object producer, String originExceptionFullName, String errMsg) {
+    public DataException(Object provider, String originExceptionFullName, String errMsg) {
         super(errMsg);
-        this.producer = producer;
+        this.provider = provider;
         this.originExceptionFullName = originExceptionFullName;
     }
 
-    public DataException(Object producer, Exception originException) {
-        this(producer, originException.getClass().getName(), originException.getMessage());
+    public DataException(Object provider, Exception originException) {
+        this(provider, originException.getClass().getName(), originException.getMessage());
         mOriginExceptionClass = originException.getClass();
         mOriginException = originException;
     }

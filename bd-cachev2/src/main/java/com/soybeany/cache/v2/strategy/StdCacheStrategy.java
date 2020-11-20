@@ -22,7 +22,7 @@ public abstract class StdCacheStrategy<Param, Data> implements ICacheStrategy<Pa
 
     @Override
     public DataPack<Data> onHandleException(DataContext<Param> context, String key, DataException e) throws DataException {
-        onCacheException(context, key, e.producer, e.getOriginException());
+        onCacheException(context, key, e.provider, e.getOriginException());
         throw e;
     }
 

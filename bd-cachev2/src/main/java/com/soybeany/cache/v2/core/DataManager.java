@@ -137,7 +137,7 @@ public class DataManager<Param, Data> {
             return;
         }
         DataContext<Param> context = getNewDataContext(paramDesc, DataContext.Purpose.CACHE_DATA, param);
-        DataPack<Data> pack = DataPack.newSourceDataPack("外部", "外部", data);
+        DataPack<Data> pack = DataPack.newSourceDataPack("外部", data);
         mFirstNode.cacheData(context, pack);
         // 记录日志
         if (null != mLogger) {
@@ -153,7 +153,7 @@ public class DataManager<Param, Data> {
             return;
         }
         DataContext<Param> context = getNewDataContext(paramDesc, DataContext.Purpose.CACHE_EXCEPTION, param);
-        mFirstNode.cacheException(this, context, e);
+        mFirstNode.cacheException(context, e);
         // 记录日志
         if (null != mLogger) {
             mLogger.onCacheException(context, e);

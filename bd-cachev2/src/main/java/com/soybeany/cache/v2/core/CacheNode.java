@@ -37,7 +37,7 @@ class CacheNode<Param, Data> {
             throw new DataException(invoker, new NoDataSourceException());
         }
         try {
-            return DataPack.newSourceDataPack(datasource, datasource, datasource.onGetData(param));
+            return DataPack.newSourceDataPack(datasource, datasource.onGetData(param));
         } catch (Exception e) {
             throw new DataException(datasource, e);
         }
@@ -89,8 +89,8 @@ class CacheNode<Param, Data> {
         traverse(context.param, (key, node) -> node.mCurStrategy.onCacheData(context, key, data));
     }
 
-    void cacheException(Object thrower, DataContext<Param> context, Exception e) {
-        final DataException exception = new DataException(thrower, e);
+    void cacheException(DataContext<Param> context, Exception e) {
+        final DataException exception = new DataException(this, e);
         traverse(context.param, (key, node) -> {
             try {
                 node.mCurStrategy.onHandleException(context, key, exception);
@@ -129,19 +129,20 @@ class CacheNode<Param, Data> {
         synchronized (lock) {
             try {
                 DataHolder<Data> holder = mPenetratorProtector.get(lock);
-                Object provider = mPenetratorProtector;
-                // 若临时数据缓存没有时，再访问下一节点，以免并发时多次访问下一级节点(double check机制)
-                if (null == holder) {
-                    try {
-                        DataPack<Data> dataPack = callback.onGetDataFromNextNode();
-                        provider = dataPack.provider;
-                        holder = DataHolder.get(dataPack, null);
-                    } catch (DataException e) {
-                        provider = e.producer;
-                        holder = DataHolder.get(e.producer, e.getOriginException(), null);
-                    }
-                    mPenetratorProtector.put(lock, holder);
+                // 若临时数据缓存有数据，则不再访问下一节点，以免并发时多次访问下一级节点(double check机制)
+                if (null != holder) {
+                    return holder.toDataPack(mPenetratorProtector);
                 }
+                Object provider;
+                try {
+                    DataPack<Data> dataPack = callback.onGetDataFromNextNode();
+                    provider = dataPack.provider;
+                    holder = DataHolder.get(dataPack, null);
+                } catch (DataException e) {
+                    provider = e.provider;
+                    holder = DataHolder.get(e.getOriginException(), null);
+                }
+                mPenetratorProtector.put(lock, holder);
                 // 返回结果
                 return holder.toDataPack(provider);
             } finally {
@@ -249,7 +250,7 @@ class CacheNode<Param, Data> {
 
         @Override
         public String toString() {
-            return "缓存穿透保护器";
+            return "穿透保护器";
         }
 
         void put(Lock lock, DataHolder<Data> dataHolder) {

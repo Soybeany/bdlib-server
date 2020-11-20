@@ -50,6 +50,6 @@ public class DBSimulationStrategy<Param, Data> extends StdCacheStrategy<Param, D
 
     @Override
     protected void onCacheException(DataContext<Param> context, String key, Object producer, Exception e) {
-        map.put(key, DataHolder.get(producer, e, mFastFailExpiry));
+        map.put(key, DataHolder.get(e, mFastFailExpiry));
     }
 }
