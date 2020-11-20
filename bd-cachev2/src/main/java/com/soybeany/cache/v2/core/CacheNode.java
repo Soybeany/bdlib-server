@@ -30,7 +30,7 @@ class CacheNode<Param, Data> {
 
     private CacheNode<Param, Data> mNextNode;
 
-    private final AntiPenetrator<Data> mAntiPenetrator = new AntiPenetrator<>();
+    private final PenetratorProtector<Data> mPenetratorProtector = new PenetratorProtector<>();
 
     public static <Param, Data> DataPack<Data> getDataDirectly(Object invoker, Param param, IDatasource<Param, Data> datasource) throws DataException {
         if (null == datasource) {
@@ -86,12 +86,12 @@ class CacheNode<Param, Data> {
     }
 
     void cacheData(DataContext<Param> context, final DataPack<Data> data) {
-        traverse(context, (key, node) -> node.mCurStrategy.onCacheData(context, key, data));
+        traverse(context.param, (key, node) -> node.mCurStrategy.onCacheData(context, key, data));
     }
 
     void cacheException(Object thrower, DataContext<Param> context, Exception e) {
         final DataException exception = new DataException(thrower, e);
-        traverse(context, (key, node) -> {
+        traverse(context.param, (key, node) -> {
             try {
                 node.mCurStrategy.onHandleException(context, key, exception);
             } catch (DataException dataException) {
@@ -101,19 +101,19 @@ class CacheNode<Param, Data> {
     }
 
     void removeCache(DataContext<Param> context) {
-        traverse(context, (key, node) -> node.mCurStrategy.removeCache(context, key));
+        traverse(context.param, (key, node) -> node.mCurStrategy.removeCache(context, key));
     }
 
     void clearCache(String dataDesc) {
-        traverse(new DataContext<>(dataDesc, null, null), (key, node) -> node.mCurStrategy.clearCache(dataDesc));
+        traverse(null, (key, node) -> node.mCurStrategy.clearCache(dataDesc));
     }
 
     // ****************************************内部方法****************************************
 
-    private void traverse(DataContext<Param> context, ICallback2<Param, Data> callback) {
+    private void traverse(Param param, ICallback2<Param, Data> callback) {
         CacheNode<Param, Data> node = this;
         while (null != node) {
-            String key = node.mConverter.getKey(context.param);
+            String key = node.mConverter.getKey(param);
             synchronized (node.getDefaultLock()) {
                 callback.onInvoke(key, node);
             }
@@ -128,8 +128,8 @@ class CacheNode<Param, Data> {
         lock.countOfGet.incrementAndGet();
         synchronized (lock) {
             try {
-                DataHolder<Data> holder = mAntiPenetrator.get(lock);
-                Object provider = mAntiPenetrator;
+                DataHolder<Data> holder = mPenetratorProtector.get(lock);
+                Object provider = mPenetratorProtector;
                 // 若临时数据缓存没有时，再访问下一节点，以免并发时多次访问下一级节点(double check机制)
                 if (null == holder) {
                     try {
@@ -140,14 +140,14 @@ class CacheNode<Param, Data> {
                         provider = e.producer;
                         holder = DataHolder.get(e.producer, e.getOriginException(), null);
                     }
-                    mAntiPenetrator.put(lock, holder);
+                    mPenetratorProtector.put(lock, holder);
                 }
                 // 返回结果
                 return holder.toDataPack(provider);
             } finally {
                 int count = lock.countOfGet.decrementAndGet();
                 if (0 == count) {
-                    mAntiPenetrator.remove(lock);
+                    mPenetratorProtector.remove(lock);
                 }
             }
         }
@@ -240,6 +240,27 @@ class CacheNode<Param, Data> {
         DataPack<Data> onGetDataFromNextNode() throws DataException;
     }
 
+    private static class PenetratorProtector<Data> {
+        private final Map<Lock, DataHolder<Data>> mTarget = new ConcurrentHashMap<>();
+
+        DataHolder<Data> get(Lock lock) {
+            return mTarget.get(lock);
+        }
+
+        @Override
+        public String toString() {
+            return "缓存穿透保护器";
+        }
+
+        void put(Lock lock, DataHolder<Data> dataHolder) {
+            mTarget.put(lock, dataHolder);
+        }
+
+        void remove(Lock lock) {
+            mTarget.remove(lock);
+        }
+    }
+
     private static class Lock {
         final AtomicInteger countOfGet = new AtomicInteger();
 
@@ -253,26 +274,4 @@ class CacheNode<Param, Data> {
             return super.hashCode();
         }
     }
-
-    private static class AntiPenetrator<Data> {
-        private final Map<Lock, DataHolder<Data>> mTarget = new ConcurrentHashMap<>();
-
-        DataHolder<Data> get(Lock lock) {
-            return mTarget.get(lock);
-        }
-
-        void put(Lock lock, DataHolder<Data> dataHolder) {
-            mTarget.put(lock, dataHolder);
-        }
-
-        void remove(Lock lock) {
-            mTarget.remove(lock);
-        }
-
-        @Override
-        public String toString() {
-            return "缓存穿透防御器";
-        }
-    }
-
 }

@@ -70,7 +70,7 @@ public class DataManager<Param, Data> {
     public DataPack<Data> getDataPack(String paramDesc, Param param, IDatasource<Param, Data> datasource) throws DataException {
         // 有缓存节点的情况
         if (null != mFirstNode) {
-            DataContext<Param> context = getNewDataContext(paramDesc, param);
+            DataContext<Param> context = getNewDataContext(paramDesc, DataContext.Purpose.GET_DATA, param);
             DataPack<Data> pack = mFirstNode.getDataPackAndAutoCache(context, datasource);
             // 记录日志
             if (null != mLogger) {
@@ -95,7 +95,7 @@ public class DataManager<Param, Data> {
         DataPack<Data> pack = CacheNode.getDataDirectly(this, param, mDefaultDatasource);
         // 记录日志
         if (null != mLogger) {
-            mLogger.onGetData(getNewDataContext(paramDesc, param), pack);
+            mLogger.onGetData(getNewDataContext(paramDesc, DataContext.Purpose.GET_DATA, param), pack);
         }
         return pack;
     }
@@ -120,7 +120,7 @@ public class DataManager<Param, Data> {
             throw new DataException(this, new NoCacheException());
         }
         // 有缓存节点的情况
-        DataContext<Param> context = getNewDataContext(paramDesc, param);
+        DataContext<Param> context = getNewDataContext(paramDesc, DataContext.Purpose.GET_CACHE, param);
         DataPack<Data> pack = mFirstNode.getCache(context);
         // 记录日志
         if (null != mLogger) {
@@ -136,7 +136,7 @@ public class DataManager<Param, Data> {
         if (null == mFirstNode) {
             return;
         }
-        DataContext<Param> context = getNewDataContext(paramDesc, param);
+        DataContext<Param> context = getNewDataContext(paramDesc, DataContext.Purpose.CACHE_DATA, param);
         DataPack<Data> pack = DataPack.newSourceDataPack("外部", "外部", data);
         mFirstNode.cacheData(context, pack);
         // 记录日志
@@ -152,7 +152,7 @@ public class DataManager<Param, Data> {
         if (null == mFirstNode) {
             return;
         }
-        DataContext<Param> context = getNewDataContext(paramDesc, param);
+        DataContext<Param> context = getNewDataContext(paramDesc, DataContext.Purpose.CACHE_EXCEPTION, param);
         mFirstNode.cacheException(this, context, e);
         // 记录日志
         if (null != mLogger) {
@@ -169,10 +169,11 @@ public class DataManager<Param, Data> {
         if (null == mFirstNode) {
             return;
         }
-        mFirstNode.removeCache(getNewDataContext(paramDesc, param));
+        DataContext<Param> context = getNewDataContext(paramDesc, DataContext.Purpose.REMOVE_CACHE, param);
+        mFirstNode.removeCache(context);
         // 记录日志
         if (null != mLogger) {
-            mLogger.onRemoveCache(getNewDataContext(paramDesc, param));
+            mLogger.onRemoveCache(context);
         }
     }
 
@@ -192,8 +193,8 @@ public class DataManager<Param, Data> {
 
     // ********************内部方法********************
 
-    DataContext<Param> getNewDataContext(String paramDesc, Param param) {
-        return new DataContext<>(mDataDesc, paramDesc, param);
+    DataContext<Param> getNewDataContext(String paramDesc, DataContext.Purpose purpose, Param param) {
+        return new DataContext<>(mDataDesc, paramDesc, purpose, param);
     }
 
     // ********************内部类********************
