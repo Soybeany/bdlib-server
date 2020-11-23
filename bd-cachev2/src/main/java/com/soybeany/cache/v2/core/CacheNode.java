@@ -155,7 +155,7 @@ class CacheNode<Param, Data> {
         // 尝试从缓存频道中获取
         try {
             return mCurStrategy.onGetCache(ICacheStrategy.Channel.GET_CACHE, context, key);
-        } catch (ICacheStrategy.NoCacheException ignore) {
+        } catch (NoCacheException ignore) {
         }
         // 若已无下一节点，抛出异常
         if (null == mNextNode) {
@@ -198,7 +198,7 @@ class CacheNode<Param, Data> {
     private DataPack<Data> getDataFromCurNode(DataContext<Param> context, String key, ICallback1<Param, Data> listener) throws DataException {
         try {
             return mCurStrategy.onGetCache(ICacheStrategy.Channel.GET_DATA, context, key);
-        } catch (ICacheStrategy.NoCacheException e) {
+        } catch (NoCacheException e) {
             return listener.onNoCache(context, key);
         }
     }

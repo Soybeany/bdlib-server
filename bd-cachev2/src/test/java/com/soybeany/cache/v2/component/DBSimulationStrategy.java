@@ -1,6 +1,7 @@
 package com.soybeany.cache.v2.component;
 
 import com.soybeany.cache.v2.exception.DataException;
+import com.soybeany.cache.v2.exception.NoCacheException;
 import com.soybeany.cache.v2.model.DataContext;
 import com.soybeany.cache.v2.model.DataHolder;
 import com.soybeany.cache.v2.model.DataPack;

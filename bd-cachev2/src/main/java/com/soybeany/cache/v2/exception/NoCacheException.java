@@ -1,13 +1,11 @@
 package com.soybeany.cache.v2.exception;
 
 /**
- * 缓存相关的异常
- *
- * @author Soybeany
- * @date 2020/11/4
+ * 该异常只供框架内部使用，用户不应接触该异常
+ * <br>Created by Soybeany on 2020/10/15.
  */
 public class NoCacheException extends Exception {
     public NoCacheException() {
-        super("没有指定的缓存");
+        super("没有找到缓存");
     }
 }
