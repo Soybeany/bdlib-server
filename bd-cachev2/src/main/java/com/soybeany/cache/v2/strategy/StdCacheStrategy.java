@@ -2,6 +2,7 @@ package com.soybeany.cache.v2.strategy;
 
 
 import com.soybeany.cache.v2.contract.ICacheStrategy;
+import com.soybeany.cache.v2.contract.IKeyConverter;
 import com.soybeany.cache.v2.exception.DataException;
 import com.soybeany.cache.v2.model.DataContext;
 import com.soybeany.cache.v2.model.DataPack;
@@ -15,9 +16,22 @@ public abstract class StdCacheStrategy<Param, Data> implements ICacheStrategy<Pa
     protected long mExpiry = Long.MAX_VALUE; // 永不超时
     protected long mFastFailExpiry = 60000; // 1分钟;
 
+    private IKeyConverter<Param> mKeyConverter;
+
     @Override
     public int order() {
         return ORDER_DEFAULT;
+    }
+
+    @Override
+    public IKeyConverter<Param> getConverter() {
+        return mKeyConverter;
+    }
+
+    @Override
+    public ICacheStrategy<Param, Data> converter(IKeyConverter<Param> converter) {
+        mKeyConverter = converter;
+        return this;
     }
 
     @Override

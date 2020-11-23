@@ -1,6 +1,7 @@
 package com.soybeany.cache.v2.strategy;
 
 import com.soybeany.cache.v2.contract.ICacheStrategy;
+import com.soybeany.cache.v2.contract.IKeyConverter;
 import com.soybeany.cache.v2.exception.DataException;
 import com.soybeany.cache.v2.model.DataContext;
 import com.soybeany.cache.v2.model.DataHolder;
@@ -48,6 +49,16 @@ public class ThreadCacheStrategy<Param, Data> implements ICacheStrategy<Param, D
     public DataPack<Data> onHandleException(Channel channel, DataContext<Param> context, String key, DataException e) throws DataException {
         threadLocal.get().put(context.param, DataHolder.get(e.getOriginException(), null));
         throw e;
+    }
+
+    @Override
+    public IKeyConverter<Param> getConverter() {
+        return null;
+    }
+
+    @Override
+    public ICacheStrategy<Param, Data> converter(IKeyConverter<Param> converter) {
+        return null;
     }
 
     @Override

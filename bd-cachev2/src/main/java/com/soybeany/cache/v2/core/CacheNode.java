@@ -26,7 +26,6 @@ class CacheNode<Param, Data> {
     private final Map<String, Lock> mKeyMap = new WeakHashMap<>();
 
     private final ICacheStrategy<Param, Data> mCurStrategy;
-    private final IKeyConverter<Param> mConverter;
 
     private CacheNode<Param, Data> mNextNode;
 
@@ -43,15 +42,11 @@ class CacheNode<Param, Data> {
         }
     }
 
-    public CacheNode(ICacheStrategy<Param, Data> curStrategy, IKeyConverter<Param> converter) {
+    public CacheNode(ICacheStrategy<Param, Data> curStrategy) {
         if (null == curStrategy) {
             throw new RuntimeException("CacheService不能为null");
         }
-        if (null == converter) {
-            throw new RuntimeException("KeyConverter不能为null");
-        }
         mCurStrategy = curStrategy;
-        mConverter = converter;
     }
 
     ICacheStrategy<Param, Data> getStrategy() {
@@ -71,7 +66,7 @@ class CacheNode<Param, Data> {
      * 获取数据并自动缓存
      */
     DataPack<Data> getDataPackAndAutoCache(DataContext<Param> context, final IDatasource<Param, Data> datasource) throws DataException {
-        return getDataFromCurNode(context, mConverter.getKey(context.param), (context2, key) -> getDataFromTmpMapOrNextNode(key,
+        return getDataFromCurNode(context, getConverter().getKey(context.param), (context2, key) -> getDataFromTmpMapOrNextNode(key,
                 () -> getDataFromNextNode(context2, key, datasource)
         ));
     }
@@ -80,7 +75,7 @@ class CacheNode<Param, Data> {
      * 仅仅获取缓存
      */
     DataPack<Data> getCache(DataContext<Param> context) throws DataException {
-        return getDataFromCurNode(context, mConverter.getKey(context.param), (context2, key) -> getDataFromTmpMapOrNextNode(key,
+        return getDataFromCurNode(context, getConverter().getKey(context.param), (context2, key) -> getDataFromTmpMapOrNextNode(key,
                 () -> getCacheFromNextNode(context2, key)
         ));
     }
@@ -110,10 +105,14 @@ class CacheNode<Param, Data> {
 
     // ****************************************内部方法****************************************
 
+    IKeyConverter<Param> getConverter() {
+        return mCurStrategy.getConverter();
+    }
+
     private void traverse(Param param, ICallback2<Param, Data> callback) {
         CacheNode<Param, Data> node = this;
         while (null != node) {
-            String key = node.mConverter.getKey(param);
+            String key = node.getConverter().getKey(param);
             callback.onInvoke(key, node);
             node = node.mNextNode;
         }

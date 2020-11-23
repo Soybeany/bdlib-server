@@ -67,6 +67,16 @@ public interface ICacheStrategy<Param, Data> {
     // ********************触发类********************
 
     /**
+     * 获取目前使用的转换器
+     */
+    IKeyConverter<Param> getConverter();
+
+    /**
+     * 为该策略设置指定的键转换器
+     */
+    ICacheStrategy<Param, Data> converter(IKeyConverter<Param> converter);
+
+    /**
      * 移除指定的缓存(没有线程安全保障，需实现类自行保证)
      *
      * @param context 上下文，含有当前环境的一些信息

@@ -226,18 +226,16 @@ public class DataManager<Param, Data> {
          * <br>数据查找时一级缓存最先被触发
          */
         public Builder<Param, Data> withCache(ICacheStrategy<Param, Data> strategy) {
-            return withCache(strategy, null);
-        }
-
-        /**
-         * 与{@link #withCache(ICacheStrategy)}相同，只是允许自定义KeyConverter
-         */
-        public Builder<Param, Data> withCache(ICacheStrategy<Param, Data> strategy, IKeyConverter<Param> converter) {
-            if (null == converter) {
-                converter = mDefaultConverter;
+            if (null == strategy) {
+                throw new RuntimeException("strategy不能为null");
             }
-            // 添加到服务列表
-            mNodes.addFirst(new CacheNode<>(strategy, converter));
+            // 按需为策略设置转换器
+            IKeyConverter<Param> converter = strategy.getConverter();
+            if (null == converter) {
+                strategy = strategy.converter(mDefaultConverter);
+            }
+            // 添加到策略列表
+            mNodes.addFirst(new CacheNode<>(strategy));
             return this;
         }
 
