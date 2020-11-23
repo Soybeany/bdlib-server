@@ -37,7 +37,7 @@ public interface ICacheStrategy<Param, Data> {
     // ********************回调类********************
 
     /**
-     * 获取缓存的回调(没有做线程安全保障，需实现类自行保证)
+     * 获取缓存的回调(没有线程安全保障)
      *
      * @param context 上下文，含有当前环境的一些信息
      * @param key     使用{@link IKeyConverter}对{@link Param}进行转化后的键，用于KV
@@ -46,7 +46,7 @@ public interface ICacheStrategy<Param, Data> {
     DataPack<Data> onGetCache(Channel channel, DataContext<Param> context, String key) throws DataException, NoCacheException;
 
     /**
-     * 缓存数据的回调(有线程安全保障)
+     * 缓存数据的回调(没有线程安全保障，需实现类自行保证)
      *
      * @param context 上下文，含有当前环境的一些信息
      * @param key     使用{@link IKeyConverter}对{@link Param}进行转化后的键，用于KV
@@ -55,7 +55,7 @@ public interface ICacheStrategy<Param, Data> {
     void onCacheData(Channel channel, DataContext<Param> context, String key, DataPack<Data> data);
 
     /**
-     * 处理异常的回调，一般的实现为缓存异常并重新抛出异常(有线程安全保障)
+     * 处理异常的回调，一般的实现为缓存异常并重新抛出异常(没有线程安全保障，需实现类自行保证)
      *
      * @param channel 使用的频道
      * @param context 上下文，含有当前环境的一些信息
@@ -67,7 +67,7 @@ public interface ICacheStrategy<Param, Data> {
     // ********************触发类********************
 
     /**
-     * 移除指定的缓存(有线程安全保障)
+     * 移除指定的缓存(没有线程安全保障，需实现类自行保证)
      *
      * @param context 上下文，含有当前环境的一些信息
      * @param key     使用{@link IKeyConverter}对{@link Param}进行转化后的键，用于KV
@@ -75,7 +75,7 @@ public interface ICacheStrategy<Param, Data> {
     void removeCache(DataContext<Param> context, String key);
 
     /**
-     * 清除全部缓存(有线程安全保障)
+     * 清除全部缓存(没有线程安全保障，需实现类自行保证)
      */
     void clearCache(String dataDesc);
 

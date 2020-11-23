@@ -114,9 +114,7 @@ class CacheNode<Param, Data> {
         CacheNode<Param, Data> node = this;
         while (null != node) {
             String key = node.mConverter.getKey(param);
-            synchronized (node.getDefaultLock()) {
-                callback.onInvoke(key, node);
-            }
+            callback.onInvoke(key, node);
             node = node.mNextNode;
         }
     }
@@ -167,14 +165,10 @@ class CacheNode<Param, Data> {
         // 否则从下一节点获取缓存
         try {
             DataPack<Data> pack = mNextNode.getCache(context);
-            synchronized (getDefaultLock()) {
-                mCurStrategy.onCacheData(ICacheStrategy.Channel.GET_CACHE, context, key, pack);
-            }
+            mCurStrategy.onCacheData(ICacheStrategy.Channel.GET_CACHE, context, key, pack);
             return pack;
         } catch (DataException e) {
-            synchronized (getDefaultLock()) {
-                return mCurStrategy.onHandleException(ICacheStrategy.Channel.GET_CACHE, context, key, e);
-            }
+            return mCurStrategy.onHandleException(ICacheStrategy.Channel.GET_CACHE, context, key, e);
         }
     }
 
@@ -192,14 +186,10 @@ class CacheNode<Param, Data> {
             else {
                 pack = mNextNode.getDataPackAndAutoCache(context, datasource);
             }
-            synchronized (getDefaultLock()) {
-                mCurStrategy.onCacheData(ICacheStrategy.Channel.GET_DATA, context, key, pack);
-            }
+            mCurStrategy.onCacheData(ICacheStrategy.Channel.GET_DATA, context, key, pack);
             return pack;
         } catch (DataException e) {
-            synchronized (getDefaultLock()) {
-                return mCurStrategy.onHandleException(ICacheStrategy.Channel.GET_DATA, context, key, e);
-            }
+            return mCurStrategy.onHandleException(ICacheStrategy.Channel.GET_DATA, context, key, e);
         }
     }
 
@@ -212,10 +202,6 @@ class CacheNode<Param, Data> {
         } catch (ICacheStrategy.NoCacheException e) {
             return listener.onNoCache(context, key);
         }
-    }
-
-    private Object getDefaultLock() {
-        return mCurStrategy;
     }
 
     private Lock getLock(String key) {
