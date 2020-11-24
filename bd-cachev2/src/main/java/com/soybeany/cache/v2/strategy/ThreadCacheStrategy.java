@@ -32,7 +32,12 @@ public class ThreadCacheStrategy<Param, Data> implements ICacheStrategy<Param, D
     }
 
     @Override
-    public DataPack<Data> onGetCache(Channel channel, DataContext<Param> context, String key) throws DataException, NoCacheException {
+    public boolean supportGetCacheBeforeAccessNextStrategy() {
+        return false;
+    }
+
+    @Override
+    public DataPack<Data> onGetCache(DataContext<Param> context, String key) throws DataException, NoCacheException {
         Map<Param, DataHolder<Data>> map = threadLocal.get();
         if (!map.containsKey(context.param)) {
             throw new NoCacheException();
@@ -42,12 +47,17 @@ public class ThreadCacheStrategy<Param, Data> implements ICacheStrategy<Param, D
     }
 
     @Override
-    public void onCacheData(Channel channel, DataContext<Param> context, String key, DataPack<Data> data) {
+    public DataPack<Data> onGetCacheBeforeAccessNextStrategy(DataContext<Param> context, String key) throws DataException, NoCacheException {
+        throw new NoCacheException();
+    }
+
+    @Override
+    public void onCacheData(DataContext<Param> context, String key, DataPack<Data> data) {
         threadLocal.get().put(context.param, DataHolder.get(data, null));
     }
 
     @Override
-    public DataPack<Data> onHandleException(Channel channel, DataContext<Param> context, String key, DataException e) throws DataException {
+    public DataPack<Data> onHandleException(DataContext<Param> context, String key, DataException e) throws DataException {
         threadLocal.get().put(context.param, DataHolder.get(e.getOriginException(), null));
         throw e;
     }

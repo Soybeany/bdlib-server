@@ -66,29 +66,29 @@ class CacheNode<Param, Data> {
      * 获取数据并自动缓存
      */
     DataPack<Data> getDataPackAndAutoCache(DataContext<Param> context, final IDatasource<Param, Data> datasource) throws DataException {
-        return getDataFromCurNode(context, getConverter().getKey(context.param), (context2, key) -> getDataFromTmpMapOrNextNode(key,
-                () -> getDataFromNextNode(context2, key, datasource)
-        ));
-    }
-
-    /**
-     * 仅仅获取缓存
-     */
-    DataPack<Data> getCache(DataContext<Param> context) throws DataException {
-        return getDataFromCurNode(context, getConverter().getKey(context.param), (context2, key) -> getDataFromTmpMapOrNextNode(key,
-                () -> getCacheFromNextNode(context2, key)
-        ));
+        String key = getConverter().getKey(context.param);
+        return getDataFromCurNode(context, key, () -> getDataFromPenetratorProtector(key, () -> {
+            // 如果支持再次查询，则再次查询
+            if (mCurStrategy.supportGetCacheBeforeAccessNextStrategy()) {
+                try {
+                    return mCurStrategy.onGetCacheBeforeAccessNextStrategy(context, key);
+                } catch (NoCacheException ignore) {
+                }
+            }
+            // 查询下一节点
+            return getDataFromNextNode(context, key, datasource);
+        }));
     }
 
     void cacheData(DataContext<Param> context, final DataPack<Data> data) {
-        traverse(context.param, (key, node) -> node.mCurStrategy.onCacheData(ICacheStrategy.Channel.GET_DATA, context, key, data));
+        traverse(context.param, (key, node) -> node.mCurStrategy.onCacheData(context, key, data));
     }
 
     void cacheException(DataContext<Param> context, Exception e) {
         final DataException exception = new DataException(mCurStrategy, e);
         traverse(context.param, (key, node) -> {
             try {
-                node.mCurStrategy.onHandleException(ICacheStrategy.Channel.GET_DATA, context, key, exception);
+                node.mCurStrategy.onHandleException(context, key, exception);
             } catch (DataException dataException) {
                 // 不作处理
             }
@@ -119,7 +119,7 @@ class CacheNode<Param, Data> {
     }
 
     @SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
-    private DataPack<Data> getDataFromTmpMapOrNextNode(String key, ICallback3<Data> callback) throws DataException {
+    private DataPack<Data> getDataFromPenetratorProtector(String key, ICallback1<Data> callback) throws DataException {
         // 加锁，避免并发时数据重复获取
         Lock lock = getLock(key);
         lock.countOfGet.incrementAndGet();
@@ -132,7 +132,7 @@ class CacheNode<Param, Data> {
                 }
                 Object provider;
                 try {
-                    DataPack<Data> dataPack = callback.onGetDataFromNextNode();
+                    DataPack<Data> dataPack = callback.onNoCache();
                     provider = dataPack.provider;
                     holder = DataHolder.get(dataPack, null);
                 } catch (DataException e) {
@@ -151,26 +151,6 @@ class CacheNode<Param, Data> {
         }
     }
 
-    private DataPack<Data> getCacheFromNextNode(DataContext<Param> context, String key) throws DataException {
-        // 尝试从缓存频道中获取
-        try {
-            return mCurStrategy.onGetCache(ICacheStrategy.Channel.GET_CACHE, context, key);
-        } catch (NoCacheException ignore) {
-        }
-        // 若已无下一节点，抛出异常
-        if (null == mNextNode) {
-            throw new DataException(mCurStrategy, new NoCacheException());
-        }
-        // 否则从下一节点获取缓存
-        try {
-            DataPack<Data> pack = mNextNode.getCache(context);
-            mCurStrategy.onCacheData(ICacheStrategy.Channel.GET_CACHE, context, key, pack);
-            return pack;
-        } catch (DataException e) {
-            return mCurStrategy.onHandleException(ICacheStrategy.Channel.GET_CACHE, context, key, e);
-        }
-    }
-
     /**
      * 从下一节点获取数据
      */
@@ -185,21 +165,21 @@ class CacheNode<Param, Data> {
             else {
                 pack = mNextNode.getDataPackAndAutoCache(context, datasource);
             }
-            mCurStrategy.onCacheData(ICacheStrategy.Channel.GET_DATA, context, key, pack);
+            mCurStrategy.onCacheData(context, key, pack);
             return pack;
         } catch (DataException e) {
-            return mCurStrategy.onHandleException(ICacheStrategy.Channel.GET_DATA, context, key, e);
+            return mCurStrategy.onHandleException(context, key, e);
         }
     }
 
     /**
      * 从本地缓存服务获取数据
      */
-    private DataPack<Data> getDataFromCurNode(DataContext<Param> context, String key, ICallback1<Param, Data> listener) throws DataException {
+    private DataPack<Data> getDataFromCurNode(DataContext<Param> context, String key, ICallback1<Data> listener) throws DataException {
         try {
-            return mCurStrategy.onGetCache(ICacheStrategy.Channel.GET_DATA, context, key);
+            return mCurStrategy.onGetCache(context, key);
         } catch (NoCacheException e) {
-            return listener.onNoCache(context, key);
+            return listener.onNoCache();
         }
     }
 
@@ -219,31 +199,27 @@ class CacheNode<Param, Data> {
 
     // ****************************************内部类****************************************
 
-    private interface ICallback1<Param, Data> {
-        DataPack<Data> onNoCache(DataContext<Param> context, String key) throws DataException;
+    private interface ICallback1<Data> {
+        DataPack<Data> onNoCache() throws DataException;
     }
 
     private interface ICallback2<Param, Data> {
         void onInvoke(String key, CacheNode<Param, Data> node);
     }
 
-    private interface ICallback3<Data> {
-        DataPack<Data> onGetDataFromNextNode() throws DataException;
-    }
-
     private static class PenetratorProtector<Data> {
-        private final Map<Lock, DataHolder<Data>> mTarget = new ConcurrentHashMap<>();
+        private final Map<Lock, DataHolder<Data>> mTmpMap = new ConcurrentHashMap<>();
 
         DataHolder<Data> get(Lock lock) {
-            return mTarget.get(lock);
+            return mTmpMap.get(lock);
         }
 
         void put(Lock lock, DataHolder<Data> dataHolder) {
-            mTarget.put(lock, dataHolder);
+            mTmpMap.put(lock, dataHolder);
         }
 
         void remove(Lock lock) {
-            mTarget.remove(lock);
+            mTmpMap.remove(lock);
         }
     }
 

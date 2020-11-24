@@ -6,7 +6,6 @@ import com.soybeany.cache.v2.contract.IDatasource;
 import com.soybeany.cache.v2.contract.IKeyConverter;
 import com.soybeany.cache.v2.contract.ILogger;
 import com.soybeany.cache.v2.exception.DataException;
-import com.soybeany.cache.v2.exception.NoCacheException;
 import com.soybeany.cache.v2.exception.NoDataSourceException;
 import com.soybeany.cache.v2.model.DataContext;
 import com.soybeany.cache.v2.model.DataPack;
@@ -96,35 +95,6 @@ public class DataManager<Param, Data> {
         // 记录日志
         if (null != mLogger) {
             mLogger.onGetData(getNewDataContext(paramDesc, param), pack);
-        }
-        return pack;
-    }
-
-    /**
-     * 获得缓存，不查询数据源(默认方式)
-     *
-     * @param paramDesc 描述要获取的数据
-     * @param param     用于匹配数据
-     * @return 相匹配的数据
-     */
-    public Data getCache(String paramDesc, Param param) throws DataException {
-        return getCacheDataPack(paramDesc, param).data;
-    }
-
-    /**
-     * 获得缓存，不查询数据源(数据包方式)
-     */
-    public DataPack<Data> getCacheDataPack(String paramDesc, Param param) throws DataException {
-        // 没有缓存节点的情况
-        if (null == mFirstNode) {
-            throw new DataException(this, new NoCacheException());
-        }
-        // 有缓存节点的情况
-        DataContext<Param> context = getNewDataContext(paramDesc, param);
-        DataPack<Data> pack = mFirstNode.getCache(context);
-        // 记录日志
-        if (null != mLogger) {
-            mLogger.onGetData(context, pack);
         }
         return pack;
     }

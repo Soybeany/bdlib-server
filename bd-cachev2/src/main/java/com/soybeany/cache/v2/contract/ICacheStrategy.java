@@ -35,37 +35,50 @@ public interface ICacheStrategy<Param, Data> {
      */
     String desc();
 
-    // ********************回调类********************
+    /**
+     * 是否支持“访问下一缓存策略前，再次获取缓存”，影响{@link #onGetCacheBeforeAccessNextStrategy}
+     */
+    boolean supportGetCacheBeforeAccessNextStrategy();
+
+    // ********************操作回调类********************
 
     /**
-     * 获取缓存的回调(没有线程安全保障)
+     * 获取缓存(没有线程安全保障)
      *
      * @param context 上下文，含有当前环境的一些信息
      * @param key     使用{@link IKeyConverter}对{@link Param}进行转化后的键，用于KV
      * @return 数据
      */
-    DataPack<Data> onGetCache(Channel channel, DataContext<Param> context, String key) throws DataException, NoCacheException;
+    DataPack<Data> onGetCache(DataContext<Param> context, String key) throws DataException, NoCacheException;
 
     /**
-     * 缓存数据的回调(没有线程安全保障，需实现类自行保证)
+     * 访问下一缓存策略前，再次获取缓存。需将{@link #supportGetCacheBeforeAccessNextStrategy}设置为true(有限的线程安全保障，只锁相同key)
+     *
+     * @param context 上下文，含有当前环境的一些信息
+     * @param key     使用{@link IKeyConverter}对{@link Param}进行转化后的键，用于KV
+     * @return 数据
+     */
+    DataPack<Data> onGetCacheBeforeAccessNextStrategy(DataContext<Param> context, String key) throws DataException, NoCacheException;
+
+    /**
+     * 缓存数据(有限的线程安全保障，只锁相同key)
      *
      * @param context 上下文，含有当前环境的一些信息
      * @param key     使用{@link IKeyConverter}对{@link Param}进行转化后的键，用于KV
      * @param data    待缓存的数据
      */
-    void onCacheData(Channel channel, DataContext<Param> context, String key, DataPack<Data> data);
+    void onCacheData(DataContext<Param> context, String key, DataPack<Data> data);
 
     /**
-     * 处理异常的回调，一般的实现为缓存异常并重新抛出异常(没有线程安全保障，需实现类自行保证)
+     * 处理异常，一般的实现为缓存异常并重新抛出异常(有限的线程安全保障，只锁相同key)
      *
-     * @param channel 使用的频道
      * @param context 上下文，含有当前环境的一些信息
      * @param key     使用{@link IKeyConverter}对{@link Param}进行转化后的键，用于KV
      * @param e       待处理的异常
      */
-    DataPack<Data> onHandleException(Channel channel, DataContext<Param> context, String key, DataException e) throws DataException;
+    DataPack<Data> onHandleException(DataContext<Param> context, String key, DataException e) throws DataException;
 
-    // ********************触发类********************
+    // ********************操作触发类********************
 
     /**
      * 获取目前使用的转换器
@@ -78,7 +91,7 @@ public interface ICacheStrategy<Param, Data> {
     ICacheStrategy<Param, Data> converter(IKeyConverter<Param> converter);
 
     /**
-     * 移除指定的缓存(没有线程安全保障，需实现类自行保证)
+     * 移除指定的缓存(有限的线程安全保障，只锁相同key)
      *
      * @param context 上下文，含有当前环境的一些信息
      * @param key     使用{@link IKeyConverter}对{@link Param}进行转化后的键，用于KV
@@ -86,13 +99,8 @@ public interface ICacheStrategy<Param, Data> {
     void removeCache(DataContext<Param> context, String key);
 
     /**
-     * 清除全部缓存(没有线程安全保障，需实现类自行保证)
+     * 清除全部缓存(有限的线程安全保障，只锁相同key)
      */
     void clearCache(String dataDesc);
-
-    enum Channel {
-        // 获取数据  获取缓存
-        GET_DATA, GET_CACHE
-    }
 
 }

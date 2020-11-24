@@ -19,12 +19,7 @@ import java.util.Map;
  */
 public class LruMemCacheStrategy<Param, Data> extends StdCacheStrategy<Param, Data> {
 
-    private static final String KEY_PREFIX_NORM = "norm";
-    private static final String KEY_PREFIX_TEMP = "temp";
-
     private final LruDataAccessor<DataHolder<Data>> mDataAccessor = new LruDataAccessor<>();
-
-    private long mTempExpiry = 10 * 1000; // 10秒
 
     @Override
     public String desc() {
@@ -33,8 +28,7 @@ public class LruMemCacheStrategy<Param, Data> extends StdCacheStrategy<Param, Da
 
     @Override
     public void removeCache(DataContext<Param> context, String key) {
-        mDataAccessor.removeData(KEY_PREFIX_NORM, key);
-        mDataAccessor.removeData(KEY_PREFIX_TEMP, key);
+        mDataAccessor.removeData(key);
     }
 
     @Override
@@ -43,28 +37,18 @@ public class LruMemCacheStrategy<Param, Data> extends StdCacheStrategy<Param, Da
     }
 
     @Override
-    protected DataPack<Data> onGetCache(DataContext<Param> context, String key) throws DataException, NoCacheException {
-        return innerGetCache(KEY_PREFIX_NORM, key);
+    public DataPack<Data> onGetCache(DataContext<Param> context, String key) throws DataException, NoCacheException {
+        return innerGetCache(key);
     }
 
     @Override
-    protected void onCacheData(DataContext<Param> context, String key, DataPack<Data> data) {
-        mDataAccessor.putData(KEY_PREFIX_NORM, key, DataHolder.get(data, mExpiry));
+    public void onCacheData(DataContext<Param> context, String key, DataPack<Data> data) {
+        mDataAccessor.putData(key, DataHolder.get(data, mExpiry));
     }
 
     @Override
     protected void onCacheException(DataContext<Param> context, String key, Object producer, Exception e) {
-        mDataAccessor.putData(KEY_PREFIX_NORM, key, DataHolder.get(e, mFastFailExpiry));
-    }
-
-    @Override
-    protected DataPack<Data> onGetCacheWithGetCacheChannel(DataContext<Param> context, String key) throws DataException, NoCacheException {
-        return innerGetCache(KEY_PREFIX_TEMP, key);
-    }
-
-    @Override
-    protected void onCacheExceptionWithGetCacheChannel(DataContext<Param> context, String key, Object producer, Exception e) {
-        mDataAccessor.putData(KEY_PREFIX_TEMP, key, DataHolder.get(e, mTempExpiry));
+        mDataAccessor.putData(key, DataHolder.get(e, mFastFailExpiry));
     }
 
     /**
@@ -75,29 +59,21 @@ public class LruMemCacheStrategy<Param, Data> extends StdCacheStrategy<Param, Da
         return this;
     }
 
-    /**
-     * 设置临时类数据的超时，如只查缓存时，对下级异常缓存的时间
-     */
-    public LruMemCacheStrategy<Param, Data> tempExpiry(long millis) {
-        mTempExpiry = millis;
-        return this;
-    }
-
     // ********************内部方法********************
 
-    private DataPack<Data> innerGetCache(String keyPrefix, String key) throws DataException, NoCacheException {
-        DataHolder<Data> dataHolder = mDataAccessor.get(keyPrefix, key);
+    private DataPack<Data> innerGetCache(String key) throws DataException, NoCacheException {
+        DataHolder<Data> dataHolder = mDataAccessor.get(key);
         // 若缓存中没有数据，则直接抛出无数据异常
         if (null == dataHolder) {
             throw new NoCacheException();
         }
         // 若缓存中的数据过期，则移除数据后抛出无数据异常
         if (dataHolder.isExpired()) {
-            mDataAccessor.removeData(keyPrefix, key);
+            mDataAccessor.removeData(key);
             throw new NoCacheException();
         }
         // 数据依旧有效，则移到队列末尾
-        mDataAccessor.moveDataToLast(keyPrefix, key);
+        mDataAccessor.moveDataToLast(key);
         // 返回数据
         return dataHolder.toDataPack(this);
     }
@@ -110,35 +86,27 @@ public class LruMemCacheStrategy<Param, Data> extends StdCacheStrategy<Param, Da
 
         int capacity = 100;
 
-        Data get(String keyPrefix, String key) {
-            key = getFullKey(keyPrefix, key);
+        Data get(String key) {
             return mCacheMap.get(key);
         }
 
-        synchronized void moveDataToLast(String keyPrefix, String key) {
-            key = getFullKey(keyPrefix, key);
+        synchronized void moveDataToLast(String key) {
             mOrderList.remove(key);
             mOrderList.offer(key);
         }
 
-        synchronized void removeData(String keyPrefix, String key) {
-            key = getFullKey(keyPrefix, key);
+        synchronized void removeData(String key) {
             mOrderList.remove(key);
             mCacheMap.remove(key);
         }
 
-        synchronized void putData(String keyPrefix, String key, Data data) {
-            key = getFullKey(keyPrefix, key);
+        synchronized void putData(String key, Data data) {
             // 若存储的数据已达到设置的上限，先移除末位数据
             if (mOrderList.size() >= capacity && !mOrderList.isEmpty()) {
-                removeData("", mOrderList.getFirst());
+                removeData(mOrderList.getFirst());
             }
             mOrderList.offer(key);
             mCacheMap.put(key, data);
-        }
-
-        private String getFullKey(String keyPrefix, String key) {
-            return keyPrefix + ":" + key;
         }
 
         synchronized void clear() {
