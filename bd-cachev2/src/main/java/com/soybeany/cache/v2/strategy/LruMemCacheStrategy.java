@@ -47,7 +47,7 @@ public class LruMemCacheStrategy<Param, Data> extends StdCacheStrategy<Param, Da
     }
 
     @Override
-    protected void onCacheException(DataContext<Param> context, String key, Object producer, Exception e) {
+    protected void onCacheException(DataContext<Param> context, String key, DataException e) {
         mDataAccessor.putData(key, DataHolder.get(e, mFastFailExpiry));
     }
 

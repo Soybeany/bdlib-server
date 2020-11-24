@@ -47,7 +47,7 @@ public abstract class StdCacheStrategy<Param, Data> implements ICacheStrategy<Pa
 
     @Override
     public DataPack<Data> onHandleException(DataContext<Param> context, String key, DataException e) throws DataException {
-        onCacheException(context, key, e.provider, e.getOriginException());
+        onCacheException(context, key, e);
         throw e;
     }
 
@@ -84,6 +84,6 @@ public abstract class StdCacheStrategy<Param, Data> implements ICacheStrategy<Pa
     /**
      * 缓存异常时的回调
      */
-    protected abstract void onCacheException(DataContext<Param> context, String key, Object producer, Exception e);
+    protected abstract void onCacheException(DataContext<Param> context, String key, DataException e);
 
 }

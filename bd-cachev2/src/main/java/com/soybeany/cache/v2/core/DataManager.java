@@ -79,7 +79,7 @@ public class DataManager<Param, Data> {
         }
         // 没有缓存节点的情况
         if (null == datasource) {
-            throw new DataException(this, new NoDataSourceException());
+            throw new DataException(this, new NoDataSourceException(), Long.MAX_VALUE);
         }
         return getDataPackDirectly(paramDesc, param);
     }

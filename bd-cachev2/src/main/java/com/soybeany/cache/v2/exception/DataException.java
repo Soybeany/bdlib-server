@@ -18,17 +18,23 @@ public class DataException extends Exception {
      */
     public final String originExceptionFullName;
 
+    /**
+     * 该数据剩余的有效时间
+     */
+    public final long expiryMillis;
+
     private Class<?> mOriginExceptionClass;
     private Exception mOriginException;
 
-    public DataException(Object provider, String originExceptionFullName, String errMsg) {
+    public DataException(Object provider, String originExceptionFullName, String errMsg, long expiryMillis) {
         super(errMsg);
         this.provider = provider;
         this.originExceptionFullName = originExceptionFullName;
+        this.expiryMillis = expiryMillis;
     }
 
-    public DataException(Object provider, Exception originException) {
-        this(provider, originException.getClass().getName(), originException.getMessage());
+    public DataException(Object provider, Exception originException, long expiryMillis) {
+        this(provider, originException.getClass().getName(), originException.getMessage(), expiryMillis);
         mOriginExceptionClass = originException.getClass();
         mOriginException = originException;
     }

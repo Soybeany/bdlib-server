@@ -53,12 +53,12 @@ public class ThreadCacheStrategy<Param, Data> implements ICacheStrategy<Param, D
 
     @Override
     public void onCacheData(DataContext<Param> context, String key, DataPack<Data> data) {
-        threadLocal.get().put(context.param, DataHolder.get(data, null));
+        threadLocal.get().put(context.param, DataHolder.get(data, data.expiryMillis));
     }
 
     @Override
     public DataPack<Data> onHandleException(DataContext<Param> context, String key, DataException e) throws DataException {
-        threadLocal.get().put(context.param, DataHolder.get(e.getOriginException(), null));
+        threadLocal.get().put(context.param, DataHolder.get(e.getOriginException(), e.expiryMillis));
         throw e;
     }
 

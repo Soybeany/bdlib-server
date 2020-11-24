@@ -1,6 +1,7 @@
 package com.soybeany.cache.v2.model;
 
 import com.google.gson.Gson;
+import com.soybeany.cache.v2.exception.DataException;
 
 import java.lang.reflect.Type;
 
@@ -19,16 +20,18 @@ public class DataJson<Data> {
     private String dataJson;
     private Info exceptionJson;
 
-    public static <Data> String toJson(DataJson<Data> holder) {
-        if (holder.norm) {
-            holder.dataJson = GSON.toJson(holder.data);
+    // ********************Json********************
+
+    public static <Data> String toJson(DataJson<Data> dataJson) {
+        if (dataJson.norm) {
+            dataJson.dataJson = GSON.toJson(dataJson.data);
         } else {
-            String exceptionClazz = holder.exception.getClass().getName();
-            String exceptionJson = GSON.toJson(holder.exception);
-            holder.exceptionJson = new Info(exceptionClazz, exceptionJson);
+            String exceptionClazz = dataJson.exception.getClass().getName();
+            String exceptionJson = GSON.toJson(dataJson.exception);
+            dataJson.exceptionJson = new Info(exceptionClazz, exceptionJson);
         }
-        String json = GSON.toJson(holder);
-        holder.release();
+        String json = GSON.toJson(dataJson);
+        dataJson.release();
         return json;
     }
 
@@ -45,11 +48,37 @@ public class DataJson<Data> {
         return holder;
     }
 
-    public static <Data> DataJson<Data> get(Data data) {
+    // ********************DataHolder********************
+
+    public static <Data> DataHolder<Data> toDataHolder(DataJson<Data> dataJson, long expiryMillis) {
+        return new DataHolder<>(dataJson.norm, dataJson.data, dataJson.exception, expiryMillis);
+    }
+
+    public static <Data> DataJson<Data> fromDataHolder(DataHolder<Data> holder) {
+        return new DataJson<>(holder.data, holder.exception, holder.norm);
+    }
+
+    // ********************DataPack********************
+
+    public static <Data> DataJson<Data> fromDataPack(DataPack<Data> dataPack) {
+        return fromData(dataPack.data);
+    }
+
+    // ********************DataException********************
+
+    public static <Data> DataJson<Data> fromDataException(DataException exception) {
+        return fromException(exception.getOriginException());
+    }
+
+    // ********************Data********************
+
+    public static <Data> DataJson<Data> fromData(Data data) {
         return new DataJson<>(data, null, true);
     }
 
-    public static <Data> DataJson<Data> get(Exception exception) {
+    // ********************Exception********************
+
+    public static <Data> DataJson<Data> fromException(Exception exception) {
         return new DataJson<>(null, exception, false);
     }
 
@@ -59,8 +88,8 @@ public class DataJson<Data> {
         this.data = data;
     }
 
-    public boolean abnormal() {
-        return !norm;
+    public boolean normal() {
+        return norm;
     }
 
     public Data getData() {

@@ -33,12 +33,12 @@ class CacheNode<Param, Data> {
 
     public static <Param, Data> DataPack<Data> getDataDirectly(Object invoker, Param param, IDatasource<Param, Data> datasource) throws DataException {
         if (null == datasource) {
-            throw new DataException(invoker, new NoDataSourceException());
+            throw new DataException(invoker, new NoDataSourceException(), Long.MAX_VALUE);
         }
         try {
             return DataPack.newSourceDataPack(datasource, datasource.onGetData(param));
         } catch (Exception e) {
-            throw new DataException(datasource, e);
+            throw new DataException(datasource, e, Long.MAX_VALUE);
         }
     }
 
@@ -85,7 +85,7 @@ class CacheNode<Param, Data> {
     }
 
     void cacheException(DataContext<Param> context, Exception e) {
-        final DataException exception = new DataException(mCurStrategy, e);
+        final DataException exception = new DataException(mCurStrategy, e, Long.MAX_VALUE);
         traverse(context.param, (key, node) -> {
             try {
                 node.mCurStrategy.onHandleException(context, key, exception);
@@ -134,10 +134,10 @@ class CacheNode<Param, Data> {
                 try {
                     DataPack<Data> dataPack = callback.onNoCache();
                     provider = dataPack.provider;
-                    holder = DataHolder.get(dataPack, null);
+                    holder = DataHolder.get(dataPack, dataPack.expiryMillis);
                 } catch (DataException e) {
                     provider = e.provider;
-                    holder = DataHolder.get(e.getOriginException(), null);
+                    holder = DataHolder.get(e.getOriginException(), e.expiryMillis);
                 }
                 mPenetratorProtector.put(lock, holder);
                 // 返回结果

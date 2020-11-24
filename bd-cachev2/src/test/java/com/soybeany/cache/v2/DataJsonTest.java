@@ -17,8 +17,8 @@ public class DataJsonTest {
         String data = "sdf";
         String errMsg = "测试异常";
 
-        DataJson<String> holder = DataJson.get(data);
-        DataJson<String> holder2 = DataJson.get(new RuntimeException(errMsg));
+        DataJson<String> holder = DataJson.fromData(data);
+        DataJson<String> holder2 = DataJson.fromException(new RuntimeException(errMsg));
 
         String json1 = DataJson.toJson(holder);
         String json2 = DataJson.toJson(holder2);
@@ -34,7 +34,7 @@ public class DataJsonTest {
         List<Vo> list = new LinkedList<>();
         list.add(new Vo("字段"));
 
-        DataJson<List<Vo>> holder = DataJson.get(list);
+        DataJson<List<Vo>> holder = DataJson.fromData(list);
 
         String json = DataJson.toJson(holder);
         String json2 = DataJson.toJson(holder);

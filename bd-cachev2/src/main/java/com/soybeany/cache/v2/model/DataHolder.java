@@ -11,34 +11,35 @@ public class DataHolder<Data> {
     public final boolean norm; // 是否为正常数据
     public final Data data; // 数据
     public final Exception exception; // 相关的异常
-    public final long createStamp = currentTimeMillis(); // 创建时的时间戳
+    public final long expiredTime; // 失效的时间戳
 
-    private final long expiryMillis; // 超时时间，静态
+    public static <Data> DataHolder<Data> get(DataPack<Data> dataPack, long expiryMillis) {
+        return new DataHolder<>(true, dataPack.data, null, Math.min(dataPack.expiryMillis, expiryMillis));
+    }
 
-    public static <Data> DataHolder<Data> get(DataPack<Data> dataPack, Long expiryMillis) {
-        long expiry = dataPack.expiryMillis;
-        if (null != expiryMillis && expiryMillis < dataPack.expiryMillis) {
-            expiry = expiryMillis;
+    public static <Data> DataHolder<Data> get(Exception exception, long expiryMillis) {
+        Exception e = exception;
+        long expiry = expiryMillis;
+        if (exception instanceof DataException) {
+            e = ((DataException) exception).getOriginException();
+            expiry = Math.min(((DataException) exception).expiryMillis, expiryMillis);
         }
-        return new DataHolder<>(true, dataPack.data, null, expiry);
+        return new DataHolder<>(false, null, e, expiry);
     }
 
-    public static <Data> DataHolder<Data> get(Exception exception, Long expiryMillis) {
-        return new DataHolder<>(false, null, exception, expiryMillis);
-    }
-
-    public DataHolder(boolean norm, Data data, Exception exception, Long expiryMillis) {
+    public DataHolder(boolean norm, Data data, Exception exception, long expiryMillis) {
         this.norm = norm;
         this.data = data;
         this.exception = exception;
-        this.expiryMillis = null != expiryMillis ? expiryMillis : 0;
+        this.expiredTime = currentTimeMillis() + expiryMillis;
     }
 
     public DataPack<Data> toDataPack(Object provider) throws DataException {
+        long expiryMillis = getRemainingValidTimeInMillis();
         if (!norm) {
-            throw new DataException(provider, exception);
+            throw new DataException(provider, exception, expiryMillis);
         }
-        return new DataPack<>(provider, data, getRemainingValidTimeInMillis());
+        return new DataPack<>(provider, data, expiryMillis);
     }
 
     public boolean isExpired() {
@@ -50,7 +51,6 @@ public class DataHolder<Data> {
     }
 
     private long getRemainingValidTimeInMillis() {
-        long expiredTime = createStamp + expiryMillis;
         return expiredTime - currentTimeMillis();
     }
 }
