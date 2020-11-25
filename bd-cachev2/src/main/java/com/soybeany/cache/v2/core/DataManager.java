@@ -94,14 +94,14 @@ public class DataManager<Param, Data> {
      * 缓存数据，手动模式管理
      */
     public void cacheData(String paramDesc, Param param, Data data) {
-        innerCacheData(paramDesc, param, DataCore.get(data));
+        innerCacheData(paramDesc, param, DataCore.fromData(data));
     }
 
     /**
      * 缓存异常，手动模式管理
      */
     public void cacheException(String paramDesc, Param param, Exception e) {
-        innerCacheData(paramDesc, param, DataCore.get(e));
+        innerCacheData(paramDesc, param, DataCore.fromException(e));
     }
 
     /**

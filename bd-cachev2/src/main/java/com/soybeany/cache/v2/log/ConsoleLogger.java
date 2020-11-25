@@ -32,7 +32,6 @@ public class ConsoleLogger<Param, Data> implements ILogger<Param, Data> {
         } else {
             System.out.println("“" + context.dataDesc + "”缓存了“" + context.paramDesc + "”的异常(" + pack.dataCore.exception.getClass().getSimpleName() + ")“");
         }
-
     }
 
     @Override

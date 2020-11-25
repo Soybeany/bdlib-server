@@ -33,13 +33,13 @@ class CacheNode<Param, Data> {
     public static <Param, Data> DataPack<Data> getDataDirectly(Object invoker, Param param, IDatasource<Param, Data> datasource) {
         // 没有指定数据源
         if (null == datasource) {
-            return new DataPack<>(DataCore.get(new NoDataSourceException()), invoker, Integer.MAX_VALUE);
+            return new DataPack<>(DataCore.fromException(new NoDataSourceException()), invoker, Integer.MAX_VALUE);
         }
         // 正常执行
         try {
-            return new DataPack<>(DataCore.get(datasource.onGetData(param)), datasource, Integer.MAX_VALUE);
+            return new DataPack<>(DataCore.fromData(datasource.onGetData(param)), datasource, Integer.MAX_VALUE);
         } catch (Exception e) {
-            return new DataPack<>(DataCore.get(e), datasource, Integer.MAX_VALUE);
+            return new DataPack<>(DataCore.fromException(e), datasource, Integer.MAX_VALUE);
         }
     }
 

@@ -28,10 +28,10 @@ public class DataPack<Data> {
     }
 
     public Data getData() throws Exception {
-        if (!norm()) {
-            throw dataCore.exception;
+        if (norm()) {
+            return dataCore.data;
         }
-        return dataCore.data;
+        throw dataCore.exception;
     }
 
     public boolean norm() {

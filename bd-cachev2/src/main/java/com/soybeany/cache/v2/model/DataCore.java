@@ -33,22 +33,21 @@ public class DataCore<Data> {
     /**
      * @param dataType {@link #data}数据的类型
      */
-    @SuppressWarnings("unchecked")
     public static <Data> DataCore<Data> fromJson(String json, Type dataType) throws ClassNotFoundException {
         JsonInfo jsonInfo = GSON.fromJson(json, JsonInfo.class);
         if (jsonInfo.norm) {
-            return DataCore.get((Data) GSON.fromJson(jsonInfo.dataJson, dataType));
+            return DataCore.fromData(GSON.fromJson(jsonInfo.dataJson, dataType));
         } else {
             ExceptionInfo exceptionInfo = jsonInfo.exceptionJson;
-            return DataCore.get((Exception) GSON.fromJson(exceptionInfo.json, Class.forName(exceptionInfo.clazz)));
+            return DataCore.fromException((Exception) GSON.fromJson(exceptionInfo.json, Class.forName(exceptionInfo.clazz)));
         }
     }
 
-    public static <Data> DataCore<Data> get(Data data) {
+    public static <Data> DataCore<Data> fromData(Data data) {
         return new DataCore<>(true, data, null);
     }
 
-    public static <Data> DataCore<Data> get(Exception e) {
+    public static <Data> DataCore<Data> fromException(Exception e) {
         return new DataCore<>(false, null, e);
     }
 
