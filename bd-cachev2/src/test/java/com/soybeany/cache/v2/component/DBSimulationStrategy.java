@@ -1,9 +1,8 @@
 package com.soybeany.cache.v2.component;
 
-import com.soybeany.cache.v2.exception.DataException;
 import com.soybeany.cache.v2.exception.NoCacheException;
+import com.soybeany.cache.v2.model.CacheEntity;
 import com.soybeany.cache.v2.model.DataContext;
-import com.soybeany.cache.v2.model.DataHolder;
 import com.soybeany.cache.v2.model.DataPack;
 import com.soybeany.cache.v2.strategy.StdCacheStrategy;
 
@@ -14,7 +13,7 @@ import java.util.Map;
  * <br>Created by Soybeany on 2020/10/16.
  */
 public class DBSimulationStrategy<Param, Data> extends StdCacheStrategy<Param, Data> {
-    private final Map<String, DataHolder<Data>> map = new HashMap<>();
+    private final Map<String, CacheEntity<Data>> map = new HashMap<>();
 
     @Override
     public String desc() {
@@ -22,21 +21,23 @@ public class DBSimulationStrategy<Param, Data> extends StdCacheStrategy<Param, D
     }
 
     @Override
-    public DataPack<Data> onGetCache(DataContext<Param> context, String key) throws DataException, NoCacheException {
+    public DataPack<Data> onGetCache(DataContext<Param> context, String key) throws NoCacheException {
         if (!map.containsKey(key)) {
             throw new NoCacheException();
         }
-        DataHolder<Data> dataHolder = map.get(key);
-        if (dataHolder.isExpired()) {
+        CacheEntity<Data> cacheEntity = map.get(key);
+        long currentTimeMillis = System.currentTimeMillis();
+        if (cacheEntity.isExpired(currentTimeMillis)) {
             map.remove(key);
             throw new NoCacheException();
         }
-        return dataHolder.toDataPack(this);
+        return CacheEntity.toDataPack(cacheEntity, this, currentTimeMillis);
     }
 
     @Override
     public void onCacheData(DataContext<Param> context, String key, DataPack<Data> data) {
-        map.put(key, DataHolder.get(data, mExpiry));
+        CacheEntity<Data> cacheEntity = CacheEntity.fromDataPack(data, System.currentTimeMillis(), mExpiry, mFastFailExpiry);
+        map.put(key, cacheEntity);
     }
 
     @Override
@@ -49,8 +50,4 @@ public class DBSimulationStrategy<Param, Data> extends StdCacheStrategy<Param, D
         map.clear();
     }
 
-    @Override
-    protected void onCacheException(DataContext<Param> context, String key, DataException e) {
-        map.put(key, DataHolder.get(e, mFastFailExpiry));
-    }
 }

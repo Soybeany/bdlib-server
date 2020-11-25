@@ -1,10 +1,9 @@
 package com.soybeany.cache.v2.strategy;
 
 
-import com.soybeany.cache.v2.exception.DataException;
 import com.soybeany.cache.v2.exception.NoCacheException;
+import com.soybeany.cache.v2.model.CacheEntity;
 import com.soybeany.cache.v2.model.DataContext;
-import com.soybeany.cache.v2.model.DataHolder;
 import com.soybeany.cache.v2.model.DataPack;
 
 import java.util.HashMap;
@@ -19,7 +18,7 @@ import java.util.Map;
  */
 public class LruMemCacheStrategy<Param, Data> extends StdCacheStrategy<Param, Data> {
 
-    private final LruDataAccessor<DataHolder<Data>> mDataAccessor = new LruDataAccessor<>();
+    private final LruDataAccessor<CacheEntity<Data>> mDataAccessor = new LruDataAccessor<>();
 
     @Override
     public String desc() {
@@ -37,18 +36,14 @@ public class LruMemCacheStrategy<Param, Data> extends StdCacheStrategy<Param, Da
     }
 
     @Override
-    public DataPack<Data> onGetCache(DataContext<Param> context, String key) throws DataException, NoCacheException {
+    public DataPack<Data> onGetCache(DataContext<Param> context, String key) throws NoCacheException {
         return innerGetCache(key);
     }
 
     @Override
     public void onCacheData(DataContext<Param> context, String key, DataPack<Data> data) {
-        mDataAccessor.putData(key, DataHolder.get(data, mExpiry));
-    }
-
-    @Override
-    protected void onCacheException(DataContext<Param> context, String key, DataException e) {
-        mDataAccessor.putData(key, DataHolder.get(e, mFastFailExpiry));
+        CacheEntity<Data> cacheEntity = CacheEntity.fromDataPack(data, System.currentTimeMillis(), mExpiry, mFastFailExpiry);
+        mDataAccessor.putData(key, cacheEntity);
     }
 
     /**
@@ -61,21 +56,22 @@ public class LruMemCacheStrategy<Param, Data> extends StdCacheStrategy<Param, Da
 
     // ********************内部方法********************
 
-    private DataPack<Data> innerGetCache(String key) throws DataException, NoCacheException {
-        DataHolder<Data> dataHolder = mDataAccessor.get(key);
+    private DataPack<Data> innerGetCache(String key) throws NoCacheException {
+        CacheEntity<Data> cacheEntity = mDataAccessor.get(key);
         // 若缓存中没有数据，则直接抛出无数据异常
-        if (null == dataHolder) {
+        if (null == cacheEntity) {
             throw new NoCacheException();
         }
+        long currentTimeMillis = System.currentTimeMillis();
         // 若缓存中的数据过期，则移除数据后抛出无数据异常
-        if (dataHolder.isExpired()) {
+        if (cacheEntity.isExpired(currentTimeMillis)) {
             mDataAccessor.removeData(key);
             throw new NoCacheException();
         }
         // 数据依旧有效，则移到队列末尾
         mDataAccessor.moveDataToLast(key);
         // 返回数据
-        return dataHolder.toDataPack(this);
+        return CacheEntity.toDataPack(cacheEntity, this, currentTimeMillis);
     }
 
     // ********************内部类********************

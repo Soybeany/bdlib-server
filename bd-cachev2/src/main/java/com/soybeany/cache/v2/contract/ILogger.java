@@ -22,11 +22,6 @@ public interface ILogger<Param, Data> {
     void onCacheData(DataContext<Param> context, DataPack<Data> pack);
 
     /**
-     * 缓存异常时的回调
-     */
-    void onCacheException(DataContext<Param> context, Exception e);
-
-    /**
      * 移除缓存时的回调
      */
     void onRemoveCache(DataContext<Param> context);

@@ -5,9 +5,8 @@ import com.soybeany.cache.v2.contract.ICacheStrategy;
 import com.soybeany.cache.v2.contract.IDatasource;
 import com.soybeany.cache.v2.contract.IKeyConverter;
 import com.soybeany.cache.v2.contract.ILogger;
-import com.soybeany.cache.v2.exception.DataException;
-import com.soybeany.cache.v2.exception.NoDataSourceException;
 import com.soybeany.cache.v2.model.DataContext;
+import com.soybeany.cache.v2.model.DataCore;
 import com.soybeany.cache.v2.model.DataPack;
 
 import java.util.Comparator;
@@ -42,8 +41,8 @@ public class DataManager<Param, Data> {
      * @param param     用于匹配数据
      * @return 相匹配的数据
      */
-    public Data getData(String paramDesc, Param param) throws DataException {
-        return getDataPack(paramDesc, param).data;
+    public Data getData(String paramDesc, Param param) throws Exception {
+        return getDataPack(paramDesc, param).getData();
     }
 
     /**
@@ -52,36 +51,33 @@ public class DataManager<Param, Data> {
      * @param param 用于匹配数据
      * @return 相匹配的数据
      */
-    public Data getData(String paramDesc, Param param, IDatasource<Param, Data> datasource) throws DataException {
-        return getDataPack(paramDesc, param, datasource).data;
+    public Data getData(String paramDesc, Param param, IDatasource<Param, Data> datasource) throws Exception {
+        return getDataPack(paramDesc, param, datasource).getData();
     }
 
     /**
      * 获得数据(数据包方式)
      */
-    public DataPack<Data> getDataPack(String paramDesc, Param param) throws DataException {
+    public DataPack<Data> getDataPack(String paramDesc, Param param) {
         return getDataPack(paramDesc, param, mDefaultDatasource);
     }
 
     /**
      * 获得数据(数据包方式)
      */
-    public DataPack<Data> getDataPack(String paramDesc, Param param, IDatasource<Param, Data> datasource) throws DataException {
-        // 有缓存节点的情况
-        if (null != mFirstNode) {
-            DataContext<Param> context = getNewDataContext(paramDesc, param);
-            DataPack<Data> pack = mFirstNode.getDataPackAndAutoCache(context, datasource);
-            // 记录日志
-            if (null != mLogger) {
-                mLogger.onGetData(context, pack);
-            }
-            return pack;
-        }
+    public DataPack<Data> getDataPack(String paramDesc, Param param, IDatasource<Param, Data> datasource) {
         // 没有缓存节点的情况
-        if (null == datasource) {
-            throw new DataException(this, new NoDataSourceException(), Long.MAX_VALUE);
+        if (null == mFirstNode) {
+            return innerGetDataPackDirectly(paramDesc, param, null);
         }
-        return getDataPackDirectly(paramDesc, param);
+        // 有缓存节点的情况
+        DataContext<Param> context = getNewDataContext(paramDesc, param);
+        DataPack<Data> pack = mFirstNode.getDataPackAndAutoCache(context, datasource);
+        // 记录日志
+        if (null != mLogger) {
+            mLogger.onGetData(context, pack);
+        }
+        return pack;
     }
 
     /**
@@ -90,44 +86,22 @@ public class DataManager<Param, Data> {
      * @param param 用于匹配数据
      * @return 相匹配的数据
      */
-    public DataPack<Data> getDataPackDirectly(String paramDesc, Param param) throws DataException {
-        DataPack<Data> pack = CacheNode.getDataDirectly(this, param, mDefaultDatasource);
-        // 记录日志
-        if (null != mLogger) {
-            mLogger.onGetData(getNewDataContext(paramDesc, param), pack);
-        }
-        return pack;
+    public DataPack<Data> getDataPackDirectly(String paramDesc, Param param) {
+        return innerGetDataPackDirectly(paramDesc, param, mDefaultDatasource);
     }
 
     /**
      * 缓存数据，手动模式管理
      */
     public void cacheData(String paramDesc, Param param, Data data) {
-        if (null == mFirstNode) {
-            return;
-        }
-        DataContext<Param> context = getNewDataContext(paramDesc, param);
-        DataPack<Data> pack = DataPack.newSourceDataPack("外部", data);
-        mFirstNode.cacheData(context, pack);
-        // 记录日志
-        if (null != mLogger) {
-            mLogger.onCacheData(context, pack);
-        }
+        innerCacheData(paramDesc, param, DataCore.get(data));
     }
 
     /**
      * 缓存异常，手动模式管理
      */
     public void cacheException(String paramDesc, Param param, Exception e) {
-        if (null == mFirstNode) {
-            return;
-        }
-        DataContext<Param> context = getNewDataContext(paramDesc, param);
-        mFirstNode.cacheException(context, e);
-        // 记录日志
-        if (null != mLogger) {
-            mLogger.onCacheException(context, e);
-        }
+        innerCacheData(paramDesc, param, DataCore.get(e));
     }
 
     /**
@@ -163,8 +137,30 @@ public class DataManager<Param, Data> {
 
     // ********************内部方法********************
 
-    DataContext<Param> getNewDataContext(String paramDesc, Param param) {
+    private DataContext<Param> getNewDataContext(String paramDesc, Param param) {
         return new DataContext<>(mDataDesc, paramDesc, param);
+    }
+
+    private DataPack<Data> innerGetDataPackDirectly(String paramDesc, Param param, IDatasource<Param, Data> datasource) {
+        DataPack<Data> pack = CacheNode.getDataDirectly(this, param, datasource);
+        // 记录日志
+        if (null != mLogger) {
+            mLogger.onGetData(getNewDataContext(paramDesc, param), pack);
+        }
+        return pack;
+    }
+
+    private void innerCacheData(String paramDesc, Param param, DataCore<Data> dataCore) {
+        if (null == mFirstNode) {
+            return;
+        }
+        DataContext<Param> context = getNewDataContext(paramDesc, param);
+        DataPack<Data> pack = new DataPack<>(dataCore, this, Integer.MAX_VALUE);
+        mFirstNode.cacheData(context, pack);
+        // 记录日志
+        if (null != mLogger) {
+            mLogger.onCacheData(context, pack);
+        }
     }
 
     // ********************内部类********************

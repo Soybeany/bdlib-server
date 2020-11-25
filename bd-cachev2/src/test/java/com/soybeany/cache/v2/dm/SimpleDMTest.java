@@ -3,7 +3,6 @@ package com.soybeany.cache.v2.dm;
 import com.soybeany.cache.v2.contract.ICacheStrategy;
 import com.soybeany.cache.v2.contract.IDatasource;
 import com.soybeany.cache.v2.core.DataManager;
-import com.soybeany.cache.v2.exception.DataException;
 import com.soybeany.cache.v2.exception.NoDataSourceException;
 import com.soybeany.cache.v2.log.ConsoleLogger;
 import com.soybeany.cache.v2.model.DataPack;
@@ -31,7 +30,7 @@ public class SimpleDMTest {
             .build();
 
     @Test
-    public void sequenceTest() throws Exception {
+    public void sequenceTest() {
         String key = "key";
         // 第一次将访问数据源
         DataPack<String> data = dataManager.getDataPack("序列1", key);
@@ -49,12 +48,8 @@ public class SimpleDMTest {
         for (int i = 0; i < count; i++) {
             final int finalI = i;
             threads[i] = new Thread(() -> {
-                try {
-                    DataPack<String> pack = dataManager.getDataPack("并发", null);
-                    providers[finalI] = pack.provider;
-                } catch (DataException e) {
-                    throw new RuntimeException(e);
-                }
+                DataPack<String> pack = dataManager.getDataPack("并发", null);
+                providers[finalI] = pack.provider;
             });
             threads[i].start();
         }
@@ -85,13 +80,12 @@ public class SimpleDMTest {
     }
 
     @Test
-    public void noDatasourceTest() throws Exception {
+    public void noDatasourceTest() {
         try {
             dataManager.getData("无数据源", null, null);
             throw new Exception("不允许不抛出异常");
-        } catch (DataException e) {
-            Exception originException = e.getOriginException();
-            assert originException instanceof NoDataSourceException;
+        } catch (Exception e) {
+            assert e instanceof NoDataSourceException;
         }
     }
 

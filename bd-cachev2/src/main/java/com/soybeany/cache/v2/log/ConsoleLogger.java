@@ -27,12 +27,12 @@ public class ConsoleLogger<Param, Data> implements ILogger<Param, Data> {
 
     @Override
     public void onCacheData(DataContext<Param> context, DataPack<Data> pack) {
-        System.out.println("“" + context.dataDesc + "”缓存了“" + context.paramDesc + "”的数据“");
-    }
+        if (pack.norm()) {
+            System.out.println("“" + context.dataDesc + "”缓存了“" + context.paramDesc + "”的数据“");
+        } else {
+            System.out.println("“" + context.dataDesc + "”缓存了“" + context.paramDesc + "”的异常(" + pack.dataCore.exception.getClass().getSimpleName() + ")“");
+        }
 
-    @Override
-    public void onCacheException(DataContext<Param> context, Exception e) {
-        System.out.println("“" + context.dataDesc + "”缓存了“" + context.paramDesc + "”的异常(" + e.getClass().getSimpleName() + ")“");
     }
 
     @Override

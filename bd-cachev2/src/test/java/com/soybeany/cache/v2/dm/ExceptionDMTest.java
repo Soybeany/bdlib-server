@@ -3,7 +3,6 @@ package com.soybeany.cache.v2.dm;
 import com.soybeany.cache.v2.contract.ICacheStrategy;
 import com.soybeany.cache.v2.contract.IDatasource;
 import com.soybeany.cache.v2.core.DataManager;
-import com.soybeany.cache.v2.exception.DataException;
 import com.soybeany.cache.v2.log.ConsoleLogger;
 import com.soybeany.cache.v2.model.DataPack;
 import com.soybeany.cache.v2.strategy.LruMemCacheStrategy;
@@ -30,19 +29,11 @@ public class ExceptionDMTest {
     public void test() {
         DataPack<String> data;
         // 从数据源抛出异常
-        try {
-            data = dataManager.getDataPack("数据源", null);
-            System.out.println("data:" + data);
-        } catch (DataException e) {
-            assert datasource == e.provider;
-        }
+        data = dataManager.getDataPack("数据源", null);
+        assert (!data.norm() && datasource == data.provider);
         // 抛出的是缓存了的异常
-        try {
-            data = dataManager.getDataPack("缓存", null);
-            System.out.println("data:" + data);
-        } catch (DataException e) {
-            assert cacheStrategy == e.provider;
-        }
+        data = dataManager.getDataPack("缓存", null);
+        assert (!data.norm() && cacheStrategy == data.provider);
     }
 
 }

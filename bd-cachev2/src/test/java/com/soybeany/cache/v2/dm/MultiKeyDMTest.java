@@ -2,7 +2,6 @@ package com.soybeany.cache.v2.dm;
 
 import com.soybeany.cache.v2.contract.ICacheStrategy;
 import com.soybeany.cache.v2.core.DataManager;
-import com.soybeany.cache.v2.exception.DataException;
 import com.soybeany.cache.v2.log.ConsoleLogger;
 import com.soybeany.cache.v2.model.DataContext;
 import com.soybeany.cache.v2.model.DataPack;
@@ -34,12 +33,8 @@ public class MultiKeyDMTest {
         Thread[] threads = new Thread[count];
         for (int i = 0; i < count; i++) {
             threads[i] = new Thread(() -> {
-                try {
-                    String key = UUID.randomUUID().toString();
-                    dataManager.getDataPack(key, key);
-                } catch (DataException e) {
-                    throw new RuntimeException(e);
-                }
+                String key = UUID.randomUUID().toString();
+                dataManager.getDataPack(key, key);
             });
             threads[i].start();
         }

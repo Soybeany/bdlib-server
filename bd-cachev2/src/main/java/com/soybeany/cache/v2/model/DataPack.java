@@ -1,18 +1,15 @@
 package com.soybeany.cache.v2.model;
 
-
 /**
- * 数据包
- *
- * @author Soybeany
- * @date 2020/7/15
+ * 节点间用于通讯的对象
+ * <br>Created by Soybeany on 2020/11/24.
  */
 public class DataPack<Data> {
 
     /**
-     * 数据具体值
+     * 目标数据缓存
      */
-    public final Data data;
+    public final DataCore<Data> dataCore;
 
     /**
      * 数据的提供者，即数据最近一次的提供者
@@ -20,17 +17,25 @@ public class DataPack<Data> {
     public final Object provider;
 
     /**
-     * 该数据剩余的有效时间
+     * 该数据剩余的有效时间(时间段)
      */
-    public final long expiryMillis;
+    public final int expiryMillis;
 
-    public static <Data> DataPack<Data> newSourceDataPack(Object provider, Data data) {
-        return new DataPack<>(provider, data, Long.MAX_VALUE);
-    }
-
-    public DataPack(Object provider, Data data, long expiryMillis) {
+    public DataPack(DataCore<Data> dataCore, Object provider, int expiryMillis) {
+        this.dataCore = dataCore;
         this.provider = provider;
-        this.data = data;
-        this.expiryMillis = expiryMillis;
+        this.expiryMillis = Math.max(expiryMillis, 0);
     }
+
+    public Data getData() throws Exception {
+        if (!norm()) {
+            throw dataCore.exception;
+        }
+        return dataCore.data;
+    }
+
+    public boolean norm() {
+        return dataCore.norm;
+    }
+
 }

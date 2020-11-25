@@ -3,7 +3,6 @@ package com.soybeany.cache.v2.strategy;
 
 import com.soybeany.cache.v2.contract.ICacheStrategy;
 import com.soybeany.cache.v2.contract.IKeyConverter;
-import com.soybeany.cache.v2.exception.DataException;
 import com.soybeany.cache.v2.exception.NoCacheException;
 import com.soybeany.cache.v2.model.DataContext;
 import com.soybeany.cache.v2.model.DataPack;
@@ -14,8 +13,8 @@ import com.soybeany.cache.v2.model.DataPack;
  */
 public abstract class StdCacheStrategy<Param, Data> implements ICacheStrategy<Param, Data> {
 
-    protected long mExpiry = Long.MAX_VALUE; // 永不超时
-    protected long mFastFailExpiry = 60000; // 1分钟;
+    protected int mExpiry = Integer.MAX_VALUE; // 永不超时
+    protected int mFastFailExpiry = 60000; // 1分钟;
 
     private IKeyConverter<Param> mKeyConverter;
 
@@ -41,14 +40,8 @@ public abstract class StdCacheStrategy<Param, Data> implements ICacheStrategy<Pa
     }
 
     @Override
-    public DataPack<Data> onGetCacheBeforeAccessNextStrategy(DataContext<Param> context, String key) throws DataException, NoCacheException {
+    public DataPack<Data> onGetCacheBeforeAccessNextStrategy(DataContext<Param> context, String key) throws NoCacheException {
         throw new NoCacheException();
-    }
-
-    @Override
-    public DataPack<Data> onHandleException(DataContext<Param> context, String key, DataException e) throws DataException {
-        onCacheException(context, key, e);
-        throw e;
     }
 
     /**
@@ -57,8 +50,8 @@ public abstract class StdCacheStrategy<Param, Data> implements ICacheStrategy<Pa
      * @param millis 失效时间(毫秒)
      * @return 自身，方便链式调用
      */
-    public StdCacheStrategy<Param, Data> expiry(long millis) {
-        mExpiry = getCheckedTime(millis);
+    public StdCacheStrategy<Param, Data> expiry(int millis) {
+        mExpiry = Math.max(millis, 0);
         return this;
     }
 
@@ -68,22 +61,9 @@ public abstract class StdCacheStrategy<Param, Data> implements ICacheStrategy<Pa
      * @param millis 失效时间(毫秒)
      * @return 自身，方便链式调用
      */
-    public StdCacheStrategy<Param, Data> fastFailExpiry(long millis) {
-        mFastFailExpiry = getCheckedTime(millis);
+    public StdCacheStrategy<Param, Data> fastFailExpiry(int millis) {
+        mFastFailExpiry = Math.max(millis, 0);
         return this;
     }
-
-    // ********************内部方法********************
-
-    private long getCheckedTime(long millis) {
-        return millis > 0 ? millis : 0;
-    }
-
-    // ********************子类抽象方法********************
-
-    /**
-     * 缓存异常时的回调
-     */
-    protected abstract void onCacheException(DataContext<Param> context, String key, DataException e);
 
 }
