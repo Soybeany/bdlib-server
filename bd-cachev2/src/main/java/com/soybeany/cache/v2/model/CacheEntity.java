@@ -14,7 +14,7 @@ public class CacheEntity<Data> {
     /**
      * 该数据失效的时间戳(时间点)
      */
-    private final long expiredTimestamp;
+    public final long expiredTimestamp;
 
     public static <Data> CacheEntity<Data> fromDataPack(DataPack<Data> dataPack, long curTimestamp, int maxNormalExpiryMillis, int maxAbnormalExpiryMillis) {
         int maxExpiryMillis = dataPack.dataCore.norm ? maxNormalExpiryMillis : maxAbnormalExpiryMillis;
