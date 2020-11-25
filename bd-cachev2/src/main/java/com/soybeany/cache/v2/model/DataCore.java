@@ -33,10 +33,11 @@ public class DataCore<Data> {
     /**
      * @param dataType {@link #data}数据的类型
      */
+    @SuppressWarnings("unchecked")
     public static <Data> DataCore<Data> fromJson(String json, Type dataType) throws ClassNotFoundException {
         JsonInfo jsonInfo = GSON.fromJson(json, JsonInfo.class);
         if (jsonInfo.norm) {
-            return DataCore.get(GSON.fromJson(jsonInfo.dataJson, dataType));
+            return DataCore.get((Data) GSON.fromJson(jsonInfo.dataJson, dataType));
         } else {
             ExceptionInfo exceptionInfo = jsonInfo.exceptionJson;
             return DataCore.get((Exception) GSON.fromJson(exceptionInfo.json, Class.forName(exceptionInfo.clazz)));
