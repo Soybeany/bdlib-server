@@ -14,6 +14,10 @@ public class ConsoleLogger<Param, Data> implements ILogger<Param, Data> {
 
     @Override
     public void onGetData(DataContext<Param> context, DataPack<Data> pack) {
+        // 非正常获取，不输出日志
+        if (!pack.norm()) {
+            return;
+        }
         String from;
         if (pack.provider instanceof ICacheStrategy) {
             from = "缓存(" + ((ICacheStrategy<?, ?>) pack.provider).desc() + ")";
