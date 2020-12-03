@@ -82,15 +82,15 @@ class CacheNode<Param, Data> {
     }
 
     void cacheData(DataContext<Param> context, DataPack<Data> pack) {
-        traverse(context.param, (key, node) -> node.mCurStrategy.onCacheData(context, key, pack));
+        traverse(true, context.param, (key, node) -> node.mCurStrategy.onCacheData(context, key, pack));
     }
 
     void removeCache(DataContext<Param> context) {
-        traverse(context.param, (key, node) -> node.mCurStrategy.removeCache(context, key));
+        traverse(true, context.param, (key, node) -> node.mCurStrategy.removeCache(context, key));
     }
 
     void clearCache(String dataDesc) {
-        traverse(null, (key, node) -> node.mCurStrategy.clearCache(dataDesc));
+        traverse(false, null, (key, node) -> node.mCurStrategy.clearCache(dataDesc));
     }
 
     // ****************************************内部方法****************************************
@@ -99,10 +99,10 @@ class CacheNode<Param, Data> {
         return mCurStrategy.getConverter();
     }
 
-    private void traverse(Param param, ICallback2<Param, Data> callback) {
+    private void traverse(boolean neeKey, Param param, ICallback2<Param, Data> callback) {
         CacheNode<Param, Data> node = this;
         while (null != node) {
-            String key = node.getConverter().getKey(param);
+            String key = (neeKey ? node.getConverter().getKey(param) : null);
             callback.onInvoke(key, node);
             node = node.mNextNode;
         }
