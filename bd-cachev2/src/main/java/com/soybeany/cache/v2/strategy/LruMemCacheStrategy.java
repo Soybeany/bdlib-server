@@ -37,13 +37,12 @@ public class LruMemCacheStrategy<Param, Data> extends StdCacheStrategy<Param, Da
 
     @Override
     public DataPack<Data> onGetCache(DataContext<Param> context, String key) throws NoCacheException {
-        return innerGetCache(key);
+        return getCache(key);
     }
 
     @Override
     public void onCacheData(DataContext<Param> context, String key, DataPack<Data> data) {
-        CacheEntity<Data> cacheEntity = CacheEntity.fromDataPack(data, System.currentTimeMillis(), mExpiry, mFastFailExpiry);
-        mDataAccessor.putData(key, cacheEntity);
+        cacheData(key, data);
     }
 
     /**
@@ -52,6 +51,21 @@ public class LruMemCacheStrategy<Param, Data> extends StdCacheStrategy<Param, Da
     public LruMemCacheStrategy<Param, Data> capacity(int size) {
         mDataAccessor.capacity = size;
         return this;
+    }
+
+    /**
+     * 主动获取缓存
+     */
+    protected DataPack<Data> getCache(String key) throws NoCacheException {
+        return innerGetCache(key);
+    }
+
+    /**
+     * 主动缓存数据
+     */
+    protected void cacheData(String key, DataPack<Data> data) {
+        CacheEntity<Data> cacheEntity = CacheEntity.fromDataPack(data, System.currentTimeMillis(), mExpiry, mFastFailExpiry);
+        mDataAccessor.putData(key, cacheEntity);
     }
 
     // ********************内部方法********************
