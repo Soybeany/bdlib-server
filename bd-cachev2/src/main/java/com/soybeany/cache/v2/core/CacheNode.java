@@ -99,10 +99,10 @@ class CacheNode<Param, Data> {
         return mCurStrategy.getConverter();
     }
 
-    private void traverse(boolean neeKey, Param param, ICallback2<Param, Data> callback) {
+    private void traverse(boolean needKey, Param param, ICallback2<Param, Data> callback) {
         CacheNode<Param, Data> node = this;
         while (null != node) {
-            String key = (neeKey ? node.getConverter().getKey(param) : null);
+            String key = (needKey ? node.getConverter().getKey(param) : null);
             callback.onInvoke(key, node);
             node = node.mNextNode;
         }
