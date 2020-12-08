@@ -6,6 +6,9 @@ import com.soybeany.cache.v2.contract.ILogger;
 import com.soybeany.cache.v2.model.DataContext;
 import com.soybeany.cache.v2.model.DataPack;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * @author Soybeany
  * @date 2020/12/8
@@ -45,13 +48,23 @@ public class StdLogger<Param, Data> implements ILogger<Param, Data> {
     }
 
     @Override
-    public void onRemoveCache(DataContext<Param> context) {
-        mWriter.onWriteInfo("“" + context.dataDesc + "”移除了“" + context.paramDesc + "”的数据“");
+    public void onRemoveCache(DataContext<Param> context, int... strategyIndexes) {
+        mWriter.onWriteInfo("“" + context.dataDesc + "”移除了“" + context.paramDesc + "”" + getIndexMsg(strategyIndexes) + "的缓存“");
     }
 
     @Override
-    public void onClearCache(String dataDesc) {
-        mWriter.onWriteInfo("“" + dataDesc + "”清空了数据“");
+    public void onClearCache(String dataDesc, int... strategyIndexes) {
+        mWriter.onWriteInfo("“" + dataDesc + "”清空了" + getIndexMsg(strategyIndexes) + "的缓存“");
     }
 
+    private String getIndexMsg(int... strategyIndexes) {
+        if (null == strategyIndexes || 0 == strategyIndexes.length) {
+            return "全部策略";
+        }
+        List<Integer> list = new ArrayList<>();
+        for (int index : strategyIndexes) {
+            list.add(index);
+        }
+        return "策略下标为" + list.toString();
+    }
 }

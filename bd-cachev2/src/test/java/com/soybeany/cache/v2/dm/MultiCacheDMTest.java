@@ -50,4 +50,23 @@ public class MultiCacheDMTest {
         assert lruStrategy.equals(pack.provider);
     }
 
+    @Test
+    public void test2() {
+        String key = "key";
+        // 一开始没有数据，应该访问数据源
+        DataPack<String> pack = dataManager.getDataPack("1", key);
+        assert datasource.equals(pack.provider);
+        // 已经缓存了数据，应该访问lru
+        pack = dataManager.getDataPack("2", key);
+        assert lruStrategy.equals(pack.provider);
+        // 清除了lru缓存，访问db
+        dataManager.clearCache(0);
+        pack = dataManager.getDataPack("3", key);
+        assert dbStrategy.equals(pack.provider);
+        // 清除全部缓存，访问数据源
+        dataManager.clearCache();
+        pack = dataManager.getDataPack("4", key);
+        assert datasource.equals(pack.provider);
+    }
+
 }

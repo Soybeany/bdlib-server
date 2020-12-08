@@ -109,29 +109,29 @@ public class DataManager<Param, Data> {
      *
      * @param param 用于匹配数据
      */
-    public void removeCache(String paramDesc, Param param) {
+    public void removeCache(String paramDesc, Param param, int... strategyIndexes) {
         if (null == mFirstNode) {
             return;
         }
         DataContext<Param> context = getNewDataContext(paramDesc, param);
-        mFirstNode.removeCache(context);
+        mFirstNode.removeCache(context, strategyIndexes);
         // 记录日志
         if (null != mLogger) {
-            mLogger.onRemoveCache(context);
+            mLogger.onRemoveCache(context, strategyIndexes);
         }
     }
 
     /**
      * 清除全部缓存(全部策略)
      */
-    public void clearCache() {
+    public void clearCache(int... strategyIndexes) {
         if (null == mFirstNode) {
             return;
         }
-        mFirstNode.clearCache(mDataDesc);
+        mFirstNode.clearCache(mDataDesc, strategyIndexes);
         // 记录日志
         if (null != mLogger) {
-            mLogger.onClearCache(mDataDesc);
+            mLogger.onClearCache(mDataDesc, strategyIndexes);
         }
     }
 

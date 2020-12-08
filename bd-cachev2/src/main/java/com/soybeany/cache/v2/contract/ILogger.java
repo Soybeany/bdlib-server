@@ -24,11 +24,11 @@ public interface ILogger<Param, Data> {
     /**
      * 移除缓存时的回调
      */
-    void onRemoveCache(DataContext<Param> context);
+    void onRemoveCache(DataContext<Param> context, int... strategyIndexes);
 
     /**
      * 清除缓存时的回调
      */
-    void onClearCache(String dataDesc);
+    void onClearCache(String dataDesc, int... strategyIndexes);
 
 }

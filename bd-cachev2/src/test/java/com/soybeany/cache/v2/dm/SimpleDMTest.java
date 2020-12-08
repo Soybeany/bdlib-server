@@ -64,6 +64,7 @@ public class SimpleDMTest {
             }
         }
         // 单发限制
+        System.out.println("accessCount:" + accessCount);
         assert accessCount == 1;
         DataPack<String> pack1 = dataManager.getDataPack("单发LRU", null);
         assert lruStrategy == pack1.provider;
@@ -87,6 +88,25 @@ public class SimpleDMTest {
         } catch (Exception e) {
             assert e instanceof NoDataSourceException;
         }
+    }
+
+    @Test
+    public void removeKeyTest() {
+        String key1 = "key1";
+        String key2 = "key2";
+        // 第一次将访问1数据源
+        DataPack<String> data = dataManager.getDataPack(key1, key1);
+        assert datasource.equals(data.provider);
+        // 第一次将访问2数据源
+        DataPack<String> data2 = dataManager.getDataPack(key2, key2);
+        assert datasource.equals(data2.provider);
+        // 移除1的缓存，1将重新从数据源加载
+        dataManager.removeCache(key1, key1, 0);
+        data = dataManager.getDataPack(key1, key1);
+        assert datasource.equals(data.provider);
+        // 2不受影响
+        data2 = dataManager.getDataPack(key2, key2);
+        assert lruStrategy.equals(data2.provider);
     }
 
 }

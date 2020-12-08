@@ -9,7 +9,9 @@ import com.soybeany.cache.v2.model.DataContext;
 import com.soybeany.cache.v2.model.DataCore;
 import com.soybeany.cache.v2.model.DataPack;
 
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -86,25 +88,29 @@ class CacheNode<Param, Data> {
         traverse(true, context.param, (key, node) -> node.mCurStrategy.onCacheData(context, key, pack));
     }
 
-    void removeCache(DataContext<Param> context) {
-        traverse(true, context.param, (key, node) -> node.mCurStrategy.removeCache(context, key));
+    void removeCache(DataContext<Param> context, int... strategyIndexes) {
+        traverse(true, context.param, (key, node) -> node.mCurStrategy.removeCache(context, key), strategyIndexes);
     }
 
-    void clearCache(String dataDesc) {
-        traverse(false, null, (key, node) -> node.mCurStrategy.clearCache(dataDesc));
+    void clearCache(String dataDesc, int... strategyIndexes) {
+        traverse(false, null, (key, node) -> node.mCurStrategy.clearCache(dataDesc), strategyIndexes);
     }
 
     // ****************************************内部方法****************************************
 
-    IKeyConverter<Param> getConverter() {
+    private IKeyConverter<Param> getConverter() {
         return mCurStrategy.getConverter();
     }
 
-    private void traverse(boolean needKey, Param param, ICallback2<Param, Data> callback) {
+    private void traverse(boolean needKey, Param param, ICallback2<Param, Data> callback, int... strategyIndexes) {
+        ICallback3 callback3 = getCallback3(strategyIndexes);
         CacheNode<Param, Data> node = this;
+        int index = 0;
         while (null != node) {
-            String key = (needKey ? node.getConverter().getKey(param) : null);
-            callback.onInvoke(key, node);
+            if (callback3.shouldInvoke(index++)) {
+                String key = (needKey ? node.getConverter().getKey(param) : null);
+                callback.onInvoke(key, node);
+            }
             node = node.mNextNode;
         }
     }
@@ -163,6 +169,17 @@ class CacheNode<Param, Data> {
         }
     }
 
+    private ICallback3 getCallback3(int... strategyIndexes) {
+        if (null == strategyIndexes || 0 == strategyIndexes.length) {
+            return index -> true;
+        }
+        Set<Integer> indexSet = new HashSet<>();
+        for (int index : strategyIndexes) {
+            indexSet.add(index);
+        }
+        return indexSet::contains;
+    }
+
     private Lock getLock(String key) {
         Lock lock = mKeyMap.get(key);
         if (null != lock) {
@@ -185,6 +202,10 @@ class CacheNode<Param, Data> {
 
     private interface ICallback2<Param, Data> {
         void onInvoke(String key, CacheNode<Param, Data> node);
+    }
+
+    private interface ICallback3 {
+        boolean shouldInvoke(int index);
     }
 
     private static class PenetratorProtector<Data> {
