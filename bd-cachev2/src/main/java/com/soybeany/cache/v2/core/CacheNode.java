@@ -37,7 +37,8 @@ class CacheNode<Param, Data> {
         }
         // 正常执行
         try {
-            return new DataPack<>(DataCore.fromData(datasource.onGetData(param)), datasource, Integer.MAX_VALUE);
+            Data data = datasource.onGetData(param);
+            return new DataPack<>(DataCore.fromData(data), datasource, datasource.onSetupExpiry(data));
         } catch (Exception e) {
             return new DataPack<>(DataCore.fromException(e), datasource, Integer.MAX_VALUE);
         }

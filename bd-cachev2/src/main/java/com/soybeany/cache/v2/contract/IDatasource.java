@@ -14,4 +14,13 @@ public interface IDatasource<Param, Data> {
      * @return 数据
      */
     Data onGetData(Param param) throws Exception;
+
+    /**
+     * 为指定的数据设置超时
+     *
+     * @return 指定数据的超时，单位为millis
+     */
+    default int onSetupExpiry(Data data) throws Exception {
+        return Integer.MAX_VALUE;
+    }
 }
