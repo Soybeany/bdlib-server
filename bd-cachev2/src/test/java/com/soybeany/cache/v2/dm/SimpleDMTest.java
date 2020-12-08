@@ -21,7 +21,7 @@ public class SimpleDMTest {
         return UUID.randomUUID().toString();
     };
 
-    private final ICacheStrategy<String, String> lruStrategy = new LruMemCacheStrategy<String, String>().expiry(100);
+    private final ICacheStrategy<String, String> lruStrategy = new LruMemCacheStrategy<String, String>().expiry(200);
 
     private final DataManager<String, String> dataManager = DataManager.Builder
             .get("简单测试", datasource)
@@ -68,7 +68,7 @@ public class SimpleDMTest {
         assert accessCount == 1;
         DataPack<String> pack1 = dataManager.getDataPack("单发LRU", null);
         assert lruStrategy == pack1.provider;
-        Thread.sleep(100);
+        Thread.sleep(200);
         DataPack<String> pack2 = dataManager.getDataPack("单发源", null);
         assert datasource == pack2.provider;
     }
