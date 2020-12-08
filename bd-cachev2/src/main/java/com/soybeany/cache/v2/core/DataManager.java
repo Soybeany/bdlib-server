@@ -68,7 +68,7 @@ public class DataManager<Param, Data> {
     public DataPack<Data> getDataPack(String paramDesc, Param param, IDatasource<Param, Data> datasource) {
         // 没有缓存节点的情况
         if (null == mFirstNode) {
-            return innerGetDataPackDirectly(paramDesc, param, null);
+            return innerGetDataPackDirectly(paramDesc, param, datasource);
         }
         // 有缓存节点的情况
         DataContext<Param> context = getNewDataContext(paramDesc, param);
