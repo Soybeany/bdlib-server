@@ -91,6 +91,17 @@ public class SimpleDMTest {
     }
 
     @Test
+    public void noCacheStrategyTest() {
+        DataManager<String, String> manager = DataManager.Builder.get("无缓存测试", datasource)
+                .logger(new ConsoleLogger<>())
+                .build();
+        DataPack<String> pack = manager.getDataPack("key1", null);
+        assert datasource.equals(pack.provider);
+        pack = manager.getDataPack("key1", null);
+        assert datasource.equals(pack.provider);
+    }
+
+    @Test
     public void removeKeyTest() {
         String key1 = "key1";
         String key2 = "key2";
