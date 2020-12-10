@@ -23,4 +23,13 @@ public interface IDatasource<Param, Data> {
     default int onSetupExpiry(Data data) throws Exception {
         return Integer.MAX_VALUE;
     }
+
+    /**
+     * 为指定的异常设置超时
+     *
+     * @return 指定异常的超时，单位为millis
+     */
+    default int onSetupExpiry(Exception e) {
+        return Integer.MAX_VALUE;
+    }
 }

@@ -42,7 +42,7 @@ class CacheNode<Param, Data> {
             Data data = datasource.onGetData(param);
             return new DataPack<>(DataCore.fromData(data), datasource, datasource.onSetupExpiry(data));
         } catch (Exception e) {
-            return new DataPack<>(DataCore.fromException(e), datasource, Integer.MAX_VALUE);
+            return new DataPack<>(DataCore.fromException(e), datasource, datasource.onSetupExpiry(e));
         }
     }
 
