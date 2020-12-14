@@ -9,23 +9,17 @@ import java.io.*;
 public class SerializeUtils {
 
     public static byte[] serialize(Object obj) throws IOException {
-        ObjectOutputStream objOStream = null;
-        try {
-            ByteArrayOutputStream stream = new ByteArrayOutputStream();
-            objOStream = new ObjectOutputStream(stream);
-            objOStream.writeObject(obj);
+        try (ByteArrayOutputStream stream = new ByteArrayOutputStream();
+             ObjectOutputStream os = new ObjectOutputStream(stream)) {
+            os.writeObject(obj);
             return stream.toByteArray();
-        } finally {
-            if (objOStream != null) {
-                objOStream.close();
-            }
         }
     }
 
     @SuppressWarnings("unchecked")
     public static <T> T deserialize(byte[] arr) throws IOException, ClassNotFoundException {
-        try (ObjectInputStream objIStream = new ObjectInputStream(new ByteArrayInputStream(arr))) {
-            return (T) objIStream.readObject();
+        try (ObjectInputStream is = new ObjectInputStream(new ByteArrayInputStream(arr))) {
+            return (T) is.readObject();
         }
     }
 

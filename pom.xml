@@ -19,6 +19,8 @@
         <module>bd-cachev2</module>
         <module>bd-bypass</module>
         <module>bd-util</module>
+        <module>bd-download</module>
+        <module>bd-config</module>
     </modules>
 
     <dependencies>
