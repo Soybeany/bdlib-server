@@ -30,7 +30,7 @@ public class FileDownloadUtils {
     /**
      * 下载流(不支持断点续传)
      */
-    public static <T extends InfoProvider> void downloadStream(T info, InputStream is, HttpServletResponse response) throws IOException {
+    public static void downloadStream(InfoProvider info, InputStream is, HttpServletResponse response) throws IOException {
         applyInfo(info, info.getContentLength(), response);
         BdFileUtils.readWriteStream(is, response.getOutputStream());
     }
