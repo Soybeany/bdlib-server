@@ -1,8 +1,11 @@
 package com.soybeany.download;
 
+import com.soybeany.util.file.BdFileUtils;
+
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URLEncoder;
 
@@ -19,9 +22,17 @@ public class FileDownloadUtils {
         // 获取待读取的范围
         Range range = getRange(request, info.getContentLength() - 1, info.getEtag());
         // 设置断点续传的响应头
-        setupResponseHeader(range, info, response);
+        setupRandomAccessResponseHeader(range, info, response);
         // 将内容写入到响应
         callback.onWriteResponse(info, response.getOutputStream(), range.start, range.end);
+    }
+
+    /**
+     * 下载流(不支持断点续传)
+     */
+    public static <T extends InfoProvider> void downloadStream(T info, InputStream is, HttpServletResponse response) throws IOException {
+        applyInfo(info, info.getContentLength(), response);
+        BdFileUtils.readWriteStream(is, response.getOutputStream());
     }
 
     /**
@@ -31,12 +42,17 @@ public class FileDownloadUtils {
         return "attachment; filename=\"" + URLEncoder.encode(fileName, "UTF-8") + "\"";
     }
 
-    private static <T extends InfoProvider> void setupResponseHeader(Range range, T info, HttpServletResponse response) throws IOException {
-        // 公共设置
-        response.setContentLength((int) (range.end - range.start + 1));
+    private static void applyInfo(InfoProvider info, long contentLength, HttpServletResponse response) throws IOException {
         response.setContentType(info.getContentType());
-        response.setHeader("Accept-Ranges", "bytes");
+        response.setContentLengthLong(contentLength);
         response.setHeader("Content-Disposition", info.getContentDisposition());
+        response.setHeader("ETag", info.getEtag());
+    }
+
+    private static void setupRandomAccessResponseHeader(Range range, InfoProvider info, HttpServletResponse response) throws IOException {
+        // 公共设置
+        applyInfo(info, range.end - range.start + 1, response);
+        response.setHeader("Accept-Ranges", "bytes");
         // 完整下载与部分下载差异化设置
         long contentLength = info.getContentLength();
         boolean completeDownload = (range.start == 0) && (range.end + 1 == contentLength);
@@ -47,7 +63,6 @@ public class FileDownloadUtils {
             response.setHeader("Content-Range", contentRange);
             response.setStatus(HttpServletResponse.SC_PARTIAL_CONTENT);
         }
-        response.setHeader("ETag", info.getEtag());
     }
 
     private static Range getRange(HttpServletRequest request, long maxSize, String eTag) throws IOException {
