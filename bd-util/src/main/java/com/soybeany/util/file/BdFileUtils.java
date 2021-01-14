@@ -184,18 +184,18 @@ public class BdFileUtils {
         }
     }
 
-    public static abstract class RandomReadLineCallback {
+    public interface RandomReadLineCallback {
         /**
          * 获得字符集
          */
-        public String getCharSet() {
+        default String getCharSet() {
             return "utf-8";
         }
 
         /**
          * 初始化时的回调
          */
-        public void onInit() {
+        default void onInit() {
             // 子类按需实现
         }
 
@@ -204,7 +204,7 @@ public class BdFileUtils {
          *
          * @param status 状态值，由{@link #onHandleLine(long, long, String)}返回，0表示读取到文件末尾
          */
-        public void onFinish(int status, long pointer) throws Exception {
+        default void onFinish(int status, long pointer) throws Exception {
             // 子类按需实现
         }
 
@@ -214,7 +214,7 @@ public class BdFileUtils {
          * @param line         此行内容
          * @return 状态码 0:正常读取下一行；其它值表示各种中断状态
          */
-        public abstract int onHandleLine(long startPointer, long endPointer, String line) throws Exception;
+        int onHandleLine(long startPointer, long endPointer, String line) throws Exception;
     }
 
 }
