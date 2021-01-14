@@ -71,14 +71,14 @@ public class BdFileUtils {
             raf.seek(start);
             int bufferSize = DEFAULT_BLOCK_SIZE;
             byte[] tempArr = new byte[bufferSize];
-            int curRead;
-            long totalRead = 0, delta = end - start + 1;
+            int curRead = 0;
+            long totalRead = 0, delta = end - start;
             while (totalRead <= delta - bufferSize) {
                 curRead = raf.read(tempArr, 0, bufferSize);
                 totalRead += curRead;
                 out.write(tempArr, 0, curRead);
             }
-            if (totalRead <= delta) {
+            while (totalRead < delta && -1 != curRead) {
                 curRead = raf.read(tempArr, 0, (int) (delta - totalRead));
                 totalRead += curRead;
                 out.write(tempArr, 0, curRead);
@@ -90,20 +90,20 @@ public class BdFileUtils {
     /**
      * 随机读取
      */
-    public static void randomReadLine(File inFile, long startPointer, int startRow, RandomReadLineCallback callback) throws Exception {
+    public static void randomReadLine(File inFile, long startPointer, RandomReadLineCallback callback) throws Exception {
         try (RandomAccessFile raf = new BufferedRandomAccessFile(inFile, "r");) {
             raf.seek(startPointer);
             callback.onInit();
             String line;
-            int status = 0, rowNum = (startRow > 0 ? startRow : 1);
+            int status = 0;
             String charSet = callback.getCharSet();
             while (null != (line = raf.readLine())) {
                 if (0 != (status = callback.onHandleLine(startPointer, startPointer = raf.getFilePointer(),
-                        rowNum++, new String(line.getBytes(StandardCharsets.ISO_8859_1), charSet)))) {
+                        new String(line.getBytes(StandardCharsets.ISO_8859_1), charSet)))) {
                     break;
                 }
             }
-            callback.onFinish(status, startPointer, rowNum);
+            callback.onFinish(status, startPointer);
         }
     }
 
@@ -202,20 +202,19 @@ public class BdFileUtils {
         /**
          * 完成时的回调
          *
-         * @param status 状态值，由{@link #onHandleLine(long, long, int, String)}返回，0表示读取到文件末尾
+         * @param status 状态值，由{@link #onHandleLine(long, long, String)}返回，0表示读取到文件末尾
          */
-        public void onFinish(int status, long pointer, int rowNum) throws Exception {
+        public void onFinish(int status, long pointer) throws Exception {
             // 子类按需实现
         }
 
         /**
          * @param startPointer 开始位点
          * @param endPointer   结束位点
-         * @param rowNum       此行的行号
          * @param line         此行内容
          * @return 状态码 0:正常读取下一行；其它值表示各种中断状态
          */
-        public abstract int onHandleLine(long startPointer, long endPointer, int rowNum, String line) throws Exception;
+        public abstract int onHandleLine(long startPointer, long endPointer, String line) throws Exception;
     }
 
 }
