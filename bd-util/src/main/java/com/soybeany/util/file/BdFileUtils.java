@@ -90,20 +90,20 @@ public class BdFileUtils {
     /**
      * 随机读取
      */
-    public static void randomReadLine(File inFile, long startPointer, RandomReadLineCallback callback) throws Exception {
+    public static void randomReadLine(File inFile, long startPointer, RandomReadLineCallback callback) throws IOException {
         try (RandomAccessFile raf = new BufferedRandomAccessFile(inFile, "r");) {
             raf.seek(startPointer);
             callback.onInit();
             String line;
             int status = 0;
-            String charSet = callback.getCharSet();
+            String charSet = callback.onSetupCharset();
             while (null != (line = raf.readLine())) {
                 if (0 != (status = callback.onHandleLine(startPointer, startPointer = raf.getFilePointer(),
                         new String(line.getBytes(StandardCharsets.ISO_8859_1), charSet)))) {
                     break;
                 }
             }
-            callback.onFinish(status, startPointer);
+            callback.onFinish(status);
         }
     }
 
@@ -186,9 +186,9 @@ public class BdFileUtils {
 
     public interface RandomReadLineCallback {
         /**
-         * 获得字符集
+         * 设置字符集
          */
-        default String getCharSet() {
+        default String onSetupCharset() {
             return "utf-8";
         }
 
@@ -204,7 +204,7 @@ public class BdFileUtils {
          *
          * @param status 状态值，由{@link #onHandleLine(long, long, String)}返回，0表示读取到文件末尾
          */
-        default void onFinish(int status, long pointer) throws Exception {
+        default void onFinish(int status) throws IOException {
             // 子类按需实现
         }
 
@@ -214,7 +214,7 @@ public class BdFileUtils {
          * @param line         此行内容
          * @return 状态码 0:正常读取下一行；其它值表示各种中断状态
          */
-        int onHandleLine(long startPointer, long endPointer, String line) throws Exception;
+        int onHandleLine(long startPointer, long endPointer, String line) throws IOException;
     }
 
 }
