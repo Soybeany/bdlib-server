@@ -20,7 +20,7 @@ public class FileDownloadUtils {
      */
     public static <T extends InfoProvider> void randomAccessDownloadFile(T info, HttpServletRequest request, HttpServletResponse response, ICallback<T> callback) throws IOException {
         // 获取待读取的范围
-        Range range = getRange(request, info.getContentLength() - 1, info.getEtag());
+        Range range = getRange(request, info.getContentLength(), info.getEtag());
         // 设置断点续传的响应头
         setupRandomAccessResponseHeader(range, info, response);
         // 将内容写入到响应
@@ -51,11 +51,11 @@ public class FileDownloadUtils {
 
     private static void setupRandomAccessResponseHeader(Range range, InfoProvider info, HttpServletResponse response) throws IOException {
         // 公共设置
-        applyInfo(info, range.end - range.start + 1, response);
+        applyInfo(info, range.end - range.start, response);
         response.setHeader("Accept-Ranges", "bytes");
         // 完整下载与部分下载差异化设置
         long contentLength = info.getContentLength();
-        boolean completeDownload = (range.start == 0) && (range.end + 1 == contentLength);
+        boolean completeDownload = (range.start == 0) && (range.end == contentLength);
         if (completeDownload) {
             response.setStatus(HttpServletResponse.SC_OK);
         } else {
