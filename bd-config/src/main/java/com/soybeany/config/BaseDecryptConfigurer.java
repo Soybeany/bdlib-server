@@ -1,5 +1,6 @@
 package com.soybeany.config;
 
+import org.springframework.boot.env.OriginTrackedMapPropertySource;
 import org.springframework.boot.origin.Origin;
 import org.springframework.boot.origin.OriginTrackedValue;
 import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
@@ -16,7 +17,7 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * 适配了spring-boot 2.2.7.RELEASE
+ * 适配至spring-boot 2.4.2
  *
  * @author Soybeany
  * @date 2020/6/3
@@ -31,7 +32,7 @@ public abstract class BaseDecryptConfigurer extends PropertySourcesPlaceholderCo
                 .map(PropertySource::getSource)
                 .map(environment -> ((ConfigurableEnvironment) environment).getPropertySources())
                 // 筛选出应用配置
-                .map(mps -> mps.stream().filter(ps -> ps.getName().startsWith("applicationConfig")))
+                .map(mps -> mps.stream().filter(ps -> ps instanceof OriginTrackedMapPropertySource))
                 // 对应用配置进行解密
                 .ifPresent(stream -> stream.forEach(this::decrypt));
         return sources;
