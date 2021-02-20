@@ -6,8 +6,8 @@ import com.soybeany.cache.v2.model.CacheEntity;
 import com.soybeany.cache.v2.model.DataContext;
 import com.soybeany.cache.v2.model.DataPack;
 
-import java.util.HashMap;
-import java.util.LinkedList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -18,7 +18,8 @@ import java.util.Map;
  */
 public class LruMemCacheStrategy<Param, Data> extends StdCacheStrategy<Param, Data> {
 
-    private final LruDataAccessor<CacheEntity<Data>> mDataAccessor = new LruDataAccessor<>();
+    private final LruMap<String, CacheEntity<Data>> mLruMap = new LruMap<>();
+    private final Map<String, CacheEntity<Data>> mCacheHolder = Collections.synchronizedMap(mLruMap);
 
     @Override
     public String desc() {
@@ -27,12 +28,12 @@ public class LruMemCacheStrategy<Param, Data> extends StdCacheStrategy<Param, Da
 
     @Override
     public void removeCache(DataContext<Param> context, String key) {
-        mDataAccessor.removeData(key);
+        removeCache(key);
     }
 
     @Override
     public void clearCache(String dataDesc) {
-        mDataAccessor.clear();
+        mCacheHolder.clear();
     }
 
     @Override
@@ -49,7 +50,7 @@ public class LruMemCacheStrategy<Param, Data> extends StdCacheStrategy<Param, Da
      * 设置用于存放数据的队列容量
      */
     public LruMemCacheStrategy<Param, Data> capacity(int size) {
-        mDataAccessor.capacity = size;
+        mLruMap.capacity = size;
         return this;
     }
 
@@ -65,13 +66,27 @@ public class LruMemCacheStrategy<Param, Data> extends StdCacheStrategy<Param, Da
      */
     protected void cacheData(String key, DataPack<Data> data) {
         CacheEntity<Data> cacheEntity = CacheEntity.fromDataPack(data, System.currentTimeMillis(), mExpiry, mFastFailExpiry);
-        mDataAccessor.putData(key, cacheEntity);
+        onCacheData(key, cacheEntity);
+    }
+
+    /**
+     * 主动移除缓存
+     */
+    protected void removeCache(String key) {
+        mCacheHolder.remove(key);
+    }
+
+    /**
+     * 缓存数据时的回调
+     */
+    protected void onCacheData(String key, CacheEntity<Data> cacheEntity) {
+        mCacheHolder.put(key, cacheEntity);
     }
 
     // ********************内部方法********************
 
     private DataPack<Data> innerGetCache(String key) throws NoCacheException {
-        CacheEntity<Data> cacheEntity = mDataAccessor.get(key);
+        CacheEntity<Data> cacheEntity = mCacheHolder.get(key);
         // 若缓存中没有数据，则直接抛出无数据异常
         if (null == cacheEntity) {
             throw new NoCacheException();
@@ -79,49 +94,25 @@ public class LruMemCacheStrategy<Param, Data> extends StdCacheStrategy<Param, Da
         long currentTimeMillis = System.currentTimeMillis();
         // 若缓存中的数据过期，则移除数据后抛出无数据异常
         if (cacheEntity.isExpired(currentTimeMillis)) {
-            mDataAccessor.removeData(key);
+            mCacheHolder.remove(key);
             throw new NoCacheException();
         }
-        // 数据依旧有效，则移到队列末尾
-        mDataAccessor.moveDataToLast(key);
         // 返回数据
         return CacheEntity.toDataPack(cacheEntity, this, currentTimeMillis);
     }
 
     // ********************内部类********************
 
-    private static class LruDataAccessor<Data> {
-        private final Map<String, Data> mCacheMap = new HashMap<>();
-        private final LinkedList<String> mOrderList = new LinkedList<>(); // 用于记录访问顺序
-
+    private static class LruMap<K, V> extends LinkedHashMap<K, V> {
         int capacity = 100;
 
-        Data get(String key) {
-            return mCacheMap.get(key);
+        public LruMap() {
+            super(0, 0.75f, true);
         }
 
-        synchronized void moveDataToLast(String key) {
-            mOrderList.remove(key);
-            mOrderList.offer(key);
-        }
-
-        synchronized void removeData(String key) {
-            mOrderList.remove(key);
-            mCacheMap.remove(key);
-        }
-
-        synchronized void putData(String key, Data data) {
-            // 若存储的数据已达到设置的上限，先移除末位数据
-            if (mOrderList.size() >= capacity && !mOrderList.isEmpty()) {
-                removeData(mOrderList.getFirst());
-            }
-            mOrderList.offer(key);
-            mCacheMap.put(key, data);
-        }
-
-        synchronized void clear() {
-            mOrderList.clear();
-            mCacheMap.clear();
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<K, V> eldest) {
+            return size() > capacity;
         }
     }
 }
