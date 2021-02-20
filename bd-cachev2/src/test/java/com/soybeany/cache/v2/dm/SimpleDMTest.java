@@ -3,6 +3,7 @@ package com.soybeany.cache.v2.dm;
 import com.soybeany.cache.v2.contract.ICacheStrategy;
 import com.soybeany.cache.v2.contract.IDatasource;
 import com.soybeany.cache.v2.core.DataManager;
+import com.soybeany.cache.v2.exception.NoCacheException;
 import com.soybeany.cache.v2.exception.NoDataSourceException;
 import com.soybeany.cache.v2.log.ConsoleLogger;
 import com.soybeany.cache.v2.model.DataPack;
@@ -21,7 +22,9 @@ public class SimpleDMTest {
         return UUID.randomUUID().toString();
     };
 
-    private final ICacheStrategy<String, String> lruStrategy = new LruMemCacheStrategy<String, String>().expiry(200);
+    private final ICacheStrategy<String, String> lruStrategy = new LruMemCacheStrategy<String, String>()
+            .capacity(3)
+            .expiry(200);
 
     private final DataManager<String, String> dataManager = DataManager.Builder
             .get("简单测试", datasource)
@@ -38,6 +41,37 @@ public class SimpleDMTest {
         // 第二次将读取lru
         data = dataManager.getDataPack("序列2", key);
         assert lruStrategy.equals(data.provider);
+    }
+
+    @Test
+    public void lruTest() throws Exception {
+        String key1 = "key1";
+        String key2 = "key2";
+        String key3 = "key3";
+        // 第一次均访问数据源
+        DataPack<String> data = dataManager.getDataPack("序列1", key1);
+        assert datasource.equals(data.provider);
+        data = dataManager.getDataPack("序列2", key2);
+        assert datasource.equals(data.provider);
+        data = dataManager.getDataPack("序列3", key3);
+        assert datasource.equals(data.provider);
+        // 第二次均读取lru
+        data = dataManager.getDataPack("序列2", key2);
+        assert lruStrategy.equals(data.provider);
+        data = dataManager.getDataPack("序列3", key3);
+        assert lruStrategy.equals(data.provider);
+        data = dataManager.getDataPack("序列1", key1);
+        assert lruStrategy.equals(data.provider);
+        // 新增key则移除最旧的key
+        String key4 = "key4";
+        dataManager.getDataPack("序列4", key4);
+        lruStrategy.onGetCache(null, key3);
+        try {
+            lruStrategy.onGetCache(null, key2);
+            throw new Exception("不允许还持有缓存");
+        } catch (NoCacheException e) {
+            System.out.println("“" + key2 + "”的缓存已移除");
+        }
     }
 
     @Test

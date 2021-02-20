@@ -55,6 +55,13 @@ public class LruMemCacheStrategy<Param, Data> extends StdCacheStrategy<Param, Da
     }
 
     /**
+     * 当前缓存的数据条数
+     */
+    public int size() {
+        return mCacheHolder.size();
+    }
+
+    /**
      * 主动获取缓存
      */
     protected DataPack<Data> getCache(String key) throws NoCacheException {
