@@ -4,6 +4,7 @@ import com.soybeany.util.file.BdFileUtils;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -23,9 +24,10 @@ public class MemDataHolder<T> implements IDataHolder<T> {
     }
 
     @Override
-    public synchronized void put(String key, T data, int expiryInSec) {
+    public synchronized T put(String key, T data, int expiryInSec) {
         String uid = scheduleTask(key, expiryInSec);
-        dataMap.put(key, new Task<>(uid, data, expiryInSec));
+        Task<T> previous = dataMap.put(key, new Task<>(uid, data, expiryInSec));
+        return getDataFromTask(previous);
     }
 
     @Override
@@ -39,8 +41,9 @@ public class MemDataHolder<T> implements IDataHolder<T> {
     }
 
     @Override
-    public synchronized void remove(String key) {
-        dataMap.remove(key);
+    public synchronized T remove(String key) {
+        Task<T> previous = dataMap.remove(key);
+        return getDataFromTask(previous);
     }
 
     @Override
@@ -49,6 +52,10 @@ public class MemDataHolder<T> implements IDataHolder<T> {
     }
 
     // ********************内部方法********************
+
+    private T getDataFromTask(Task<T> task) {
+        return Optional.ofNullable(task).map(t -> t.data).orElse(null);
+    }
 
     @SuppressWarnings("AlibabaThreadPoolCreation")
     private String scheduleTask(String key, int expiryInSec) {

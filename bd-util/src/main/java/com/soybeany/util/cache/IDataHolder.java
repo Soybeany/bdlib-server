@@ -5,11 +5,11 @@ package com.soybeany.util.cache;
  */
 public interface IDataHolder<T> {
 
-    void put(String key, T data, int expiryInSec);
+    T put(String key, T data, int expiryInSec);
 
     T updateAndGet(String key);
 
-    void remove(String key);
+    T remove(String key);
 
     void clear();
 
