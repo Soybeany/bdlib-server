@@ -13,13 +13,13 @@ import java.util.concurrent.TimeUnit;
  * @author Soybeany
  * @date 2021/2/10
  */
-public class MemDataHolder<T> implements IDataHolder<T> {
+public class AutoUpdateMemDataHolder<T> implements IDataHolder<T> {
 
     private ScheduledExecutorService service;
 
     private final Map<String, Task<T>> dataMap;
 
-    public MemDataHolder(int maxCount) {
+    public AutoUpdateMemDataHolder(int maxCount) {
         dataMap = new LruMap<>(maxCount);
     }
 
@@ -31,7 +31,7 @@ public class MemDataHolder<T> implements IDataHolder<T> {
     }
 
     @Override
-    public synchronized T updateAndGet(String key) {
+    public synchronized T get(String key) {
         Task<T> task = dataMap.get(key);
         if (null == task) {
             return null;

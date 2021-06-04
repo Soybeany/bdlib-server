@@ -7,7 +7,7 @@ public interface IDataHolder<T> {
 
     T put(String key, T data, int expiryInSec);
 
-    T updateAndGet(String key);
+    T get(String key);
 
     T remove(String key);
 
