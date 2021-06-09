@@ -1,4 +1,4 @@
-package com.soybeany.cache.v2.strategy;
+package com.soybeany.cache.v2.storage;
 
 
 import com.soybeany.cache.v2.exception.NoCacheException;
@@ -11,12 +11,12 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * 使用LRU策略的本地内存缓存
+ * 使用LRU存储器的本地内存缓存
  *
  * @author Soybeany
  * @date 2020/1/19
  */
-public class LruMemCacheStrategy<Param, Data> extends StdCacheStrategy<Param, Data> {
+public class LruMemCacheStorage<Param, Data> extends StdCacheStorage<Param, Data> {
 
     private final LruMap<String, CacheEntity<Data>> mLruMap = new LruMap<>();
     private final Map<String, CacheEntity<Data>> mCacheHolder = Collections.synchronizedMap(mLruMap);
@@ -49,7 +49,7 @@ public class LruMemCacheStrategy<Param, Data> extends StdCacheStrategy<Param, Da
     /**
      * 设置用于存放数据的队列容量
      */
-    public LruMemCacheStrategy<Param, Data> capacity(int size) {
+    public LruMemCacheStorage<Param, Data> capacity(int size) {
         mLruMap.capacity = size;
         return this;
     }

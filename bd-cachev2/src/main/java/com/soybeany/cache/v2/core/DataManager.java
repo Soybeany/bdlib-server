@@ -1,7 +1,7 @@
 package com.soybeany.cache.v2.core;
 
 
-import com.soybeany.cache.v2.contract.ICacheStrategy;
+import com.soybeany.cache.v2.contract.ICacheStorage;
 import com.soybeany.cache.v2.contract.IDatasource;
 import com.soybeany.cache.v2.contract.IKeyConverter;
 import com.soybeany.cache.v2.contract.ILogger;
@@ -105,33 +105,33 @@ public class DataManager<Param, Data> {
     }
 
     /**
-     * 移除指定key的缓存(全部策略)
+     * 移除指定key的缓存(全部存储器)
      *
      * @param param 用于匹配数据
      */
-    public void removeCache(String paramDesc, Param param, int... strategyIndexes) {
+    public void removeCache(String paramDesc, Param param, int... storageIndexes) {
         if (null == mFirstNode) {
             return;
         }
         DataContext<Param> context = getNewDataContext(paramDesc, param);
-        mFirstNode.removeCache(context, strategyIndexes);
+        mFirstNode.removeCache(context, storageIndexes);
         // 记录日志
         if (null != mLogger) {
-            mLogger.onRemoveCache(context, strategyIndexes);
+            mLogger.onRemoveCache(context, storageIndexes);
         }
     }
 
     /**
-     * 清除全部缓存(全部策略)
+     * 清除全部缓存(全部存储器)
      */
-    public void clearCache(int... strategyIndexes) {
+    public void clearCache(int... storageIndexes) {
         if (null == mFirstNode) {
             return;
         }
-        mFirstNode.clearCache(mDataDesc, strategyIndexes);
+        mFirstNode.clearCache(mDataDesc, storageIndexes);
         // 记录日志
         if (null != mLogger) {
-            mLogger.onClearCache(mDataDesc, strategyIndexes);
+            mLogger.onClearCache(mDataDesc, storageIndexes);
         }
     }
 
@@ -187,21 +187,21 @@ public class DataManager<Param, Data> {
         // ********************设置********************
 
         /**
-         * 使用缓存策略，可以多次调用，形成多级缓存
+         * 使用缓存存储器，可以多次调用，形成多级缓存
          * <br>第一次调用为一级缓存，第二次为二级缓存...以此类推
          * <br>数据查找时一级缓存最先被触发
          */
-        public Builder<Param, Data> withCache(ICacheStrategy<Param, Data> strategy) {
-            if (null == strategy) {
-                throw new RuntimeException("strategy不能为null");
+        public Builder<Param, Data> withCache(ICacheStorage<Param, Data> storage) {
+            if (null == storage) {
+                throw new RuntimeException("storage不能为null");
             }
-            // 按需为策略设置转换器
-            IKeyConverter<Param> converter = strategy.getConverter();
+            // 按需为存储器设置转换器
+            IKeyConverter<Param> converter = storage.getConverter();
             if (null == converter) {
-                strategy = strategy.converter(mDefaultConverter);
+                storage = storage.converter(mDefaultConverter);
             }
-            // 添加到策略列表
-            mNodes.addFirst(new CacheNode<>(strategy));
+            // 添加到存储器列表
+            mNodes.addFirst(new CacheNode<>(storage));
             return this;
         }
 
@@ -242,7 +242,7 @@ public class DataManager<Param, Data> {
         private static class ServiceComparator implements Comparator<CacheNode<?, ?>> {
             @Override
             public int compare(CacheNode o1, CacheNode o2) {
-                return o1.getStrategy().order() - o2.getStrategy().order();
+                return o1.getStorage().order() - o2.getStorage().order();
             }
         }
     }

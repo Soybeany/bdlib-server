@@ -1,6 +1,6 @@
 package com.soybeany.cache.v2.core;
 
-import com.soybeany.cache.v2.contract.ICacheStrategy;
+import com.soybeany.cache.v2.contract.ICacheStorage;
 import com.soybeany.cache.v2.contract.IDatasource;
 import com.soybeany.cache.v2.contract.IKeyConverter;
 import com.soybeany.cache.v2.exception.NoCacheException;
@@ -26,7 +26,7 @@ class CacheNode<Param, Data> {
 
     private final Map<String, Lock> mKeyMap = new WeakHashMap<>();
 
-    private final ICacheStrategy<Param, Data> mCurStrategy;
+    private final ICacheStorage<Param, Data> mCurStorage;
 
     private CacheNode<Param, Data> mNextNode;
 
@@ -46,15 +46,15 @@ class CacheNode<Param, Data> {
         }
     }
 
-    public CacheNode(ICacheStrategy<Param, Data> curStrategy) {
-        if (null == curStrategy) {
+    public CacheNode(ICacheStorage<Param, Data> curStorage) {
+        if (null == curStorage) {
             throw new RuntimeException("CacheService不能为null");
         }
-        mCurStrategy = curStrategy;
+        mCurStorage = curStorage;
     }
 
-    ICacheStrategy<Param, Data> getStrategy() {
-        return mCurStrategy;
+    ICacheStorage<Param, Data> getStorage() {
+        return mCurStorage;
     }
 
     /**
@@ -73,9 +73,9 @@ class CacheNode<Param, Data> {
         String key = getConverter().getKey(context.param);
         return getDataFromCurNode(context, key, () -> getDataFromPenetratorProtector(key, () -> {
             // 如果支持再次查询，则再次查询
-            if (mCurStrategy.supportGetCacheBeforeAccessNextStrategy()) {
+            if (mCurStorage.supportGetCacheBeforeAccessNextStorage()) {
                 try {
-                    return mCurStrategy.onGetCacheBeforeAccessNextStrategy(context, key);
+                    return mCurStorage.onGetCacheBeforeAccessNextStorage(context, key);
                 } catch (NoCacheException ignore) {
                 }
             }
@@ -85,25 +85,25 @@ class CacheNode<Param, Data> {
     }
 
     void cacheData(DataContext<Param> context, DataPack<Data> pack) {
-        traverse(true, context.param, (key, node) -> node.mCurStrategy.onCacheData(context, key, pack));
+        traverse(true, context.param, (key, node) -> node.mCurStorage.onCacheData(context, key, pack));
     }
 
-    void removeCache(DataContext<Param> context, int... strategyIndexes) {
-        traverse(true, context.param, (key, node) -> node.mCurStrategy.removeCache(context, key), strategyIndexes);
+    void removeCache(DataContext<Param> context, int... storageIndexes) {
+        traverse(true, context.param, (key, node) -> node.mCurStorage.removeCache(context, key), storageIndexes);
     }
 
-    void clearCache(String dataDesc, int... strategyIndexes) {
-        traverse(false, null, (key, node) -> node.mCurStrategy.clearCache(dataDesc), strategyIndexes);
+    void clearCache(String dataDesc, int... storageIndexes) {
+        traverse(false, null, (key, node) -> node.mCurStorage.clearCache(dataDesc), storageIndexes);
     }
 
     // ****************************************内部方法****************************************
 
     private IKeyConverter<Param> getConverter() {
-        return mCurStrategy.getConverter();
+        return mCurStorage.getConverter();
     }
 
-    private void traverse(boolean needKey, Param param, ICallback2<Param, Data> callback, int... strategyIndexes) {
-        ICallback3 callback3 = getCallback3(strategyIndexes);
+    private void traverse(boolean needKey, Param param, ICallback2<Param, Data> callback, int... storageIndexes) {
+        ICallback3 callback3 = getCallback3(storageIndexes);
         CacheNode<Param, Data> node = this;
         int index = 0;
         while (null != node) {
@@ -128,7 +128,7 @@ class CacheNode<Param, Data> {
                     return tmpPack;
                 }
                 DataPack<Data> dataPack = callback.onNoCache();
-                tmpPack = new DataPack<>(dataPack.dataCore, mCurStrategy, dataPack.expiryMillis);
+                tmpPack = new DataPack<>(dataPack.dataCore, mCurStorage, dataPack.expiryMillis);
                 mPenetratorProtector.put(lock, tmpPack);
                 // 返回结果
                 return dataPack;
@@ -148,13 +148,13 @@ class CacheNode<Param, Data> {
         DataPack<Data> pack;
         // 若没有下一节点，则从数据源获取
         if (null == mNextNode) {
-            pack = getDataDirectly(mCurStrategy, context.param, datasource);
+            pack = getDataDirectly(mCurStorage, context.param, datasource);
         }
         // 否则从下一节点获取缓存
         else {
             pack = mNextNode.getDataPackAndAutoCache(context, datasource);
         }
-        mCurStrategy.onCacheData(context, key, pack);
+        mCurStorage.onCacheData(context, key, pack);
         return pack;
     }
 
@@ -163,18 +163,18 @@ class CacheNode<Param, Data> {
      */
     private DataPack<Data> getDataFromCurNode(DataContext<Param> context, String key, ICallback1<Data> callback) {
         try {
-            return mCurStrategy.onGetCache(context, key);
+            return mCurStorage.onGetCache(context, key);
         } catch (NoCacheException e) {
             return callback.onNoCache();
         }
     }
 
-    private ICallback3 getCallback3(int... strategyIndexes) {
-        if (null == strategyIndexes || 0 == strategyIndexes.length) {
+    private ICallback3 getCallback3(int... storageIndexes) {
+        if (null == storageIndexes || 0 == storageIndexes.length) {
             return index -> true;
         }
         Set<Integer> indexSet = new HashSet<>();
-        for (int index : strategyIndexes) {
+        for (int index : storageIndexes) {
             indexSet.add(index);
         }
         return indexSet::contains;

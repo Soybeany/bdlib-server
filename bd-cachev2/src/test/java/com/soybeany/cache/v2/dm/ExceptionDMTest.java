@@ -1,11 +1,11 @@
 package com.soybeany.cache.v2.dm;
 
-import com.soybeany.cache.v2.contract.ICacheStrategy;
+import com.soybeany.cache.v2.contract.ICacheStorage;
 import com.soybeany.cache.v2.contract.IDatasource;
 import com.soybeany.cache.v2.core.DataManager;
 import com.soybeany.cache.v2.log.ConsoleLogger;
 import com.soybeany.cache.v2.model.DataPack;
-import com.soybeany.cache.v2.strategy.LruMemCacheStrategy;
+import com.soybeany.cache.v2.storage.LruMemCacheStorage;
 import org.junit.Test;
 
 /**
@@ -17,11 +17,11 @@ public class ExceptionDMTest {
         throw new Exception("测试");
     };
 
-    ICacheStrategy<String, String> cacheStrategy = new LruMemCacheStrategy<>();
+    ICacheStorage<String, String> cacheStorage = new LruMemCacheStorage<>();
 
     private final DataManager<String, String> dataManager = DataManager.Builder
             .get("异常测试", datasource)
-            .withCache(cacheStrategy)
+            .withCache(cacheStorage)
             .logger(new ConsoleLogger<>())
             .build();
 
@@ -33,7 +33,7 @@ public class ExceptionDMTest {
         assert (!data.norm() && datasource == data.provider);
         // 抛出的是缓存了的异常
         data = dataManager.getDataPack("缓存", null);
-        assert (!data.norm() && cacheStrategy == data.provider);
+        assert (!data.norm() && cacheStorage == data.provider);
     }
 
 }

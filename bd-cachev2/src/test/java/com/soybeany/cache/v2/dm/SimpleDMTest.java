@@ -1,13 +1,13 @@
 package com.soybeany.cache.v2.dm;
 
-import com.soybeany.cache.v2.contract.ICacheStrategy;
+import com.soybeany.cache.v2.contract.ICacheStorage;
 import com.soybeany.cache.v2.contract.IDatasource;
 import com.soybeany.cache.v2.core.DataManager;
 import com.soybeany.cache.v2.exception.NoCacheException;
 import com.soybeany.cache.v2.exception.NoDataSourceException;
 import com.soybeany.cache.v2.log.ConsoleLogger;
 import com.soybeany.cache.v2.model.DataPack;
-import com.soybeany.cache.v2.strategy.LruMemCacheStrategy;
+import com.soybeany.cache.v2.storage.LruMemCacheStorage;
 import org.junit.Test;
 
 import java.util.UUID;
@@ -22,13 +22,13 @@ public class SimpleDMTest {
         return UUID.randomUUID().toString();
     };
 
-    private final ICacheStrategy<String, String> lruStrategy = new LruMemCacheStrategy<String, String>()
+    private final ICacheStorage<String, String> lruStorage = new LruMemCacheStorage<String, String>()
             .capacity(3)
             .expiry(200);
 
     private final DataManager<String, String> dataManager = DataManager.Builder
             .get("简单测试", datasource)
-            .withCache(lruStrategy)
+            .withCache(lruStorage)
             .logger(new ConsoleLogger<>())
             .build();
 
@@ -40,7 +40,7 @@ public class SimpleDMTest {
         assert datasource.equals(data.provider);
         // 第二次将读取lru
         data = dataManager.getDataPack("序列2", key);
-        assert lruStrategy.equals(data.provider);
+        assert lruStorage.equals(data.provider);
     }
 
     @Test
@@ -57,17 +57,17 @@ public class SimpleDMTest {
         assert datasource.equals(data.provider);
         // 第二次均读取lru
         data = dataManager.getDataPack("序列2", key2);
-        assert lruStrategy.equals(data.provider);
+        assert lruStorage.equals(data.provider);
         data = dataManager.getDataPack("序列3", key3);
-        assert lruStrategy.equals(data.provider);
+        assert lruStorage.equals(data.provider);
         data = dataManager.getDataPack("序列1", key1);
-        assert lruStrategy.equals(data.provider);
+        assert lruStorage.equals(data.provider);
         // 新增key则移除最旧的key
         String key4 = "key4";
         dataManager.getDataPack("序列4", key4);
-        lruStrategy.onGetCache(null, key3);
+        lruStorage.onGetCache(null, key3);
         try {
-            lruStrategy.onGetCache(null, key2);
+            lruStorage.onGetCache(null, key2);
             throw new Exception("不允许还持有缓存");
         } catch (NoCacheException e) {
             System.out.println("“" + key2 + "”的缓存已移除");
@@ -101,7 +101,7 @@ public class SimpleDMTest {
         System.out.println("accessCount:" + accessCount);
         assert accessCount == 1;
         DataPack<String> pack1 = dataManager.getDataPack("单发LRU", null);
-        assert lruStrategy == pack1.provider;
+        assert lruStorage == pack1.provider;
         Thread.sleep(200);
         DataPack<String> pack2 = dataManager.getDataPack("单发源", null);
         assert datasource == pack2.provider;
@@ -125,7 +125,7 @@ public class SimpleDMTest {
     }
 
     @Test
-    public void noCacheStrategyTest() {
+    public void noCacheStorageTest() {
         DataManager<String, String> manager = DataManager.Builder.get("无缓存测试", datasource)
                 .logger(new ConsoleLogger<>())
                 .build();
@@ -151,7 +151,7 @@ public class SimpleDMTest {
         assert datasource.equals(data.provider);
         // 2不受影响
         data2 = dataManager.getDataPack(key2, key2);
-        assert lruStrategy.equals(data2.provider);
+        assert lruStorage.equals(data2.provider);
     }
 
 }

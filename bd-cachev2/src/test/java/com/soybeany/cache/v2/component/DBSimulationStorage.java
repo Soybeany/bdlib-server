@@ -4,7 +4,7 @@ import com.soybeany.cache.v2.exception.NoCacheException;
 import com.soybeany.cache.v2.model.CacheEntity;
 import com.soybeany.cache.v2.model.DataContext;
 import com.soybeany.cache.v2.model.DataPack;
-import com.soybeany.cache.v2.strategy.StdCacheStrategy;
+import com.soybeany.cache.v2.storage.StdCacheStorage;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -12,7 +12,7 @@ import java.util.Map;
 /**
  * <br>Created by Soybeany on 2020/10/16.
  */
-public class DBSimulationStrategy<Param, Data> extends StdCacheStrategy<Param, Data> {
+public class DBSimulationStorage<Param, Data> extends StdCacheStorage<Param, Data> {
     private final Map<String, CacheEntity<Data>> map = new HashMap<>();
 
     @Override

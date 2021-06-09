@@ -1,7 +1,7 @@
 package com.soybeany.cache.v2.model;
 
 /**
- * 缓存策略内部使用的实体
+ * 缓存存储器内部使用的实体
  * <br>Created by Soybeany on 2020/11/25.
  */
 public class CacheEntity<Data> {

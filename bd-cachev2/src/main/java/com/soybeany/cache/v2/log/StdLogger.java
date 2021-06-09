@@ -1,6 +1,6 @@
 package com.soybeany.cache.v2.log;
 
-import com.soybeany.cache.v2.contract.ICacheStrategy;
+import com.soybeany.cache.v2.contract.ICacheStorage;
 import com.soybeany.cache.v2.contract.IDatasource;
 import com.soybeany.cache.v2.contract.ILogger;
 import com.soybeany.cache.v2.model.DataContext;
@@ -28,8 +28,8 @@ public class StdLogger<Param, Data> implements ILogger<Param, Data> {
             return;
         }
         String from;
-        if (pack.provider instanceof ICacheStrategy) {
-            from = "缓存(" + ((ICacheStrategy<?, ?>) pack.provider).desc() + ")";
+        if (pack.provider instanceof ICacheStorage) {
+            from = "缓存(" + ((ICacheStorage<?, ?>) pack.provider).desc() + ")";
         } else if (pack.provider instanceof IDatasource) {
             from = "数据源";
         } else {
@@ -48,23 +48,23 @@ public class StdLogger<Param, Data> implements ILogger<Param, Data> {
     }
 
     @Override
-    public void onRemoveCache(DataContext<Param> context, int... strategyIndexes) {
-        mWriter.onWriteInfo("“" + context.dataDesc + "”移除了“" + context.paramDesc + "”" + getIndexMsg(strategyIndexes) + "的缓存“");
+    public void onRemoveCache(DataContext<Param> context, int... storageIndexes) {
+        mWriter.onWriteInfo("“" + context.dataDesc + "”移除了“" + context.paramDesc + "”" + getIndexMsg(storageIndexes) + "的缓存“");
     }
 
     @Override
-    public void onClearCache(String dataDesc, int... strategyIndexes) {
-        mWriter.onWriteInfo("“" + dataDesc + "”清空了" + getIndexMsg(strategyIndexes) + "的缓存“");
+    public void onClearCache(String dataDesc, int... storageIndexes) {
+        mWriter.onWriteInfo("“" + dataDesc + "”清空了" + getIndexMsg(storageIndexes) + "的缓存“");
     }
 
-    private String getIndexMsg(int... strategyIndexes) {
-        if (null == strategyIndexes || 0 == strategyIndexes.length) {
-            return "全部策略";
+    private String getIndexMsg(int... storageIndexes) {
+        if (null == storageIndexes || 0 == storageIndexes.length) {
+            return "全部存储器";
         }
         List<Integer> list = new ArrayList<>();
-        for (int index : strategyIndexes) {
+        for (int index : storageIndexes) {
             list.add(index);
         }
-        return "策略下标为" + list.toString();
+        return "存储器下标为" + list.toString();
     }
 }

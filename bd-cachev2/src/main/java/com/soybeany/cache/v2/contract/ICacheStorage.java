@@ -6,12 +6,12 @@ import com.soybeany.cache.v2.model.DataContext;
 import com.soybeany.cache.v2.model.DataPack;
 
 /**
- * 缓存策略
+ * 缓存存储器
  *
  * @author Soybeany
  * @date 2020/1/19
  */
-public interface ICacheStrategy<Param, Data> {
+public interface ICacheStorage<Param, Data> {
 
     /**
      * 默认的优先级
@@ -28,16 +28,16 @@ public interface ICacheStrategy<Param, Data> {
     int order();
 
     /**
-     * 该策略的描述
+     * 该存储器的描述
      *
      * @return 具体的描述文本
      */
     String desc();
 
     /**
-     * 是否支持“访问下一缓存策略前，再次获取缓存”，影响{@link #onGetCacheBeforeAccessNextStrategy}
+     * 是否支持“访问下一缓存存储器前，再次获取缓存”，影响{@link #onGetCacheBeforeAccessNextStorage}
      */
-    boolean supportGetCacheBeforeAccessNextStrategy();
+    boolean supportGetCacheBeforeAccessNextStorage();
 
     // ********************操作回调类********************
 
@@ -51,13 +51,13 @@ public interface ICacheStrategy<Param, Data> {
     DataPack<Data> onGetCache(DataContext<Param> context, String key) throws NoCacheException;
 
     /**
-     * 访问下一缓存策略前，再次获取缓存。需将{@link #supportGetCacheBeforeAccessNextStrategy}设置为true(有限的线程安全保障，只锁相同key)
+     * 访问下一缓存存储器前，再次获取缓存。需将{@link #supportGetCacheBeforeAccessNextStorage}设置为true(有限的线程安全保障，只锁相同key)
      *
      * @param context 上下文，含有当前环境的一些信息
      * @param key     使用{@link IKeyConverter}对{@link Param}进行转化后的键，用于KV
      * @return 数据
      */
-    DataPack<Data> onGetCacheBeforeAccessNextStrategy(DataContext<Param> context, String key) throws NoCacheException;
+    DataPack<Data> onGetCacheBeforeAccessNextStorage(DataContext<Param> context, String key) throws NoCacheException;
 
     /**
      * 缓存数据(有限的线程安全保障，只锁相同key)
@@ -76,9 +76,9 @@ public interface ICacheStrategy<Param, Data> {
     IKeyConverter<Param> getConverter();
 
     /**
-     * 为该策略设置指定的键转换器
+     * 为该存储器设置指定的键转换器
      */
-    ICacheStrategy<Param, Data> converter(IKeyConverter<Param> converter);
+    ICacheStorage<Param, Data> converter(IKeyConverter<Param> converter);
 
     /**
      * 移除指定的缓存(有限的线程安全保障，只锁相同key)

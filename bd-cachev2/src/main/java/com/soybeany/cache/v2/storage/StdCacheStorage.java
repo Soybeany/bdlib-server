@@ -1,7 +1,7 @@
-package com.soybeany.cache.v2.strategy;
+package com.soybeany.cache.v2.storage;
 
 
-import com.soybeany.cache.v2.contract.ICacheStrategy;
+import com.soybeany.cache.v2.contract.ICacheStorage;
 import com.soybeany.cache.v2.contract.IKeyConverter;
 import com.soybeany.cache.v2.exception.NoCacheException;
 import com.soybeany.cache.v2.model.DataContext;
@@ -11,7 +11,7 @@ import com.soybeany.cache.v2.model.DataPack;
  * @author Soybeany
  * @date 2020/1/20
  */
-public abstract class StdCacheStrategy<Param, Data> implements ICacheStrategy<Param, Data> {
+public abstract class StdCacheStorage<Param, Data> implements ICacheStorage<Param, Data> {
 
     protected int mExpiry = Integer.MAX_VALUE; // 永不超时
     protected int mFastFailExpiry = 60000; // 1分钟;
@@ -24,7 +24,7 @@ public abstract class StdCacheStrategy<Param, Data> implements ICacheStrategy<Pa
     }
 
     @Override
-    public boolean supportGetCacheBeforeAccessNextStrategy() {
+    public boolean supportGetCacheBeforeAccessNextStorage() {
         return false;
     }
 
@@ -34,13 +34,13 @@ public abstract class StdCacheStrategy<Param, Data> implements ICacheStrategy<Pa
     }
 
     @Override
-    public ICacheStrategy<Param, Data> converter(IKeyConverter<Param> converter) {
+    public ICacheStorage<Param, Data> converter(IKeyConverter<Param> converter) {
         mKeyConverter = converter;
         return this;
     }
 
     @Override
-    public DataPack<Data> onGetCacheBeforeAccessNextStrategy(DataContext<Param> context, String key) throws NoCacheException {
+    public DataPack<Data> onGetCacheBeforeAccessNextStorage(DataContext<Param> context, String key) throws NoCacheException {
         throw new NoCacheException();
     }
 
@@ -50,7 +50,7 @@ public abstract class StdCacheStrategy<Param, Data> implements ICacheStrategy<Pa
      * @param millis 失效时间(毫秒)
      * @return 自身，方便链式调用
      */
-    public StdCacheStrategy<Param, Data> expiry(int millis) {
+    public StdCacheStorage<Param, Data> expiry(int millis) {
         mExpiry = Math.max(millis, 0);
         return this;
     }
@@ -61,7 +61,7 @@ public abstract class StdCacheStrategy<Param, Data> implements ICacheStrategy<Pa
      * @param millis 失效时间(毫秒)
      * @return 自身，方便链式调用
      */
-    public StdCacheStrategy<Param, Data> fastFailExpiry(int millis) {
+    public StdCacheStorage<Param, Data> fastFailExpiry(int millis) {
         mFastFailExpiry = Math.max(millis, 0);
         return this;
     }

@@ -1,11 +1,11 @@
 package com.soybeany.cache.v2.dm;
 
-import com.soybeany.cache.v2.contract.ICacheStrategy;
+import com.soybeany.cache.v2.contract.ICacheStorage;
 import com.soybeany.cache.v2.core.DataManager;
 import com.soybeany.cache.v2.log.ConsoleLogger;
 import com.soybeany.cache.v2.model.DataContext;
 import com.soybeany.cache.v2.model.DataPack;
-import com.soybeany.cache.v2.strategy.LruMemCacheStrategy;
+import com.soybeany.cache.v2.storage.LruMemCacheStorage;
 import org.junit.Test;
 
 import java.util.UUID;
@@ -15,7 +15,7 @@ import java.util.UUID;
  */
 public class MultiKeyDMTest {
 
-    private final ICacheStrategy<String, String> lruStrategy = new TestStrategy<String, String>().expiry(800);
+    private final ICacheStorage<String, String> lruStorage = new TestStorage<String, String>().expiry(800);
 
     private final DataManager<String, String> dataManager = DataManager.Builder
             .get("MultiExpiry", s -> {
@@ -23,7 +23,7 @@ public class MultiKeyDMTest {
                 Thread.sleep(500);
                 return s;
             })
-            .withCache(lruStrategy)
+            .withCache(lruStorage)
             .logger(new ConsoleLogger<>())
             .build();
 
@@ -48,7 +48,7 @@ public class MultiKeyDMTest {
         assert delta < 2000;
     }
 
-    private static class TestStrategy<Param, Data> extends LruMemCacheStrategy<Param, Data> {
+    private static class TestStorage<Param, Data> extends LruMemCacheStorage<Param, Data> {
         @Override
         public void onCacheData(DataContext<Param> context, String key, DataPack<Data> data) {
             System.out.println("存数据:" + key);

@@ -1,12 +1,12 @@
 package com.soybeany.cache.v2.dm;
 
-import com.soybeany.cache.v2.component.DBSimulationStrategy;
-import com.soybeany.cache.v2.contract.ICacheStrategy;
+import com.soybeany.cache.v2.component.DBSimulationStorage;
+import com.soybeany.cache.v2.contract.ICacheStorage;
 import com.soybeany.cache.v2.contract.IDatasource;
 import com.soybeany.cache.v2.core.DataManager;
 import com.soybeany.cache.v2.log.ConsoleLogger;
 import com.soybeany.cache.v2.model.DataPack;
-import com.soybeany.cache.v2.strategy.LruMemCacheStrategy;
+import com.soybeany.cache.v2.storage.LruMemCacheStorage;
 import org.junit.Test;
 
 import java.util.UUID;
@@ -21,13 +21,13 @@ public class MultiCacheDMTest {
         return UUID.randomUUID().toString();
     };
 
-    private final ICacheStrategy<String, String> lruStrategy = new LruMemCacheStrategy<String, String>().expiry(500);
-    private final ICacheStrategy<String, String> dbStrategy = new DBSimulationStrategy<>();
+    private final ICacheStorage<String, String> lruStorage = new LruMemCacheStorage<String, String>().expiry(500);
+    private final ICacheStorage<String, String> dbStorage = new DBSimulationStorage<>();
 
     private final DataManager<String, String> dataManager = DataManager.Builder
             .get("MultiCache", datasource)
-            .withCache(lruStrategy)
-            .withCache(dbStrategy)
+            .withCache(lruStorage)
+            .withCache(dbStorage)
             .logger(new ConsoleLogger<>())
             .build();
 
@@ -39,15 +39,15 @@ public class MultiCacheDMTest {
         assert datasource.equals(pack.provider);
         // 已经缓存了数据，应该访问lru
         pack = dataManager.getDataPack("2", key);
-        assert lruStrategy.equals(pack.provider);
+        assert lruStorage.equals(pack.provider);
         // 休眠一个比lru时间长的时间
         Thread.sleep(600);
         // lru缓存已失效，访问db
         pack = dataManager.getDataPack("3", key);
-        assert dbStrategy.equals(pack.provider);
+        assert dbStorage.equals(pack.provider);
         // 缓存重新建立
         pack = dataManager.getDataPack("4", key);
-        assert lruStrategy.equals(pack.provider);
+        assert lruStorage.equals(pack.provider);
     }
 
     @Test
@@ -58,11 +58,11 @@ public class MultiCacheDMTest {
         assert datasource.equals(pack.provider);
         // 已经缓存了数据，应该访问lru
         pack = dataManager.getDataPack("2", key);
-        assert lruStrategy.equals(pack.provider);
+        assert lruStorage.equals(pack.provider);
         // 清除了lru缓存，访问db
         dataManager.clearCache(0);
         pack = dataManager.getDataPack("3", key);
-        assert dbStrategy.equals(pack.provider);
+        assert dbStorage.equals(pack.provider);
         // 清除全部缓存，访问数据源
         dataManager.clearCache();
         pack = dataManager.getDataPack("4", key);

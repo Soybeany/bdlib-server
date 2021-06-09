@@ -1,12 +1,12 @@
 package com.soybeany.cache.v2.dm;
 
-import com.soybeany.cache.v2.component.DBSimulationStrategy;
-import com.soybeany.cache.v2.contract.ICacheStrategy;
+import com.soybeany.cache.v2.component.DBSimulationStorage;
+import com.soybeany.cache.v2.contract.ICacheStorage;
 import com.soybeany.cache.v2.contract.IDatasource;
 import com.soybeany.cache.v2.core.DataManager;
 import com.soybeany.cache.v2.log.ConsoleLogger;
 import com.soybeany.cache.v2.model.DataPack;
-import com.soybeany.cache.v2.strategy.LruMemCacheStrategy;
+import com.soybeany.cache.v2.storage.LruMemCacheStorage;
 import org.junit.Test;
 
 import java.util.UUID;
@@ -21,13 +21,13 @@ public class MultiExpiryDMTest {
         return UUID.randomUUID().toString();
     };
 
-    private final ICacheStrategy<String, String> lruStrategy = new LruMemCacheStrategy<String, String>().expiry(800);
-    private final ICacheStrategy<String, String> dbStrategy = new DBSimulationStrategy<String, String>().expiry(1000);
+    private final ICacheStorage<String, String> lruStorage = new LruMemCacheStorage<String, String>().expiry(800);
+    private final ICacheStorage<String, String> dbStorage = new DBSimulationStorage<String, String>().expiry(1000);
 
     private final DataManager<String, String> dataManager = DataManager.Builder
             .get("MultiExpiry", datasource)
-            .withCache(lruStrategy)
-            .withCache(dbStrategy)
+            .withCache(lruStorage)
+            .withCache(dbStorage)
             .logger(new ConsoleLogger<>())
             .build();
 
@@ -39,15 +39,15 @@ public class MultiExpiryDMTest {
         assert datasource.equals(pack.provider);
         // 已经缓存了数据，应该访问lru
         pack = dataManager.getDataPack("2", key);
-        assert lruStrategy.equals(pack.provider);
+        assert lruStorage.equals(pack.provider);
         // 休眠一个比lru时间长，但比db时间短的时间
         Thread.sleep(900);
         // lru已失效，但db未失效
         pack = dataManager.getDataPack("3", key);
-        assert dbStrategy.equals(pack.provider);
+        assert dbStorage.equals(pack.provider);
         // lru仍生效
         pack = dataManager.getDataPack("4", key);
-        assert lruStrategy.equals(pack.provider);
+        assert lruStorage.equals(pack.provider);
         // 休眠一个短时间，使db也失效
         Thread.sleep(200);
         // 全部缓存已失效，再次访问数据源

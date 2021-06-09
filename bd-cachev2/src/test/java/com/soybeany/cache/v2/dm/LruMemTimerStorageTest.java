@@ -4,8 +4,8 @@ import com.soybeany.cache.v2.contract.IDatasource;
 import com.soybeany.cache.v2.core.DataManager;
 import com.soybeany.cache.v2.exception.NoCacheException;
 import com.soybeany.cache.v2.log.ConsoleLogger;
-import com.soybeany.cache.v2.strategy.LruMemCacheStrategy;
-import com.soybeany.cache.v2.strategy.LruMemTimerCacheStrategy;
+import com.soybeany.cache.v2.storage.LruMemCacheStorage;
+import com.soybeany.cache.v2.storage.LruMemTimerCacheStorage;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -16,30 +16,30 @@ import java.util.UUID;
  * @author Soybeany
  * @date 2021/2/20
  */
-public class LruMemTimerStrategyTest {
+public class LruMemTimerStorageTest {
 
     IDatasource<String, String> datasource = s -> {
         System.out.println("“" + s + "”access datasource");
         return UUID.randomUUID().toString();
     };
 
-    LruMemCacheStrategy<String, String> cacheStrategy = (LruMemCacheStrategy<String, String>) new LruMemTimerCacheStrategy<String, String>()
+    LruMemCacheStorage<String, String> cacheStorage = (LruMemCacheStorage<String, String>) new LruMemTimerCacheStorage<String, String>()
             .expiry(500);
 
     private final DataManager<String, String> dataManager = DataManager.Builder
-            .get("LRU定时器策略测试", datasource)
-            .withCache(cacheStrategy)
+            .get("LRU定时器存储器测试", datasource)
+            .withCache(cacheStorage)
             .logger(new ConsoleLogger<>())
             .build();
 
     @BeforeClass
     public static void beforeTest() {
-        LruMemTimerCacheStrategy.createTimer();
+        LruMemTimerCacheStorage.createTimer();
     }
 
     @AfterClass
     public static void afterTest() {
-        LruMemTimerCacheStrategy.destroyTimer();
+        LruMemTimerCacheStorage.destroyTimer();
     }
 
     @Test
@@ -55,13 +55,13 @@ public class LruMemTimerStrategyTest {
         // 检验
         Thread.sleep(300);
         try {
-            cacheStrategy.onGetCache(null, key2);
+            cacheStorage.onGetCache(null, key2);
             throw new Exception("不允许还持有缓存");
         } catch (NoCacheException ignore) {
         }
-        assert cacheStrategy.size() == 1;
+        assert cacheStorage.size() == 1;
         Thread.sleep(250);
-        assert cacheStrategy.size() == 0;
+        assert cacheStorage.size() == 0;
     }
 
 }

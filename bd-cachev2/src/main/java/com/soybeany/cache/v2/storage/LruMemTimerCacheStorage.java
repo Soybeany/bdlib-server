@@ -1,4 +1,4 @@
-package com.soybeany.cache.v2.strategy;
+package com.soybeany.cache.v2.storage;
 
 import com.soybeany.cache.v2.exception.NoCacheException;
 import com.soybeany.cache.v2.model.CacheEntity;
@@ -15,7 +15,7 @@ import java.util.concurrent.TimeUnit;
  * @author Soybeany
  * @date 2021/2/20
  */
-public class LruMemTimerCacheStrategy<Param, Data> extends LruMemCacheStrategy<Param, Data> {
+public class LruMemTimerCacheStorage<Param, Data> extends LruMemCacheStorage<Param, Data> {
 
     private static ScheduledExecutorService SERVICE;
 
