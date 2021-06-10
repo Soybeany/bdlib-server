@@ -16,6 +16,7 @@ import java.util.LinkedList;
  * @author Soybeany
  * @date 2020/1/19
  */
+@SuppressWarnings("UnusedReturnValue")
 public class DataManager<Param, Data> {
 
     private final String mDataDesc;
@@ -23,6 +24,7 @@ public class DataManager<Param, Data> {
 
     private CacheNode<Param, Data> mFirstNode; // 调用链的头
     private ILogger<Param, Data> mLogger; // 日志输出
+    private IKeyConverter<Param> mParamDescConverter; // 入参描述转换器
 
     /**
      * @param defaultDatasource 默认的数据源，允许为null
@@ -36,42 +38,28 @@ public class DataManager<Param, Data> {
 
     /**
      * 获得数据(默认方式)
-     *
-     * @param paramDesc 描述要获取的数据
-     * @param param     用于匹配数据
-     * @return 相匹配的数据
      */
-    public Data getData(String paramDesc, Param param) throws Exception {
-        return getDataPack(paramDesc, param).getData();
-    }
-
-    /**
-     * 获得数据(默认方式)
-     *
-     * @param param 用于匹配数据
-     * @return 相匹配的数据
-     */
-    public Data getData(String paramDesc, Param param, IDatasource<Param, Data> datasource) throws Exception {
-        return getDataPack(paramDesc, param, datasource).getData();
+    public Data getData(Param param) throws Exception {
+        return getDataPack(param).getData();
     }
 
     /**
      * 获得数据(数据包方式)
      */
-    public DataPack<Data> getDataPack(String paramDesc, Param param) {
-        return getDataPack(paramDesc, param, mDefaultDatasource);
+    public DataPack<Data> getDataPack(Param param) {
+        return getDataPack(param, mDefaultDatasource);
     }
 
     /**
      * 获得数据(数据包方式)
      */
-    public DataPack<Data> getDataPack(String paramDesc, Param param, IDatasource<Param, Data> datasource) {
+    public DataPack<Data> getDataPack(Param param, IDatasource<Param, Data> datasource) {
         // 没有缓存节点的情况
         if (null == mFirstNode) {
-            return innerGetDataPackDirectly(paramDesc, param, datasource);
+            return innerGetDataPackDirectly(param, datasource);
         }
         // 有缓存节点的情况
-        DataContext<Param> context = getNewDataContext(paramDesc, param);
+        DataContext<Param> context = getNewDataContext(param);
         DataPack<Data> pack = mFirstNode.getDataPackAndAutoCache(context, datasource);
         // 记录日志
         if (null != mLogger) {
@@ -82,38 +70,33 @@ public class DataManager<Param, Data> {
 
     /**
      * 直接从数据源获得数据(不使用缓存)
-     *
-     * @param param 用于匹配数据
-     * @return 相匹配的数据
      */
-    public DataPack<Data> getDataPackDirectly(String paramDesc, Param param) {
-        return innerGetDataPackDirectly(paramDesc, param, mDefaultDatasource);
+    public DataPack<Data> getDataPackDirectly(Param param) {
+        return innerGetDataPackDirectly(param, mDefaultDatasource);
     }
 
     /**
      * 缓存数据，手动模式管理
      */
-    public void cacheData(String paramDesc, Param param, Data data) {
-        innerCacheData(paramDesc, param, DataCore.fromData(data));
+    public void cacheData(Param param, Data data) {
+        innerCacheData(param, DataCore.fromData(data));
     }
 
     /**
      * 缓存异常，手动模式管理
      */
-    public void cacheException(String paramDesc, Param param, Exception e) {
-        innerCacheData(paramDesc, param, DataCore.fromException(e));
+    public void cacheException(Param param, Exception e) {
+        innerCacheData(param, DataCore.fromException(e));
     }
 
     /**
      * 移除指定key的缓存(全部存储器)
-     *
-     * @param param 用于匹配数据
      */
-    public void removeCache(String paramDesc, Param param, int... storageIndexes) {
+    public void removeCache(Param param, int... storageIndexes) {
         if (null == mFirstNode) {
             return;
         }
-        DataContext<Param> context = getNewDataContext(paramDesc, param);
+        DataContext<Param> context = getNewDataContext(param);
         mFirstNode.removeCache(context, storageIndexes);
         // 记录日志
         if (null != mLogger) {
@@ -137,24 +120,24 @@ public class DataManager<Param, Data> {
 
     // ********************内部方法********************
 
-    private DataContext<Param> getNewDataContext(String paramDesc, Param param) {
-        return new DataContext<>(mDataDesc, paramDesc, param);
+    private DataContext<Param> getNewDataContext(Param param) {
+        return new DataContext<>(mDataDesc, mParamDescConverter.getKey(param), param);
     }
 
-    private DataPack<Data> innerGetDataPackDirectly(String paramDesc, Param param, IDatasource<Param, Data> datasource) {
+    private DataPack<Data> innerGetDataPackDirectly(Param param, IDatasource<Param, Data> datasource) {
         DataPack<Data> pack = CacheNode.getDataDirectly(this, param, datasource);
         // 记录日志
         if (null != mLogger) {
-            mLogger.onGetData(getNewDataContext(paramDesc, param), pack);
+            mLogger.onGetData(getNewDataContext(param), pack);
         }
         return pack;
     }
 
-    private void innerCacheData(String paramDesc, Param param, DataCore<Data> dataCore) {
+    private void innerCacheData(Param param, DataCore<Data> dataCore) {
         if (null == mFirstNode) {
             return;
         }
-        DataContext<Param> context = getNewDataContext(paramDesc, param);
+        DataContext<Param> context = getNewDataContext(param);
         DataPack<Data> pack = new DataPack<>(dataCore, this, Integer.MAX_VALUE);
         mFirstNode.cacheData(context, pack);
         // 记录日志
@@ -182,6 +165,7 @@ public class DataManager<Param, Data> {
         private Builder(String dataDesc, IDatasource<Param, Data> datasource, IKeyConverter<Param> defaultConverter) {
             mManager = new DataManager<>(dataDesc, datasource);
             mDefaultConverter = defaultConverter;
+            mManager.mParamDescConverter = defaultConverter;
         }
 
         // ********************设置********************
@@ -210,6 +194,18 @@ public class DataManager<Param, Data> {
          */
         public Builder<Param, Data> logger(ILogger<Param, Data> logger) {
             mManager.mLogger = logger;
+            return this;
+        }
+
+        /**
+         * 配置入参描述转换器
+         * <br>* 根据入参定义自动输出的日志中使用的paramDesc
+         * <br>* 默认使用构造时指定的“defaultConverter”
+         */
+        public Builder<Param, Data> paramDescConverter(IKeyConverter<Param> converter) {
+            if (null != converter) {
+                mManager.mParamDescConverter = converter;
+            }
             return this;
         }
 

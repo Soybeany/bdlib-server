@@ -35,18 +35,18 @@ public class MultiCacheDMTest {
     public void test() throws Exception {
         String key = "key";
         // 一开始没有数据，应该访问数据源
-        DataPack<String> pack = dataManager.getDataPack("1", key);
+        DataPack<String> pack = dataManager.getDataPack(key);
         assert datasource.equals(pack.provider);
         // 已经缓存了数据，应该访问lru
-        pack = dataManager.getDataPack("2", key);
+        pack = dataManager.getDataPack(key);
         assert lruStorage.equals(pack.provider);
         // 休眠一个比lru时间长的时间
         Thread.sleep(600);
         // lru缓存已失效，访问db
-        pack = dataManager.getDataPack("3", key);
+        pack = dataManager.getDataPack(key);
         assert dbStorage.equals(pack.provider);
         // 缓存重新建立
-        pack = dataManager.getDataPack("4", key);
+        pack = dataManager.getDataPack(key);
         assert lruStorage.equals(pack.provider);
     }
 
@@ -54,18 +54,18 @@ public class MultiCacheDMTest {
     public void test2() {
         String key = "key";
         // 一开始没有数据，应该访问数据源
-        DataPack<String> pack = dataManager.getDataPack("1", key);
+        DataPack<String> pack = dataManager.getDataPack(key);
         assert datasource.equals(pack.provider);
         // 已经缓存了数据，应该访问lru
-        pack = dataManager.getDataPack("2", key);
+        pack = dataManager.getDataPack(key);
         assert lruStorage.equals(pack.provider);
         // 清除了lru缓存，访问db
         dataManager.clearCache(0);
-        pack = dataManager.getDataPack("3", key);
+        pack = dataManager.getDataPack(key);
         assert dbStorage.equals(pack.provider);
         // 清除全部缓存，访问数据源
         dataManager.clearCache();
-        pack = dataManager.getDataPack("4", key);
+        pack = dataManager.getDataPack(key);
         assert datasource.equals(pack.provider);
     }
 

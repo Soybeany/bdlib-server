@@ -47,11 +47,11 @@ public class LruMemTimerStorageTest {
         String key1 = "key1";
         String key2 = "key2";
         // 缓存数据
-        dataManager.getData("序列1", key1);
-        dataManager.getData("序列2", key2);
+        dataManager.getData(key1);
+        dataManager.getData(key2);
         // 延长数据失效时间
         Thread.sleep(250);
-        dataManager.getData("序列1", key1);
+        dataManager.getData(key1);
         // 检验
         Thread.sleep(300);
         try {

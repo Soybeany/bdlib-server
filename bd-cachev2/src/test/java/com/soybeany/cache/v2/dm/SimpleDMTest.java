@@ -36,10 +36,10 @@ public class SimpleDMTest {
     public void sequenceTest() {
         String key = "key";
         // 第一次将访问数据源
-        DataPack<String> data = dataManager.getDataPack("序列1", key);
+        DataPack<String> data = dataManager.getDataPack(key);
         assert datasource.equals(data.provider);
         // 第二次将读取lru
-        data = dataManager.getDataPack("序列2", key);
+        data = dataManager.getDataPack(key);
         assert lruStorage.equals(data.provider);
     }
 
@@ -49,22 +49,22 @@ public class SimpleDMTest {
         String key2 = "key2";
         String key3 = "key3";
         // 第一次均访问数据源
-        DataPack<String> data = dataManager.getDataPack("序列1", key1);
+        DataPack<String> data = dataManager.getDataPack(key1);
         assert datasource.equals(data.provider);
-        data = dataManager.getDataPack("序列2", key2);
+        data = dataManager.getDataPack(key2);
         assert datasource.equals(data.provider);
-        data = dataManager.getDataPack("序列3", key3);
+        data = dataManager.getDataPack(key3);
         assert datasource.equals(data.provider);
         // 第二次均读取lru
-        data = dataManager.getDataPack("序列2", key2);
+        data = dataManager.getDataPack(key2);
         assert lruStorage.equals(data.provider);
-        data = dataManager.getDataPack("序列3", key3);
+        data = dataManager.getDataPack(key3);
         assert lruStorage.equals(data.provider);
-        data = dataManager.getDataPack("序列1", key1);
+        data = dataManager.getDataPack(key1);
         assert lruStorage.equals(data.provider);
         // 新增key则移除最旧的key
         String key4 = "key4";
-        dataManager.getDataPack("序列4", key4);
+        dataManager.getDataPack(key4);
         lruStorage.onGetCache(null, key3);
         try {
             lruStorage.onGetCache(null, key2);
@@ -82,7 +82,8 @@ public class SimpleDMTest {
         for (int i = 0; i < count; i++) {
             final int finalI = i;
             threads[i] = new Thread(() -> {
-                DataPack<String> pack = dataManager.getDataPack("并发", null);
+                System.out.println("并发:" + finalI);
+                DataPack<String> pack = dataManager.getDataPack(null);
                 providers[finalI] = pack.provider;
             });
             threads[i].start();
@@ -100,24 +101,28 @@ public class SimpleDMTest {
         // 单发限制
         System.out.println("accessCount:" + accessCount);
         assert accessCount == 1;
-        DataPack<String> pack1 = dataManager.getDataPack("单发LRU", null);
+        System.out.println("单发LRU");
+        DataPack<String> pack1 = dataManager.getDataPack(null);
         assert lruStorage == pack1.provider;
         Thread.sleep(200);
-        DataPack<String> pack2 = dataManager.getDataPack("单发源", null);
+        System.out.println("单发源");
+        DataPack<String> pack2 = dataManager.getDataPack(null);
         assert datasource == pack2.provider;
     }
 
     @Test
     public void specifyDatasourceTest() throws Exception {
         final String source = "新数据源";
-        String data = dataManager.getData("特定数据源", null, s -> source);
+        System.out.println("特定数据源:");
+        String data = dataManager.getDataPack(null, s -> source).getData();
         assert source.equals(data);
     }
 
     @Test
     public void noDatasourceTest() {
         try {
-            dataManager.getData("无数据源", null, null);
+            System.out.println("无数据源:");
+            dataManager.getDataPack(null, null).getData();
             throw new Exception("不允许不抛出异常");
         } catch (Exception e) {
             assert e instanceof NoDataSourceException;
@@ -129,9 +134,9 @@ public class SimpleDMTest {
         DataManager<String, String> manager = DataManager.Builder.get("无缓存测试", datasource)
                 .logger(new ConsoleLogger<>())
                 .build();
-        DataPack<String> pack = manager.getDataPack("key1", null);
+        DataPack<String> pack = manager.getDataPack("key1");
         assert datasource.equals(pack.provider);
-        pack = manager.getDataPack("key1", null);
+        pack = manager.getDataPack("key1");
         assert datasource.equals(pack.provider);
     }
 
@@ -140,17 +145,17 @@ public class SimpleDMTest {
         String key1 = "key1";
         String key2 = "key2";
         // 第一次将访问1数据源
-        DataPack<String> data = dataManager.getDataPack(key1, key1);
+        DataPack<String> data = dataManager.getDataPack(key1);
         assert datasource.equals(data.provider);
         // 第一次将访问2数据源
-        DataPack<String> data2 = dataManager.getDataPack(key2, key2);
+        DataPack<String> data2 = dataManager.getDataPack(key2);
         assert datasource.equals(data2.provider);
         // 移除1的缓存，1将重新从数据源加载
-        dataManager.removeCache(key1, key1, 0);
-        data = dataManager.getDataPack(key1, key1);
+        dataManager.removeCache(key1, 0);
+        data = dataManager.getDataPack(key1);
         assert datasource.equals(data.provider);
         // 2不受影响
-        data2 = dataManager.getDataPack(key2, key2);
+        data2 = dataManager.getDataPack(key2);
         assert lruStorage.equals(data2.provider);
     }
 

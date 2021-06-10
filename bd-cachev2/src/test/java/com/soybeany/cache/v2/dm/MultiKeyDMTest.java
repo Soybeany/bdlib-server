@@ -34,7 +34,7 @@ public class MultiKeyDMTest {
         for (int i = 0; i < count; i++) {
             threads[i] = new Thread(() -> {
                 String key = UUID.randomUUID().toString();
-                dataManager.getDataPack(key, key);
+                dataManager.getDataPack(key);
             });
             threads[i].start();
         }
