@@ -82,7 +82,6 @@ public class SimpleDMTest {
         for (int i = 0; i < count; i++) {
             final int finalI = i;
             threads[i] = new Thread(() -> {
-                System.out.println("并发:" + finalI);
                 DataPack<String> pack = dataManager.getDataPack(null);
                 providers[finalI] = pack.provider;
             });
@@ -101,11 +100,9 @@ public class SimpleDMTest {
         // 单发限制
         System.out.println("accessCount:" + accessCount);
         assert accessCount == 1;
-        System.out.println("单发LRU");
         DataPack<String> pack1 = dataManager.getDataPack(null);
         assert lruStorage == pack1.provider;
         Thread.sleep(200);
-        System.out.println("单发源");
         DataPack<String> pack2 = dataManager.getDataPack(null);
         assert datasource == pack2.provider;
     }
@@ -113,7 +110,6 @@ public class SimpleDMTest {
     @Test
     public void specifyDatasourceTest() throws Exception {
         final String source = "新数据源";
-        System.out.println("特定数据源:");
         String data = dataManager.getDataPack(null, s -> source).getData();
         assert source.equals(data);
     }
@@ -121,7 +117,6 @@ public class SimpleDMTest {
     @Test
     public void noDatasourceTest() {
         try {
-            System.out.println("无数据源:");
             dataManager.getDataPack(null, null).getData();
             throw new Exception("不允许不抛出异常");
         } catch (Exception e) {

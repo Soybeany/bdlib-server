@@ -16,7 +16,7 @@ public class DataManagerUtils {
     public static <Param, Data> DataPack<Data> getOrRefreshDataPack(DataManager<Param, Data> manager, Param param, int validMillisAtLease) {
         DataPack<Data> dataPack = manager.getDataPack(param);
         // 若数据的有效期满足指定要求，则直接返回
-        if (dataPack.expiryMillis >= validMillisAtLease) {
+        if (dataPack.remainValidMillis >= validMillisAtLease) {
             return dataPack;
         }
         // 否则清除缓存，重新获取

@@ -14,25 +14,25 @@ public class CacheEntity<Data> {
     /**
      * 该数据失效的时间戳(时间点)
      */
-    public final long expiredTimestamp;
+    public final long expiryTimestamp;
 
     public static <Data> CacheEntity<Data> fromDataPack(DataPack<Data> dataPack, long curTimestamp, int maxNormalExpiryMillis, int maxAbnormalExpiryMillis) {
         int maxExpiryMillis = dataPack.dataCore.norm ? maxNormalExpiryMillis : maxAbnormalExpiryMillis;
-        long expiryMillis = Math.min(dataPack.expiryMillis, maxExpiryMillis);
+        long expiryMillis = Math.min(dataPack.remainValidMillis, maxExpiryMillis);
         return new CacheEntity<>(dataPack.dataCore, curTimestamp + expiryMillis);
     }
 
     public static <Data> DataPack<Data> toDataPack(CacheEntity<Data> entity, Object provider, long curTimestamp) {
-        return new DataPack<>(entity.dataCore, provider, (int) (entity.expiredTimestamp - curTimestamp));
+        return new DataPack<>(entity.dataCore, provider, (int) (entity.expiryTimestamp - curTimestamp));
     }
 
-    private CacheEntity(DataCore<Data> dataCore, long expiredTimestamp) {
+    private CacheEntity(DataCore<Data> dataCore, long expiryTimestamp) {
         this.dataCore = dataCore;
-        this.expiredTimestamp = expiredTimestamp;
+        this.expiryTimestamp = expiryTimestamp;
     }
 
     public boolean isExpired(long curTimestamp) {
-        return curTimestamp > expiredTimestamp;
+        return curTimestamp > expiryTimestamp;
     }
 
 }

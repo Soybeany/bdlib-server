@@ -128,7 +128,7 @@ class CacheNode<Param, Data> {
                     return tmpPack;
                 }
                 DataPack<Data> dataPack = callback.onNoCache();
-                tmpPack = new DataPack<>(dataPack.dataCore, mCurStorage, dataPack.expiryMillis);
+                tmpPack = new DataPack<>(dataPack.dataCore, mCurStorage, dataPack.remainValidMillis);
                 mPenetratorProtector.put(lock, tmpPack);
                 // 返回结果
                 return dataPack;

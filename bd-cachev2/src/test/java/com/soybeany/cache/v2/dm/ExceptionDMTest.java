@@ -29,11 +29,9 @@ public class ExceptionDMTest {
     public void test() {
         DataPack<String> data;
         // 从数据源抛出异常
-        System.out.println("数据源:");
         data = dataManager.getDataPack(null);
         assert (!data.norm() && datasource == data.provider);
         // 抛出的是缓存了的异常
-        System.out.println("缓存:");
         data = dataManager.getDataPack(null);
         assert (!data.norm() && cacheStorage == data.provider);
     }

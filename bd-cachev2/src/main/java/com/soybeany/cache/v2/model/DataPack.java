@@ -19,12 +19,12 @@ public class DataPack<Data> {
     /**
      * 该数据剩余的有效时间(时间段)
      */
-    public final int expiryMillis;
+    public final int remainValidMillis;
 
-    public DataPack(DataCore<Data> dataCore, Object provider, int expiryMillis) {
+    public DataPack(DataCore<Data> dataCore, Object provider, int remainValidMillis) {
         this.dataCore = dataCore;
         this.provider = provider;
-        this.expiryMillis = Math.max(expiryMillis, 0);
+        this.remainValidMillis = Math.max(remainValidMillis, 0);
     }
 
     public Data getData() throws Exception {
