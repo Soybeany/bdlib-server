@@ -27,6 +27,14 @@ public interface ILogger<Param, Data> {
     void onRemoveCache(DataContext<Param> context, int... storageIndexes);
 
     /**
+     * 移除陈旧缓存时的回调
+     *
+     * @param removeLevel 移除至的缓存等级，0为未移除，1为一级缓存，以此类推
+     */
+    void onRemoveOldCache(DataContext<Param> context, int removeLevel);
+
+
+    /**
      * 清除缓存时的回调
      */
     void onClearCache(String dataDesc, int... storageIndexes);

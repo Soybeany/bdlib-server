@@ -49,7 +49,18 @@ public class StdLogger<Param, Data> implements ILogger<Param, Data> {
 
     @Override
     public void onRemoveCache(DataContext<Param> context, int... storageIndexes) {
-        mWriter.onWriteInfo("“" + context.dataDesc + "”移除了“" + context.paramDesc + "”" + getIndexMsg(storageIndexes) + "的缓存“");
+        mWriter.onWriteInfo("“" + context.dataDesc + "”移除了" + getIndexMsg(storageIndexes) + "中“" + context.paramDesc + "”的缓存“");
+    }
+
+    @Override
+    public void onRemoveOldCache(DataContext<Param> context, int removeLevel) {
+        String content;
+        if (removeLevel <= 0) {
+            content = "没有移除任何旧缓存";
+        } else {
+            content = "移除了下标为“0~" + (removeLevel - 1) + "”的存储器中“" + context.paramDesc + "”的旧缓存";
+        }
+        mWriter.onWriteInfo("“" + context.dataDesc + "”" + content);
     }
 
     @Override
@@ -65,6 +76,6 @@ public class StdLogger<Param, Data> implements ILogger<Param, Data> {
         for (int index : storageIndexes) {
             list.add(index);
         }
-        return "存储器下标为" + list.toString();
+        return "下标为" + list + "的存储器";
     }
 }

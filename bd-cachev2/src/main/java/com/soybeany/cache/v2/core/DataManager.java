@@ -90,7 +90,7 @@ public class DataManager<Param, Data> {
     }
 
     /**
-     * 移除指定key的缓存(全部存储器)
+     * 移除指定key在指定存储器中的缓存
      */
     public void removeCache(Param param, int... storageIndexes) {
         if (null == mFirstNode) {
@@ -101,6 +101,21 @@ public class DataManager<Param, Data> {
         // 记录日志
         if (null != mLogger) {
             mLogger.onRemoveCache(context, storageIndexes);
+        }
+    }
+
+    /**
+     * 移除指定key的陈旧缓存(全部存储器中)，即要求数据的剩余有效时间大于指定值
+     */
+    public void removeOldCache(Param param, int validMillisAtLease) {
+        if (null == mFirstNode) {
+            return;
+        }
+        DataContext<Param> context = getNewDataContext(param);
+        int removeLevel = mFirstNode.removeOldCache(context, validMillisAtLease);
+        // 记录日志
+        if (null != mLogger) {
+            mLogger.onRemoveOldCache(context, removeLevel);
         }
     }
 

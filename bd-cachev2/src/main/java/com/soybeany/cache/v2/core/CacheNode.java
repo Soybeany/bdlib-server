@@ -85,15 +85,31 @@ class CacheNode<Param, Data> {
     }
 
     void cacheData(DataContext<Param> context, DataPack<Data> pack) {
-        traverse(true, context.param, (key, node) -> node.mCurStorage.onCacheData(context, key, pack));
+        traverse(true, context.param, (key, node, flag) -> node.mCurStorage.onCacheData(context, key, pack));
     }
 
     void removeCache(DataContext<Param> context, int... storageIndexes) {
-        traverse(true, context.param, (key, node) -> node.mCurStorage.removeCache(context, key), storageIndexes);
+        traverse(true, context.param, (key, node, flag) -> node.mCurStorage.removeCache(context, key), storageIndexes);
+    }
+
+    int removeOldCache(DataContext<Param> context, int validMillisAtLease) {
+        int[] removeLevel = {0};
+        traverse(true, context.param, (key, node, flag) -> {
+            DataPack<Data> dataPack = node.getDataFromCurNode(context, key, () -> null);
+            boolean isOldCache = (null != dataPack && dataPack.remainValidMillis < validMillisAtLease);
+            if (isOldCache) {
+                node.mCurStorage.removeCache(context, key);
+                removeLevel[0]++;
+            } else {
+                // 当前缓存仍生效，则不访问下一级缓存，以避免性能损耗
+                flag.goOn = false;
+            }
+        });
+        return removeLevel[0];
     }
 
     void clearCache(String dataDesc, int... storageIndexes) {
-        traverse(false, null, (key, node) -> node.mCurStorage.clearCache(dataDesc), storageIndexes);
+        traverse(false, null, (key, node, flag) -> node.mCurStorage.clearCache(dataDesc), storageIndexes);
     }
 
     // ****************************************内部方法****************************************
@@ -106,10 +122,15 @@ class CacheNode<Param, Data> {
         ICallback3 callback3 = getCallback3(storageIndexes);
         CacheNode<Param, Data> node = this;
         int index = 0;
+        TraverseFlag flag = new TraverseFlag();
         while (null != node) {
             if (callback3.shouldInvoke(index++)) {
                 String key = (needKey ? node.getConverter().getKey(param) : null);
-                callback.onInvoke(key, node);
+                callback.onInvoke(key, node, flag);
+                // 若不需要继续，则中断遍历
+                if (!flag.goOn) {
+                    break;
+                }
             }
             node = node.mNextNode;
         }
@@ -201,11 +222,15 @@ class CacheNode<Param, Data> {
     }
 
     private interface ICallback2<Param, Data> {
-        void onInvoke(String key, CacheNode<Param, Data> node);
+        void onInvoke(String key, CacheNode<Param, Data> node, TraverseFlag flag);
     }
 
     private interface ICallback3 {
         boolean shouldInvoke(int index);
+    }
+
+    private static class TraverseFlag {
+        boolean goOn = true;
     }
 
     private static class PenetratorProtector<Data> {
