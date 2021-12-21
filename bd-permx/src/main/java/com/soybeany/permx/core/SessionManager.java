@@ -47,6 +47,14 @@ public class SessionManager<T> {
     /**
      * 是否移除成功
      */
+    public boolean remove(HttpServletRequest request) {
+        String sessionId = getSessionId(request);
+        return remove(sessionId);
+    }
+
+    /**
+     * 是否移除成功
+     */
     public boolean remove(String sessionId) {
         if (null == sessionId) {
             return false;
