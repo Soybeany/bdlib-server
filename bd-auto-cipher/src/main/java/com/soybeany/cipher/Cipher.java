@@ -13,6 +13,8 @@ import java.lang.annotation.Target;
 /**
  * 使用jackson对字段(int、long、string)自动加解密，一般为ID,防横向越权
  * <br>* deserialize时必须使用{@link RequestBody}
+ *
+ * @author Soybeany
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.FIELD, ElementType.METHOD})
