@@ -44,7 +44,6 @@ public class SessionManager<T> {
         if (null != maxAge) {
             cookie.setMaxAge(maxAge);
         }
-        // 添加到cookie
         response.addCookie(cookie);
     }
 
@@ -103,6 +102,13 @@ public class SessionManager<T> {
 
     public void clear() {
         sessionStorage.clear();
+    }
+
+    // ***********************Header****************************
+
+    public void setToHeader(HttpServletResponse response, T value, int expiryInSec) {
+        String sessionId = set(value, expiryInSec);
+        setupHeader(response, sessionIdKey, sessionId);
     }
 
     // ********************Cookie********************
