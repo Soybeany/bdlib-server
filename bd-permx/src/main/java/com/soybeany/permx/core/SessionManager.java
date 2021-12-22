@@ -3,6 +3,8 @@ package com.soybeany.permx.core;
 import com.soybeany.util.cache.AutoUpdateMemDataHolder;
 import com.soybeany.util.cache.IDataHolder;
 import com.soybeany.util.file.BdFileUtils;
+import lombok.Setter;
+import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.lang.Nullable;
 
@@ -15,6 +17,10 @@ import java.util.Optional;
 @SuppressWarnings("UnusedReturnValue")
 public class SessionManager<T> {
 
+    @Setter
+    @Accessors(fluent = true, chain = true)
+    private int defaultExpiryInSec = 10;
+
     @Nullable
     public static String getSessionId(HttpServletRequest request, String sessionIdKey) {
         // 先尝试从header中获取
@@ -24,11 +30,12 @@ public class SessionManager<T> {
         }
         // 没有则从cookie中获取
         Cookie[] cookies = request.getCookies();
-        if (null != cookies) {
-            for (Cookie cookie : cookies) {
-                if (sessionIdKey.equals(cookie.getName())) {
-                    return cookie.getValue();
-                }
+        if (null == cookies) {
+            return null;
+        }
+        for (Cookie cookie : cookies) {
+            if (sessionIdKey.equals(cookie.getName())) {
+                return cookie.getValue();
             }
         }
         return null;
@@ -61,25 +68,53 @@ public class SessionManager<T> {
         this.sessionIdKey = sessionIdKey;
     }
 
-    public Optional<T> get(String sessionId) {
-        if (null == sessionId) {
-            return Optional.empty();
-        }
-        return Optional.ofNullable(sessionStorage.get(sessionId));
-    }
-
     public Optional<T> get(HttpServletRequest request) {
         String sessionId = getSessionId(request, sessionIdKey);
         return get(sessionId);
+    }
+
+    public Optional<T> get(String sessionId) {
+        return get(sessionId, null, null);
+    }
+
+    public Optional<T> get(String sessionId, DataProvider<T> dataProvider, DataProvider<Integer> expiryProvider) {
+        // 没有指定sessionId，则直接返回
+        if (null == sessionId) {
+            return Optional.empty();
+        }
+        // 若有数据，或没有指定数据提供者，则直接返回
+        T result = sessionStorage.get(sessionId);
+        if (null != result || null == dataProvider) {
+            return Optional.ofNullable(result);
+        }
+        // 若没有获取到数据，则直接返回
+        result = dataProvider.onGet(sessionId);
+        if (null == result) {
+            return Optional.empty();
+        }
+        // 保存数据并返回
+        Integer expiry = null;
+        if (null != expiryProvider) {
+            expiry = expiryProvider.onGet(sessionId);
+        }
+        if (null == expiry) {
+            expiry = defaultExpiryInSec;
+        }
+        set(sessionId, result, expiry);
+        return Optional.of(result);
     }
 
     /**
      * @return sessionId
      */
     public String set(T value, int expiryInSec) {
-        String token = BdFileUtils.getUuid();
-        sessionStorage.put(token, value, expiryInSec);
-        return token;
+        String sessionId = BdFileUtils.getUuid();
+        set(sessionId, value, expiryInSec);
+        return sessionId;
+    }
+
+    public void set(String sessionId, T value, int expiryInSec) {
+        sessionStorage.put(sessionId, value, expiryInSec);
     }
 
     /**
@@ -126,6 +161,12 @@ public class SessionManager<T> {
         }
         setupCookie(request, response, sessionIdKey, sessionId, 0);
         return true;
+    }
+
+    // ***********************内部类****************************
+
+    public interface DataProvider<T> {
+        T onGet(String sessionId);
     }
 
 }
