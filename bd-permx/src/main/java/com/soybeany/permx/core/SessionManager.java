@@ -15,11 +15,50 @@ import java.util.Optional;
 @SuppressWarnings("UnusedReturnValue")
 public class SessionManager<T> {
 
+    @Nullable
+    public static String getSessionId(HttpServletRequest request, String sessionIdKey) {
+        // 先尝试从header中获取
+        String sessionId = request.getHeader(sessionIdKey);
+        if (null != sessionId) {
+            return sessionId;
+        }
+        // 没有则从cookie中获取
+        Cookie[] cookies = request.getCookies();
+        if (null != cookies) {
+            for (Cookie cookie : cookies) {
+                if (sessionIdKey.equals(cookie.getName())) {
+                    return cookie.getValue();
+                }
+            }
+        }
+        return null;
+    }
+
+    public static void setupHeader(HttpServletResponse response, String sessionIdKey, String sessionId) {
+        response.setHeader(sessionIdKey, sessionId);
+    }
+
+    public static void setupCookie(HttpServletRequest request, HttpServletResponse response, String sessionIdKey, String sessionId, Integer maxAge) {
+        Cookie cookie = new Cookie(sessionIdKey, sessionId);
+        cookie.setPath(request.getContextPath());
+        if (null != maxAge) {
+            cookie.setMaxAge(maxAge);
+        }
+        // 添加到cookie
+        response.addCookie(cookie);
+    }
+
+    // ***********************成员区****************************
+
     private final IDataHolder<T> sessionStorage;
     private final String sessionIdKey;
 
     public SessionManager(int maxSessionCount, String sessionIdKey) {
-        sessionStorage = new AutoUpdateMemDataHolder<>(maxSessionCount);
+        this(new AutoUpdateMemDataHolder<>(maxSessionCount), sessionIdKey);
+    }
+
+    public SessionManager(IDataHolder<T> sessionStorage, String sessionIdKey) {
+        this.sessionStorage = sessionStorage;
         this.sessionIdKey = sessionIdKey;
     }
 
@@ -31,7 +70,7 @@ public class SessionManager<T> {
     }
 
     public Optional<T> get(HttpServletRequest request) {
-        String sessionId = getSessionId(request);
+        String sessionId = getSessionId(request, sessionIdKey);
         return get(sessionId);
     }
 
@@ -48,7 +87,7 @@ public class SessionManager<T> {
      * 是否移除成功
      */
     public boolean remove(HttpServletRequest request) {
-        String sessionId = getSessionId(request);
+        String sessionId = getSessionId(request, sessionIdKey);
         return remove(sessionId);
     }
 
@@ -70,55 +109,17 @@ public class SessionManager<T> {
 
     public void setToCookie(HttpServletRequest request, HttpServletResponse response, T value, int expiryInSec) {
         String sessionId = set(value, expiryInSec);
-        setupCookie(request, response, sessionId, null);
+        setupCookie(request, response, sessionIdKey, sessionId, null);
     }
 
     public boolean removeFromCookie(HttpServletRequest request, HttpServletResponse response) {
-        String sessionId = getSessionId(request);
+        String sessionId = getSessionId(request, sessionIdKey);
         boolean removed = remove(sessionId);
         if (!removed) {
             return false;
         }
-        setupCookie(request, response, sessionId, 0);
+        setupCookie(request, response, sessionIdKey, sessionId, 0);
         return true;
-    }
-
-    // ********************Header********************
-
-    public void setToHeader(HttpServletResponse response, T value, int expiryInSec) {
-        String sessionId = set(value, expiryInSec);
-        response.addHeader(sessionIdKey, sessionId);
-    }
-
-    // ********************内部方法********************
-
-    private void setupCookie(HttpServletRequest request, HttpServletResponse response, String sessionId, Integer maxAge) {
-        Cookie cookie = new Cookie(sessionIdKey, sessionId);
-        cookie.setPath(request.getContextPath());
-        if (null != maxAge) {
-            cookie.setMaxAge(maxAge);
-        }
-        // 添加到cookie
-        response.addCookie(cookie);
-    }
-
-    @Nullable
-    private String getSessionId(HttpServletRequest request) {
-        // 先尝试从header中获取
-        String sessionId = request.getHeader(sessionIdKey);
-        if (null != sessionId) {
-            return sessionId;
-        }
-        // 没有则从cookie中获取
-        Cookie[] cookies = request.getCookies();
-        if (null != cookies) {
-            for (Cookie cookie : cookies) {
-                if (sessionIdKey.equals(cookie.getName())) {
-                    return cookie.getValue();
-                }
-            }
-        }
-        return null;
     }
 
 }
