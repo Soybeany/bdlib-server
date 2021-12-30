@@ -11,11 +11,15 @@ import org.springframework.lang.Nullable;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.util.Collection;
 import java.util.Optional;
 
 @Slf4j
 @SuppressWarnings("UnusedReturnValue")
 public class SessionManager<T> {
+
+    private final IDataHolder<T> sessionStorage;
+    private final String sessionIdKey;
 
     @Setter
     @Accessors(fluent = true, chain = true)
@@ -56,9 +60,6 @@ public class SessionManager<T> {
 
     // ***********************成员区****************************
 
-    private final IDataHolder<T> sessionStorage;
-    private final String sessionIdKey;
-
     public SessionManager(int maxSessionCount, String sessionIdKey) {
         this(new AutoUpdateMemDataHolder<>(maxSessionCount), sessionIdKey);
     }
@@ -74,7 +75,11 @@ public class SessionManager<T> {
     }
 
     public Optional<T> get(String sessionId) {
-        return get(sessionId, null, null);
+        return get(sessionId, null);
+    }
+
+    public Optional<T> get(String sessionId, DataProvider<T> dataProvider) {
+        return get(sessionId, dataProvider, null);
     }
 
     public Optional<T> get(String sessionId, DataProvider<T> dataProvider, DataProvider<Integer> expiryProvider) {
@@ -133,6 +138,10 @@ public class SessionManager<T> {
             return false;
         }
         return (null != sessionStorage.remove(sessionId));
+    }
+
+    public Collection<T> getAll() {
+        return sessionStorage.getAll();
     }
 
     public void clear() {

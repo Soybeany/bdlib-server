@@ -7,7 +7,7 @@ import java.net.UnknownHostException;
 /**
  * @author Soybeany
  */
-public class IpUtils {
+public class BdIpUtils {
 
     public static final String LOCAL_IPV4 = "127.0.0.1";
     public static final String LOCAL_IPV6 = "0:0:0:0:0:0:0:1";
@@ -27,6 +27,14 @@ public class IpUtils {
             ipAddress = parts[parts.length - 1];
         }
         return ipAddress;
+    }
+
+    public static String getRemoteIp2(HttpServletRequest request) {
+        try {
+            return getRemoteIp(request);
+        } catch (UnknownHostException e) {
+            return "unknown";
+        }
     }
 
     public static boolean isInRange(String ipStart, String ipEnd, String ipTest) {

@@ -55,6 +55,7 @@ public class AuthInterceptor implements HandlerInterceptor {
                 throw new InnerException(HttpServletResponse.SC_FORBIDDEN, "Forbidden");
             }
         } catch (Exception e) {
+            response.setContentType("text/plain; charset=utf-8");
             if (e instanceof InnerException) {
                 InnerException innerException = (InnerException) e;
                 setupResponse(response, innerException.code, innerException.msg);

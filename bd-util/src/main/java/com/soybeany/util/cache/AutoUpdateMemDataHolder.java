@@ -2,12 +2,14 @@ package com.soybeany.util.cache;
 
 import com.soybeany.util.file.BdFileUtils;
 
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * @author Soybeany
@@ -44,6 +46,14 @@ public class AutoUpdateMemDataHolder<T> implements IDataHolder<T> {
     public synchronized T remove(String key) {
         Task<T> previous = dataMap.remove(key);
         return getDataFromTask(previous);
+    }
+
+    @Override
+    public Collection<T> getAll() {
+        return dataMap.values()
+                .stream()
+                .map(task -> task.data)
+                .collect(Collectors.toList());
     }
 
     @Override
