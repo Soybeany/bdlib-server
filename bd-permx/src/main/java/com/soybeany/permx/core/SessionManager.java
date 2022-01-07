@@ -1,7 +1,7 @@
 package com.soybeany.permx.core;
 
-import com.soybeany.util.cache.AutoUpdateMemDataHolder;
 import com.soybeany.util.cache.IDataHolder;
+import com.soybeany.util.cache.StdMemDataHolder;
 import com.soybeany.util.file.BdFileUtils;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -61,7 +61,7 @@ public class SessionManager<T> {
     // ***********************成员区****************************
 
     public SessionManager(int maxSessionCount, String sessionIdKey) {
-        this(new AutoUpdateMemDataHolder<>(maxSessionCount), sessionIdKey);
+        this(new StdMemDataHolder<>(maxSessionCount), sessionIdKey);
     }
 
     public SessionManager(IDataHolder<T> sessionStorage, String sessionIdKey) {

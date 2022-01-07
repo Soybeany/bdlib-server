@@ -15,14 +15,20 @@ import java.util.stream.Collectors;
  * @author Soybeany
  * @date 2021/2/10
  */
-public class AutoUpdateMemDataHolder<T> implements IDataHolder<T> {
+public class StdMemDataHolder<T> implements IDataHolder<T> {
+
+    private final Map<String, Task<T>> dataMap;
+    private final boolean needAutoUpdate;
 
     private ScheduledExecutorService service;
 
-    private final Map<String, Task<T>> dataMap;
+    public StdMemDataHolder(int maxCount) {
+        this(maxCount, true);
+    }
 
-    public AutoUpdateMemDataHolder(int maxCount) {
-        dataMap = new LruMap<>(maxCount);
+    public StdMemDataHolder(int maxCount, boolean needAutoUpdate) {
+        this.dataMap = new LruMap<>(maxCount);
+        this.needAutoUpdate = needAutoUpdate;
     }
 
     @Override
@@ -38,7 +44,9 @@ public class AutoUpdateMemDataHolder<T> implements IDataHolder<T> {
         if (null == task) {
             return null;
         }
-        task.uid = scheduleTask(key, task.expiryInSec);
+        if (needAutoUpdate) {
+            task.uid = scheduleTask(key, task.expiryInSec);
+        }
         return task.data;
     }
 
