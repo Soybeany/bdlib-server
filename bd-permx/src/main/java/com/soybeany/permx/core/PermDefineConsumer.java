@@ -22,6 +22,9 @@ public interface PermDefineConsumer {
 
     Set<PermissionDefine> getPermDefines();
 
+    /**
+     * key为{@link PermissionDefine#getValue}
+     */
     Map<String, PermissionDefine> getPermDefinesMap();
 
     Set<String> getPermValueSet();
@@ -56,7 +59,7 @@ public interface PermDefineConsumer {
         public Map<String, PermissionDefine> getPermDefinesMap() {
             Map<String, PermissionDefine> result = new HashMap<>();
             for (PermissionDefine define : getPermDefines()) {
-                result.put(define.getName(), define);
+                result.put(define.getValue(), define);
             }
             return result;
         }
