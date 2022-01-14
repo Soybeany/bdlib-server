@@ -12,13 +12,20 @@ public class BdIpUtils {
     public static final String LOCAL_IPV4 = "127.0.0.1";
     public static final String LOCAL_IPV6 = "0:0:0:0:0:0:0:1";
 
-    public static String getRemoteIp(HttpServletRequest request) throws UnknownHostException {
+    public static String getLocalIp() {
+        try {
+            return InetAddress.getLocalHost().getHostAddress();
+        } catch (UnknownHostException e) {
+            return "unknown";
+        }
+    }
+
+    public static String getRemoteIp(HttpServletRequest request) {
         String ipAddress = request.getHeader("x-forwarded-for");
         if (ipAddress == null || ipAddress.length() == 0 || "unknown".equalsIgnoreCase(ipAddress)) {
             ipAddress = request.getRemoteAddr();
             if (LOCAL_IPV4.equals(ipAddress) || LOCAL_IPV6.equals(ipAddress)) {
-                InetAddress inet = InetAddress.getLocalHost();
-                ipAddress = inet.getHostAddress();
+                ipAddress = getLocalIp();
             }
         }
         //多层代理情况下，取最右边的ip，如：1.2.3.4, 1.5.6.7
@@ -27,14 +34,6 @@ public class BdIpUtils {
             ipAddress = parts[parts.length - 1];
         }
         return ipAddress;
-    }
-
-    public static String getRemoteIp2(HttpServletRequest request) {
-        try {
-            return getRemoteIp(request);
-        } catch (UnknownHostException e) {
-            return "unknown";
-        }
     }
 
     public static boolean isInRange(String ipStart, String ipEnd, String ipTest) {
