@@ -126,11 +126,18 @@ public class BdFileUtils {
         if (null == out) {
             throw new RuntimeException("输出流不能为null");
         }
-        InputStream input = null;
-        OutputStream output = null;
+        InputStream input = in;
+        OutputStream output = out;
+        boolean needCloseInput = false, needCloseOutput = false;
         try {
-            input = in instanceof BufferedInputStream ? in : new BufferedInputStream(in);
-            output = out instanceof BufferedOutputStream ? out : new BufferedOutputStream(out);
+            if (!(in instanceof BufferedInputStream)) {
+                input = new BufferedInputStream(in);
+                needCloseInput = true;
+            }
+            if (!(out instanceof BufferedOutputStream)) {
+                output = new BufferedOutputStream(out);
+                needCloseOutput = true;
+            }
 
             int len;
             byte[] buffer = new byte[null != bufferArrSize ? bufferArrSize : DEFAULT_BLOCK_SIZE];
@@ -146,10 +153,10 @@ public class BdFileUtils {
                 }
             }
         } finally {
-            if (!(out instanceof BufferedOutputStream)) {
+            if (needCloseOutput) {
                 closeStream(output);
             }
-            if (!(in instanceof BufferedInputStream)) {
+            if (needCloseInput) {
                 closeStream(input);
             }
         }
