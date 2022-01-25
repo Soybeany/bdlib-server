@@ -33,20 +33,23 @@ public class BdIpUtils {
             String[] parts = ipAddress.split("\\s*,\\s*");
             ipAddress = parts[parts.length - 1];
         }
-        return ipAddress;
+        return null != ipAddress ? ipAddress.trim() : null;
     }
 
     public static boolean isInRange(String ipStart, String ipEnd, String ipTest) {
+        return isInRange(ipStart, ipEnd, parse(ipTest));
+    }
+
+    public static boolean isInRange(String ipStart, String ipEnd, long ipTest) {
         long start = parse(ipStart);
         long end = parse(ipEnd);
-        long test = parse(ipTest);
-        return test >= start && test <= end;
+        return ipTest >= start && ipTest <= end;
     }
 
     public static long parse(String ip) {
         StringBuilder builder = new StringBuilder();
         for (String part : ip.split("\\.")) {
-            int partValue = Integer.parseInt(part);
+            int partValue = Integer.parseInt(part.trim());
             if (partValue < 0 || partValue > 255) {
                 throw new RuntimeException("ip地址(" + ip + ")解析异常");
             }
