@@ -35,9 +35,10 @@ public class DBSimulationStorage<Param, Data> extends StdCacheStorage<Param, Dat
     }
 
     @Override
-    public void onCacheData(DataContext<Param> context, String key, DataPack<Data> data) {
+    public DataPack<Data> onCacheData(DataContext<Param> context, String key, DataPack<Data> data) {
         CacheEntity<Data> cacheEntity = CacheEntity.fromDataPack(data, System.currentTimeMillis(), mExpiry, mFastFailExpiry);
         map.put(key, cacheEntity);
+        return data;
     }
 
     @Override

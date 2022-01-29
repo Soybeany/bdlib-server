@@ -42,8 +42,9 @@ public class LruMemCacheStorage<Param, Data> extends StdCacheStorage<Param, Data
     }
 
     @Override
-    public void onCacheData(DataContext<Param> context, String key, DataPack<Data> data) {
+    public DataPack<Data> onCacheData(DataContext<Param> context, String key, DataPack<Data> data) {
         cacheData(key, data);
+        return data;
     }
 
     /**

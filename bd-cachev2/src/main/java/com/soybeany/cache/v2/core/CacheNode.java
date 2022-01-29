@@ -175,8 +175,7 @@ class CacheNode<Param, Data> {
         else {
             pack = mNextNode.getDataPackAndAutoCache(context, datasource);
         }
-        mCurStorage.onCacheData(context, key, pack);
-        return pack;
+        return mCurStorage.onCacheData(context, key, pack);
     }
 
     /**

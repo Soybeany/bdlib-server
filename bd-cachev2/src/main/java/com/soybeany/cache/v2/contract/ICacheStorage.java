@@ -66,7 +66,7 @@ public interface ICacheStorage<Param, Data> {
      * @param key     使用{@link IKeyConverter}对{@link Param}进行转化后的键，用于KV
      * @param data    待缓存的数据
      */
-    void onCacheData(DataContext<Param> context, String key, DataPack<Data> data);
+    DataPack<Data> onCacheData(DataContext<Param> context, String key, DataPack<Data> data);
 
     // ********************操作触发类********************
 

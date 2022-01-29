@@ -50,14 +50,14 @@ public class MultiKeyDMTest {
 
     private static class TestStorage<Param, Data> extends LruMemCacheStorage<Param, Data> {
         @Override
-        public void onCacheData(DataContext<Param> context, String key, DataPack<Data> data) {
+        public DataPack<Data> onCacheData(DataContext<Param> context, String key, DataPack<Data> data) {
             System.out.println("存数据:" + key);
             try {
                 Thread.sleep(500);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-            super.onCacheData(context, key, data);
+            return super.onCacheData(context, key, data);
         }
     }
 
