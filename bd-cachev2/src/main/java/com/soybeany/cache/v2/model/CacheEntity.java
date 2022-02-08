@@ -14,25 +14,25 @@ public class CacheEntity<Data> {
     /**
      * 该数据失效的时间戳(时间点)
      */
-    public final long expiryTimestamp;
+    public final long pExpireAt;
 
-    public static <Data> CacheEntity<Data> fromDataPack(DataPack<Data> dataPack, long curTimestamp, int maxNormalExpiryMillis, int maxAbnormalExpiryMillis) {
-        int maxExpiryMillis = dataPack.dataCore.norm ? maxNormalExpiryMillis : maxAbnormalExpiryMillis;
-        long expiryMillis = Math.min(dataPack.remainValidMillis, maxExpiryMillis);
-        return new CacheEntity<>(dataPack.dataCore, curTimestamp + expiryMillis);
+    public static <Data> CacheEntity<Data> fromDataPack(DataPack<Data> dataPack, long curTimestamp, int maxNormalPttl, int maxAbnormalExpiryMillis) {
+        int maxExpiryMillis = dataPack.dataCore.norm ? maxNormalPttl : maxAbnormalExpiryMillis;
+        long pTtl = Math.min(dataPack.pTtl, maxExpiryMillis);
+        return new CacheEntity<>(dataPack.dataCore, curTimestamp + pTtl);
     }
 
     public static <Data> DataPack<Data> toDataPack(CacheEntity<Data> entity, Object provider, long curTimestamp) {
-        return new DataPack<>(entity.dataCore, provider, (int) (entity.expiryTimestamp - curTimestamp));
+        return new DataPack<>(entity.dataCore, provider, (int) (entity.pExpireAt - curTimestamp));
     }
 
-    private CacheEntity(DataCore<Data> dataCore, long expiryTimestamp) {
+    private CacheEntity(DataCore<Data> dataCore, long pExpireAt) {
         this.dataCore = dataCore;
-        this.expiryTimestamp = expiryTimestamp;
+        this.pExpireAt = pExpireAt;
     }
 
     public boolean isExpired(long curTimestamp) {
-        return curTimestamp > expiryTimestamp;
+        return curTimestamp > pExpireAt;
     }
 
 }

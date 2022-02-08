@@ -2,35 +2,32 @@ package com.soybeany.cache.v2.core;
 
 import com.soybeany.cache.v2.contract.ICacheStorage;
 import com.soybeany.cache.v2.contract.IDatasource;
-import com.soybeany.cache.v2.contract.IKeyConverter;
 import com.soybeany.cache.v2.exception.NoCacheException;
 import com.soybeany.cache.v2.exception.NoDataSourceException;
 import com.soybeany.cache.v2.model.DataContext;
 import com.soybeany.cache.v2.model.DataCore;
 import com.soybeany.cache.v2.model.DataPack;
+import lombok.RequiredArgsConstructor;
 
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
- * 链式设计中的节点，若需访问下一节点，需加锁
+ * 链式设计中的节点
  *
  * @author Soybeany
  * @date 2020/1/20
  */
+@RequiredArgsConstructor
 class CacheNode<Param, Data> {
 
     private final Map<String, Lock> mKeyMap = new WeakHashMap<>();
-
     private final ICacheStorage<Param, Data> mCurStorage;
-
     private CacheNode<Param, Data> mNextNode;
-
-    private final PenetratorProtector<Data> mPenetratorProtector = new PenetratorProtector<>();
 
     public static <Param, Data> DataPack<Data> getDataDirectly(Object invoker, Param param, IDatasource<Param, Data> datasource) {
         // 没有指定数据源
@@ -46,14 +43,7 @@ class CacheNode<Param, Data> {
         }
     }
 
-    public CacheNode(ICacheStorage<Param, Data> curStorage) {
-        if (null == curStorage) {
-            throw new RuntimeException("CacheService不能为null");
-        }
-        mCurStorage = curStorage;
-    }
-
-    ICacheStorage<Param, Data> getStorage() {
+    public ICacheStorage<Param, Data> getStorage() {
         return mCurStorage;
     }
 
@@ -62,103 +52,51 @@ class CacheNode<Param, Data> {
      *
      * @param node 下一个节点
      */
-    void setNextNode(CacheNode<Param, Data> node) {
+    public void setNextNode(CacheNode<Param, Data> node) {
         mNextNode = node;
     }
 
     /**
      * 获取数据并自动缓存
      */
-    DataPack<Data> getDataPackAndAutoCache(DataContext<Param> context, final IDatasource<Param, Data> datasource) {
-        String key = getConverter().getKey(context.param);
-        return getDataFromCurNode(context, key, () -> getDataFromPenetratorProtector(key, () -> {
-            // 如果支持再次查询，则再次查询
-            if (mCurStorage.supportGetCacheBeforeAccessNextStorage()) {
-                try {
-                    return mCurStorage.onGetCacheBeforeAccessNextStorage(context, key);
-                } catch (NoCacheException ignore) {
-                }
-            }
-            // 查询下一节点
-            return getDataFromNextNode(context, key, datasource);
-        }));
-    }
-
-    void cacheData(DataContext<Param> context, DataPack<Data> pack) {
-        traverse(true, context.param, (key, node, flag) -> node.mCurStorage.onCacheData(context, key, pack));
-    }
-
-    void removeCache(DataContext<Param> context, int... storageIndexes) {
-        traverse(true, context.param, (key, node, flag) -> node.mCurStorage.removeCache(context, key), storageIndexes);
-    }
-
-    int removeOldCache(DataContext<Param> context, int validMillisAtLease) {
-        int[] removeLevel = {0};
-        traverse(true, context.param, (key, node, flag) -> {
-            DataPack<Data> dataPack = node.getDataFromCurNode(context, key, () -> null);
-            boolean isOldCache = (null != dataPack && dataPack.remainValidMillis < validMillisAtLease);
-            if (isOldCache) {
-                node.mCurStorage.removeCache(context, key);
-                removeLevel[0]++;
-            } else {
-                // 当前缓存仍生效，则不访问下一级缓存，以避免性能损耗
-                flag.goOn = false;
+    public DataPack<Data> getDataPackAndAutoCache(DataContext<Param> context, final IDatasource<Param, Data> datasource) {
+        String key = context.paramKey;
+        return getDataFromCurNode(context, () -> {
+            // 加锁，避免并发时数据重复获取
+            Lock lock = getLock(key);
+            lock.lock();
+            try {
+                // 再查一次本节点，避免由于并发多次调用下一节点
+                return getDataFromCurNode(context, () -> getDataFromNextNode(context, key, datasource));
+            } finally {
+                lock.unlock();
             }
         });
-        return removeLevel[0];
     }
 
-    void clearCache(String dataDesc, int... storageIndexes) {
-        traverse(false, null, (key, node, flag) -> node.mCurStorage.clearCache(dataDesc), storageIndexes);
+    public void cacheData(DataContext<Param> context, DataPack<Data> pack) {
+        traverse(context.paramKey, (key, node) -> node.mCurStorage.onCacheData(context, key, pack));
+    }
+
+    public void removeCache(DataContext<Param> context, int... cacheIndexes) {
+        traverse(context.paramKey, (key, node) -> node.mCurStorage.onRemoveCache(context, key), cacheIndexes);
+    }
+
+    public void clearCache(int... cacheIndexes) {
+        traverse(null, (key, node) -> node.mCurStorage.onClearCache(), cacheIndexes);
     }
 
     // ****************************************内部方法****************************************
 
-    private IKeyConverter<Param> getConverter() {
-        return mCurStorage.getConverter();
-    }
-
-    private void traverse(boolean needKey, Param param, ICallback2<Param, Data> callback, int... storageIndexes) {
-        ICallback3 callback3 = getCallback3(storageIndexes);
+    private void traverse(String key, ICallback2<Param, Data> callback, int... cacheIndexes) {
+        ICallback3 callback3 = getCallback3(cacheIndexes);
         CacheNode<Param, Data> node = this;
         int index = 0;
-        TraverseFlag flag = new TraverseFlag();
         while (null != node) {
             if (callback3.shouldInvoke(index++)) {
-                String key = (needKey ? node.getConverter().getKey(param) : null);
-                callback.onInvoke(key, node, flag);
-                // 若不需要继续，则中断遍历
-                if (!flag.goOn) {
-                    break;
-                }
+                callback.onInvoke(key, node);
             }
             node = node.mNextNode;
-        }
-    }
-
-    @SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
-    private DataPack<Data> getDataFromPenetratorProtector(String key, ICallback1<Data> callback) {
-        // 加锁，避免并发时数据重复获取
-        Lock lock = getLock(key);
-        lock.countOfGet.incrementAndGet();
-        synchronized (lock) {
-            try {
-                DataPack<Data> tmpPack = mPenetratorProtector.get(lock);
-                // 若临时数据缓存有数据，则不再访问下一节点，以免并发时多次访问下一级节点(double check机制)
-                if (null != tmpPack) {
-                    return tmpPack;
-                }
-                DataPack<Data> dataPack = callback.onNoCache();
-                tmpPack = new DataPack<>(dataPack.dataCore, mCurStorage, dataPack.remainValidMillis);
-                mPenetratorProtector.put(lock, tmpPack);
-                // 返回结果
-                return dataPack;
-            } finally {
-                int count = lock.countOfGet.decrementAndGet();
-                if (0 == count) {
-                    mPenetratorProtector.remove(lock);
-                }
-            }
         }
     }
 
@@ -181,9 +119,9 @@ class CacheNode<Param, Data> {
     /**
      * 从本地缓存服务获取数据
      */
-    private DataPack<Data> getDataFromCurNode(DataContext<Param> context, String key, ICallback1<Data> callback) {
+    private DataPack<Data> getDataFromCurNode(DataContext<Param> context, ICallback1<Data> callback) {
         try {
-            return mCurStorage.onGetCache(context, key);
+            return mCurStorage.onGetCache(context, context.paramKey);
         } catch (NoCacheException e) {
             return callback.onNoCache();
         }
@@ -201,17 +139,9 @@ class CacheNode<Param, Data> {
     }
 
     private Lock getLock(String key) {
-        Lock lock = mKeyMap.get(key);
-        if (null != lock) {
-            return lock;
-        }
         synchronized (mKeyMap) {
-            lock = mKeyMap.get(key);
-            if (null == lock) {
-                mKeyMap.put(key, lock = new Lock());
-            }
+            return mKeyMap.computeIfAbsent(key, k -> new ReentrantLock());
         }
-        return lock;
     }
 
     // ****************************************内部类****************************************
@@ -221,44 +151,11 @@ class CacheNode<Param, Data> {
     }
 
     private interface ICallback2<Param, Data> {
-        void onInvoke(String key, CacheNode<Param, Data> node, TraverseFlag flag);
+        void onInvoke(String key, CacheNode<Param, Data> node);
     }
 
     private interface ICallback3 {
         boolean shouldInvoke(int index);
     }
 
-    private static class TraverseFlag {
-        boolean goOn = true;
-    }
-
-    private static class PenetratorProtector<Data> {
-        private final Map<Lock, DataPack<Data>> mTmpMap = new ConcurrentHashMap<>();
-
-        DataPack<Data> get(Lock lock) {
-            return mTmpMap.get(lock);
-        }
-
-        void put(Lock lock, DataPack<Data> dataPack) {
-            mTmpMap.put(lock, dataPack);
-        }
-
-        void remove(Lock lock) {
-            mTmpMap.remove(lock);
-        }
-    }
-
-    private static class Lock {
-        final AtomicInteger countOfGet = new AtomicInteger();
-
-        @Override
-        public boolean equals(Object o) {
-            return this == o;
-        }
-
-        @Override
-        public int hashCode() {
-            return super.hashCode();
-        }
-    }
 }

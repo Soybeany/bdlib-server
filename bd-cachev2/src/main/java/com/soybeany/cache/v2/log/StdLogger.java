@@ -48,32 +48,21 @@ public class StdLogger<Param, Data> implements ILogger<Param, Data> {
     }
 
     @Override
-    public void onRemoveCache(DataContext<Param> context, int... storageIndexes) {
-        mWriter.onWriteInfo("“" + context.dataDesc + "”移除了" + getIndexMsg(storageIndexes) + "中“" + context.paramDesc + "”的缓存“");
+    public void onRemoveCache(DataContext<Param> context, int... cacheIndexes) {
+        mWriter.onWriteInfo("“" + context.dataDesc + "”移除了" + getIndexMsg(cacheIndexes) + "中“" + context.paramDesc + "”的缓存“");
     }
 
     @Override
-    public void onRemoveOldCache(DataContext<Param> context, int removeLevel) {
-        String content;
-        if (removeLevel <= 0) {
-            content = "没有移除任何旧缓存";
-        } else {
-            content = "移除了下标为“0~" + (removeLevel - 1) + "”的存储器中“" + context.paramDesc + "”的旧缓存";
-        }
-        mWriter.onWriteInfo("“" + context.dataDesc + "”" + content);
+    public void onClearCache(String dataDesc, int... cacheIndexes) {
+        mWriter.onWriteInfo("“" + dataDesc + "”清空了" + getIndexMsg(cacheIndexes) + "的缓存“");
     }
 
-    @Override
-    public void onClearCache(String dataDesc, int... storageIndexes) {
-        mWriter.onWriteInfo("“" + dataDesc + "”清空了" + getIndexMsg(storageIndexes) + "的缓存“");
-    }
-
-    private String getIndexMsg(int... storageIndexes) {
-        if (null == storageIndexes || 0 == storageIndexes.length) {
+    private String getIndexMsg(int... cacheIndexes) {
+        if (null == cacheIndexes || 0 == cacheIndexes.length) {
             return "全部存储器";
         }
         List<Integer> list = new ArrayList<>();
-        for (int index : storageIndexes) {
+        for (int index : cacheIndexes) {
             list.add(index);
         }
         return "下标为" + list + "的存储器";

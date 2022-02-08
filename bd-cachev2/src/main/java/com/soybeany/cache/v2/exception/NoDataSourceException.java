@@ -6,7 +6,7 @@ package com.soybeany.cache.v2.exception;
  * @author Soybeany
  * @date 2020/10/9
  */
-public class NoDataSourceException extends Exception {
+public class NoDataSourceException extends BdCacheException {
     public NoDataSourceException() {
         super("没有数据源");
     }

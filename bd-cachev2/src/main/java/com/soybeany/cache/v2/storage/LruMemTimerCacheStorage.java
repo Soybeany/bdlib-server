@@ -52,7 +52,7 @@ public class LruMemTimerCacheStorage<Param, Data> extends LruMemCacheStorage<Par
 
     @Override
     protected synchronized void onCacheData(String key, CacheEntity<Data> cacheEntity) {
-        long delayInMillis = cacheEntity.expiryTimestamp - System.currentTimeMillis();
+        long delayInMillis = cacheEntity.pExpireAt - System.currentTimeMillis();
         String uid = scheduleTask(key, delayInMillis);
         taskMap.put(key, new Task(uid, delayInMillis));
         super.onCacheData(key, cacheEntity);

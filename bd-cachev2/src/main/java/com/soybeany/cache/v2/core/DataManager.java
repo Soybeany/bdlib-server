@@ -5,6 +5,7 @@ import com.soybeany.cache.v2.contract.ICacheStorage;
 import com.soybeany.cache.v2.contract.IDatasource;
 import com.soybeany.cache.v2.contract.IKeyConverter;
 import com.soybeany.cache.v2.contract.ILogger;
+import com.soybeany.cache.v2.exception.BdCacheRtException;
 import com.soybeany.cache.v2.model.DataContext;
 import com.soybeany.cache.v2.model.DataCore;
 import com.soybeany.cache.v2.model.DataPack;
@@ -22,9 +23,10 @@ public class DataManager<Param, Data> {
     private final String mDataDesc;
     private final IDatasource<Param, Data> mDefaultDatasource;
 
-    private CacheNode<Param, Data> mFirstNode; // 调用链的头
-    private ILogger<Param, Data> mLogger; // 日志输出
-    private IKeyConverter<Param> mParamDescConverter; // 入参描述转换器
+    private CacheNode<Param, Data> mFirstNode;
+    private ILogger<Param, Data> mLogger;
+    private IKeyConverter<Param> mParamDescConverter;
+    private IKeyConverter<Param> mParamKeyConverter;
 
     /**
      * @param defaultDatasource 默认的数据源，允许为null
@@ -92,51 +94,36 @@ public class DataManager<Param, Data> {
     /**
      * 移除指定key在指定存储器中的缓存
      */
-    public void removeCache(Param param, int... storageIndexes) {
+    public void removeCache(Param param, int... cacheIndexes) {
         if (null == mFirstNode) {
             return;
         }
         DataContext<Param> context = getNewDataContext(param);
-        mFirstNode.removeCache(context, storageIndexes);
+        mFirstNode.removeCache(context, cacheIndexes);
         // 记录日志
         if (null != mLogger) {
-            mLogger.onRemoveCache(context, storageIndexes);
-        }
-    }
-
-    /**
-     * 移除指定key的陈旧缓存(全部存储器中)，即要求数据的剩余有效时间大于指定值
-     */
-    public void removeOldCache(Param param, int validMillisAtLease) {
-        if (null == mFirstNode) {
-            return;
-        }
-        DataContext<Param> context = getNewDataContext(param);
-        int removeLevel = mFirstNode.removeOldCache(context, validMillisAtLease);
-        // 记录日志
-        if (null != mLogger) {
-            mLogger.onRemoveOldCache(context, removeLevel);
+            mLogger.onRemoveCache(context, cacheIndexes);
         }
     }
 
     /**
      * 清除全部缓存(全部存储器)
      */
-    public void clearCache(int... storageIndexes) {
+    public void clearCache(int... cacheIndexes) {
         if (null == mFirstNode) {
             return;
         }
-        mFirstNode.clearCache(mDataDesc, storageIndexes);
+        mFirstNode.clearCache(cacheIndexes);
         // 记录日志
         if (null != mLogger) {
-            mLogger.onClearCache(mDataDesc, storageIndexes);
+            mLogger.onClearCache(mDataDesc, cacheIndexes);
         }
     }
 
     // ********************内部方法********************
 
     private DataContext<Param> getNewDataContext(Param param) {
-        return new DataContext<>(mDataDesc, mParamDescConverter.getKey(param), param);
+        return new DataContext<>(mDataDesc, mParamDescConverter.getKey(param), mParamKeyConverter.getKey(param), param);
     }
 
     private DataPack<Data> innerGetDataPackDirectly(Param param, IDatasource<Param, Data> datasource) {
@@ -166,21 +153,23 @@ public class DataManager<Param, Data> {
     public static class Builder<Param, Data> {
 
         private final DataManager<Param, Data> mManager;
-        private final IKeyConverter<Param> mDefaultConverter;
         private final LinkedList<CacheNode<Param, Data>> mNodes = new LinkedList<>();
 
         public static <Data> Builder<String, Data> get(String dataDesc, IDatasource<String, Data> datasource) {
             return new Builder<>(dataDesc, datasource, new IKeyConverter.Std());
         }
 
-        public static <Param, Data> Builder<Param, Data> get(String dataDesc, IDatasource<Param, Data> datasource, IKeyConverter<Param> defaultConverter) {
-            return new Builder<>(dataDesc, datasource, defaultConverter);
+        public static <Param, Data> Builder<Param, Data> get(String dataDesc, IDatasource<Param, Data> datasource, IKeyConverter<Param> keyConverter) {
+            return new Builder<>(dataDesc, datasource, keyConverter);
         }
 
-        private Builder(String dataDesc, IDatasource<Param, Data> datasource, IKeyConverter<Param> defaultConverter) {
+        private Builder(String dataDesc, IDatasource<Param, Data> datasource, IKeyConverter<Param> keyConverter) {
+            if (null == keyConverter) {
+                throw new BdCacheRtException("keyConverter不能为null");
+            }
             mManager = new DataManager<>(dataDesc, datasource);
-            mDefaultConverter = defaultConverter;
-            mManager.mParamDescConverter = defaultConverter;
+            mManager.mParamKeyConverter = keyConverter;
+            mManager.mParamDescConverter = keyConverter;
         }
 
         // ********************设置********************
@@ -192,15 +181,10 @@ public class DataManager<Param, Data> {
          */
         public Builder<Param, Data> withCache(ICacheStorage<Param, Data> storage) {
             if (null == storage) {
-                throw new RuntimeException("storage不能为null");
-            }
-            // 按需为存储器设置转换器
-            IKeyConverter<Param> converter = storage.getConverter();
-            if (null == converter) {
-                storage = storage.converter(mDefaultConverter);
+                throw new BdCacheRtException("storage不能为null");
             }
             // 添加到存储器列表
-            mNodes.addFirst(new CacheNode<>(storage));
+            mNodes.add(new CacheNode<>(storage));
             return this;
         }
 
@@ -253,7 +237,7 @@ public class DataManager<Param, Data> {
         private static class ServiceComparator implements Comparator<CacheNode<?, ?>> {
             @Override
             public int compare(CacheNode o1, CacheNode o2) {
-                return o1.getStorage().order() - o2.getStorage().order();
+                return o1.getStorage().priority() - o2.getStorage().priority();
             }
         }
     }

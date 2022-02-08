@@ -21,6 +21,11 @@ public class DBSimulationStorage<Param, Data> extends StdCacheStorage<Param, Dat
     }
 
     @Override
+    public int priority() {
+        return 0;
+    }
+
+    @Override
     public DataPack<Data> onGetCache(DataContext<Param> context, String key) throws NoCacheException {
         if (!map.containsKey(key)) {
             throw new NoCacheException();
@@ -42,12 +47,12 @@ public class DBSimulationStorage<Param, Data> extends StdCacheStorage<Param, Dat
     }
 
     @Override
-    public void removeCache(DataContext<Param> context, String key) {
+    public void onRemoveCache(DataContext<Param> context, String key) {
         map.remove(key);
     }
 
     @Override
-    public void clearCache(String dataDesc) {
+    public void onClearCache() {
         map.clear();
     }
 
