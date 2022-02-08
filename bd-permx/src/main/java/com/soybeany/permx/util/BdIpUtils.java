@@ -1,5 +1,7 @@
 package com.soybeany.permx.util;
 
+import com.soybeany.permx.exception.BdPermxRtException;
+
 import javax.servlet.http.HttpServletRequest;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -51,7 +53,7 @@ public class BdIpUtils {
         for (String part : ip.split("\\.")) {
             int partValue = Integer.parseInt(part.trim());
             if (partValue < 0 || partValue > 255) {
-                throw new RuntimeException("ip地址(" + ip + ")解析异常");
+                throw new BdPermxRtException("ip地址(" + ip + ")解析异常");
             }
             builder.append(String.format("%03d", partValue));
         }

@@ -1,5 +1,6 @@
 package com.soybeany.permx.model;
 
+import com.soybeany.permx.exception.BdPermxRtException;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -25,7 +26,7 @@ public abstract class CheckRule {
                 Set<String> requiredPermissions = restrict.getRequiredPermissions();
                 for (String permission : permissions.split("\\s*,\\s*")) {
                     if (!permissionDefines.contains(permission)) {
-                        throw new RuntimeException("使用了未定义的权限“" + permission + "”，请先在permDefine中定义该权限");
+                        throw new BdPermxRtException("使用了未定义的权限“" + permission + "”，请先在permDefine中定义该权限");
                     }
                     requiredPermissions.add(permission);
                 }

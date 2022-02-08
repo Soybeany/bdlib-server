@@ -1,6 +1,7 @@
 package com.soybeany.permx.core;
 
 import com.soybeany.permx.annotation.PermDefine;
+import com.soybeany.permx.exception.BdPermxRtException;
 import com.soybeany.permx.model.PermissionDefine;
 
 import java.lang.reflect.Field;
@@ -25,7 +26,7 @@ public abstract class PermDefineProviderStdImpl implements PermDefineProvider {
                 result.add(define);
             }
         } catch (Exception e) {
-            throw new RuntimeException("权限提取异常:" + "”" + e.getMessage() + "“");
+            throw new BdPermxRtException("权限提取异常:" + "”" + e.getMessage() + "“");
         }
         return result;
     }

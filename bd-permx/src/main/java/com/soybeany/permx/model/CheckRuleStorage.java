@@ -1,5 +1,6 @@
 package com.soybeany.permx.model;
 
+import com.soybeany.permx.exception.BdPermxRtException;
 import org.springframework.util.AntPathMatcher;
 
 import java.util.Collections;
@@ -26,7 +27,7 @@ public class CheckRuleStorage {
         } else if (rule instanceof CheckRule.WithAnonymity) {
             ANONYMITY_RULES.add((CheckRule.WithAnonymity) rule);
         } else {
-            throw new RuntimeException("无法匹配指定的约束");
+            throw new BdPermxRtException("无法匹配指定的约束");
         }
     }
 
@@ -71,7 +72,7 @@ public class CheckRuleStorage {
         if (rule instanceof CheckRule.WithPermission) {
             return canAccess((CheckRule.WithPermission) rule, provided);
         }
-        throw new RuntimeException("使用了未知的CheckRule类型");
+        throw new BdPermxRtException("使用了未知的CheckRule类型");
     }
 
     public static List<CheckRule> getAllRules() {

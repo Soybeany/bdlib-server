@@ -4,6 +4,7 @@ import com.soybeany.permx.annotation.RequireAnonymity;
 import com.soybeany.permx.annotation.RequireLogin;
 import com.soybeany.permx.annotation.RequirePermissions;
 import com.soybeany.permx.config.PermxConfig;
+import com.soybeany.permx.exception.BdPermxRtException;
 import com.soybeany.permx.model.CheckRule;
 import com.soybeany.permx.model.CheckRule.WithAnonymity;
 import com.soybeany.permx.model.CheckRule.WithPermission;
@@ -37,7 +38,7 @@ class CheckRuleHandler implements ServletContextListener {
             Set<String> requiredPermissions = restrict.getRequiredPermissions();
             for (String permission : permissions.value()) {
                 if (!permDefines.contains(permission)) {
-                    throw new RuntimeException("使用了未定义的权限:" + permission);
+                    throw new BdPermxRtException("使用了未定义的权限:" + permission);
                 }
                 requiredPermissions.add(permission);
             }
