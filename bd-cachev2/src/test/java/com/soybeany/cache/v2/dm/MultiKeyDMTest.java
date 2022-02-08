@@ -5,7 +5,7 @@ import com.soybeany.cache.v2.core.DataManager;
 import com.soybeany.cache.v2.log.ConsoleLogger;
 import com.soybeany.cache.v2.model.DataContext;
 import com.soybeany.cache.v2.model.DataPack;
-import com.soybeany.cache.v2.storage.LruMemCacheStorage;
+import com.soybeany.cache.v2.storage.LruMemCacheStorageBuilder;
 import org.junit.Test;
 
 import java.util.UUID;
@@ -15,7 +15,7 @@ import java.util.UUID;
  */
 public class MultiKeyDMTest {
 
-    private final ICacheStorage<String, String> lruStorage = new TestStorage<String, String>().expiry(800);
+    private final ICacheStorage<String, String> lruStorage = new TestStorage<>(800);
 
     private final DataManager<String, String> dataManager = DataManager.Builder
             .get("MultiExpiry", s -> {
@@ -48,7 +48,12 @@ public class MultiKeyDMTest {
         assert delta < 2000;
     }
 
-    private static class TestStorage<Param, Data> extends LruMemCacheStorage<Param, Data> {
+    private static class TestStorage<Param, Data> extends LruMemCacheStorageBuilder.Storage<Param, Data> {
+
+        public TestStorage(int pTtl) {
+            super(pTtl, 60 * 1000, 100);
+        }
+
         @Override
         public DataPack<Data> onCacheData(DataContext<Param> context, String key, DataPack<Data> data) {
             System.out.println("存数据:" + key);

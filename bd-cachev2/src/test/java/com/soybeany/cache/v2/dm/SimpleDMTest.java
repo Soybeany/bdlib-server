@@ -7,7 +7,7 @@ import com.soybeany.cache.v2.exception.NoCacheException;
 import com.soybeany.cache.v2.exception.NoDataSourceException;
 import com.soybeany.cache.v2.log.ConsoleLogger;
 import com.soybeany.cache.v2.model.DataPack;
-import com.soybeany.cache.v2.storage.LruMemCacheStorage;
+import com.soybeany.cache.v2.storage.LruMemCacheStorageBuilder;
 import org.junit.Test;
 
 import java.util.UUID;
@@ -22,9 +22,10 @@ public class SimpleDMTest {
         return UUID.randomUUID().toString();
     };
 
-    private final ICacheStorage<String, String> lruStorage = new LruMemCacheStorage<String, String>()
+    private final ICacheStorage<String, String> lruStorage = new LruMemCacheStorageBuilder<String, String>()
             .capacity(3)
-            .expiry(200);
+            .pTtl(200)
+            .build();
 
     private final DataManager<String, String> dataManager = DataManager.Builder
             .get("简单测试", datasource)

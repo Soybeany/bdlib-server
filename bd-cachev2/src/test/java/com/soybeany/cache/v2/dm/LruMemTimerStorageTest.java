@@ -1,11 +1,11 @@
 package com.soybeany.cache.v2.dm;
 
+import com.soybeany.cache.v2.contract.ICacheStorage;
 import com.soybeany.cache.v2.contract.IDatasource;
 import com.soybeany.cache.v2.core.DataManager;
 import com.soybeany.cache.v2.exception.NoCacheException;
 import com.soybeany.cache.v2.log.ConsoleLogger;
-import com.soybeany.cache.v2.storage.LruMemCacheStorage;
-import com.soybeany.cache.v2.storage.LruMemTimerCacheStorage;
+import com.soybeany.cache.v2.storage.LruMemTimerCacheStorageBuilder;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -23,8 +23,7 @@ public class LruMemTimerStorageTest {
         return UUID.randomUUID().toString();
     };
 
-    LruMemCacheStorage<String, String> cacheStorage = (LruMemCacheStorage<String, String>) new LruMemTimerCacheStorage<String, String>()
-            .expiry(500);
+    ICacheStorage<String, String> cacheStorage = new LruMemTimerCacheStorageBuilder<String, String>().pTtl(500).build();
 
     private final DataManager<String, String> dataManager = DataManager.Builder
             .get("LRU定时器存储器测试", datasource)
@@ -34,12 +33,12 @@ public class LruMemTimerStorageTest {
 
     @BeforeClass
     public static void beforeTest() {
-        LruMemTimerCacheStorage.createTimer();
+        LruMemTimerCacheStorageBuilder.createTimer();
     }
 
     @AfterClass
     public static void afterTest() {
-        LruMemTimerCacheStorage.destroyTimer();
+        LruMemTimerCacheStorageBuilder.destroyTimer();
     }
 
     @Test

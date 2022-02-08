@@ -25,7 +25,9 @@ public interface ICacheStorage<Param, Data> {
      *
      * @return 优先级值，值越大，越先被使用
      */
-    int priority();
+    default int priority() {
+        return ORDER_DEFAULT;
+    }
 
     /**
      * 该存储器的描述
@@ -67,5 +69,12 @@ public interface ICacheStorage<Param, Data> {
      * 清除全部缓存(有限的线程安全保障，只锁相同key)
      */
     void onClearCache();
+
+    // ***********************主动调用类****************************
+
+    /**
+     * 当前缓存的数据条数
+     */
+    int size();
 
 }

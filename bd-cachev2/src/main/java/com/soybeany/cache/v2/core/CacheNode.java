@@ -7,7 +7,9 @@ import com.soybeany.cache.v2.exception.NoDataSourceException;
 import com.soybeany.cache.v2.model.DataContext;
 import com.soybeany.cache.v2.model.DataCore;
 import com.soybeany.cache.v2.model.DataPack;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 
 import java.util.HashSet;
 import java.util.Map;
@@ -26,8 +28,12 @@ import java.util.concurrent.locks.ReentrantLock;
 class CacheNode<Param, Data> {
 
     private final Map<String, Lock> mKeyMap = new WeakHashMap<>();
-    private final ICacheStorage<Param, Data> mCurStorage;
-    private CacheNode<Param, Data> mNextNode;
+    @Getter
+    private final ICacheStorage<Param, Data> curStorage;
+    @Getter
+    private final int priority;
+    @Setter
+    private CacheNode<Param, Data> nextNode;
 
     public static <Param, Data> DataPack<Data> getDataDirectly(Object invoker, Param param, IDatasource<Param, Data> datasource) {
         // 没有指定数据源
@@ -41,19 +47,6 @@ class CacheNode<Param, Data> {
         } catch (Exception e) {
             return new DataPack<>(DataCore.fromException(e), datasource, datasource.onSetupExpiry(e));
         }
-    }
-
-    public ICacheStorage<Param, Data> getStorage() {
-        return mCurStorage;
-    }
-
-    /**
-     * 设置下一个节点
-     *
-     * @param node 下一个节点
-     */
-    public void setNextNode(CacheNode<Param, Data> node) {
-        mNextNode = node;
     }
 
     /**
@@ -75,15 +68,15 @@ class CacheNode<Param, Data> {
     }
 
     public void cacheData(DataContext<Param> context, DataPack<Data> pack) {
-        traverse(context.paramKey, (key, node) -> node.mCurStorage.onCacheData(context, key, pack));
+        traverse(context.paramKey, (key, node) -> node.curStorage.onCacheData(context, key, pack));
     }
 
     public void removeCache(DataContext<Param> context, int... cacheIndexes) {
-        traverse(context.paramKey, (key, node) -> node.mCurStorage.onRemoveCache(context, key), cacheIndexes);
+        traverse(context.paramKey, (key, node) -> node.curStorage.onRemoveCache(context, key), cacheIndexes);
     }
 
     public void clearCache(int... cacheIndexes) {
-        traverse(null, (key, node) -> node.mCurStorage.onClearCache(), cacheIndexes);
+        traverse(null, (key, node) -> node.curStorage.onClearCache(), cacheIndexes);
     }
 
     // ****************************************内部方法****************************************
@@ -96,7 +89,7 @@ class CacheNode<Param, Data> {
             if (callback3.shouldInvoke(index++)) {
                 callback.onInvoke(key, node);
             }
-            node = node.mNextNode;
+            node = node.nextNode;
         }
     }
 
@@ -106,14 +99,14 @@ class CacheNode<Param, Data> {
     private DataPack<Data> getDataFromNextNode(DataContext<Param> context, String key, IDatasource<Param, Data> datasource) {
         DataPack<Data> pack;
         // 若没有下一节点，则从数据源获取
-        if (null == mNextNode) {
-            pack = getDataDirectly(mCurStorage, context.param, datasource);
+        if (null == nextNode) {
+            pack = getDataDirectly(curStorage, context.param, datasource);
         }
         // 否则从下一节点获取缓存
         else {
-            pack = mNextNode.getDataPackAndAutoCache(context, datasource);
+            pack = nextNode.getDataPackAndAutoCache(context, datasource);
         }
-        return mCurStorage.onCacheData(context, key, pack);
+        return curStorage.onCacheData(context, key, pack);
     }
 
     /**
@@ -121,7 +114,7 @@ class CacheNode<Param, Data> {
      */
     private DataPack<Data> getDataFromCurNode(DataContext<Param> context, ICallback1<Data> callback) {
         try {
-            return mCurStorage.onGetCache(context, context.paramKey);
+            return curStorage.onGetCache(context, context.paramKey);
         } catch (NoCacheException e) {
             return callback.onNoCache();
         }

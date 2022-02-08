@@ -16,9 +16,9 @@ public class CacheEntity<Data> {
      */
     public final long pExpireAt;
 
-    public static <Data> CacheEntity<Data> fromDataPack(DataPack<Data> dataPack, long curTimestamp, int maxNormalPttl, int maxAbnormalExpiryMillis) {
-        int maxExpiryMillis = dataPack.dataCore.norm ? maxNormalPttl : maxAbnormalExpiryMillis;
-        long pTtl = Math.min(dataPack.pTtl, maxExpiryMillis);
+    public static <Data> CacheEntity<Data> fromDataPack(DataPack<Data> dataPack, long curTimestamp, int pTtlMaxNorm, int pTtlMaxErr) {
+        int pTtlMax = dataPack.dataCore.norm ? pTtlMaxNorm : pTtlMaxErr;
+        long pTtl = Math.min(dataPack.pTtl, pTtlMax);
         return new CacheEntity<>(dataPack.dataCore, curTimestamp + pTtl);
     }
 

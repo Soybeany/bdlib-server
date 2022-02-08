@@ -3,8 +3,7 @@ package com.soybeany.cache.v2.component;
 import com.soybeany.cache.v2.exception.NoCacheException;
 import com.soybeany.cache.v2.model.CacheEntity;
 import com.soybeany.cache.v2.model.DataContext;
-import com.soybeany.cache.v2.model.DataPack;
-import com.soybeany.cache.v2.storage.StdCacheStorage;
+import com.soybeany.cache.v2.storage.StdStorageBuilder;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -12,8 +11,16 @@ import java.util.Map;
 /**
  * <br>Created by Soybeany on 2020/10/16.
  */
-public class DBSimulationStorage<Param, Data> extends StdCacheStorage<Param, Data> {
+public class DBSimulationStorage<Param, Data> extends StdStorageBuilder.StdStorage<Param, Data> {
     private final Map<String, CacheEntity<Data>> map = new HashMap<>();
+
+    public DBSimulationStorage() {
+        this(Integer.MAX_VALUE);
+    }
+
+    public DBSimulationStorage(int pTtl) {
+        super(pTtl, 60 * 1000);
+    }
 
     @Override
     public String desc() {
@@ -21,29 +28,22 @@ public class DBSimulationStorage<Param, Data> extends StdCacheStorage<Param, Dat
     }
 
     @Override
-    public int priority() {
-        return 0;
-    }
-
-    @Override
-    public DataPack<Data> onGetCache(DataContext<Param> context, String key) throws NoCacheException {
+    protected CacheEntity<Data> onLoadCacheEntity(DataContext<Param> context, String key) throws NoCacheException {
         if (!map.containsKey(key)) {
             throw new NoCacheException();
         }
-        CacheEntity<Data> cacheEntity = map.get(key);
-        long currentTimeMillis = System.currentTimeMillis();
-        if (cacheEntity.isExpired(currentTimeMillis)) {
-            map.remove(key);
-            throw new NoCacheException();
-        }
-        return CacheEntity.toDataPack(cacheEntity, this, currentTimeMillis);
+        return map.get(key);
     }
 
     @Override
-    public DataPack<Data> onCacheData(DataContext<Param> context, String key, DataPack<Data> data) {
-        CacheEntity<Data> cacheEntity = CacheEntity.fromDataPack(data, System.currentTimeMillis(), mExpiry, mFastFailExpiry);
-        map.put(key, cacheEntity);
-        return data;
+    protected CacheEntity<Data> onSaveCacheEntity(DataContext<Param> context, String key, CacheEntity<Data> entity) {
+        map.put(key, entity);
+        return entity;
+    }
+
+    @Override
+    protected long onGetCurTimestamp() {
+        return System.currentTimeMillis();
     }
 
     @Override
@@ -54,6 +54,11 @@ public class DBSimulationStorage<Param, Data> extends StdCacheStorage<Param, Dat
     @Override
     public void onClearCache() {
         map.clear();
+    }
+
+    @Override
+    public int size() {
+        return map.size();
     }
 
 }
