@@ -42,28 +42,25 @@ public interface ICacheStorage<Param, Data> {
      * 获取缓存(没有线程安全保障)
      *
      * @param context 上下文，含有当前环境的一些信息
-     * @param key     使用{@link IKeyConverter}对{@link Param}进行转化后的键，用于KV
      * @return 数据
      */
-    DataPack<Data> onGetCache(DataContext<Param> context, String key) throws NoCacheException;
+    DataPack<Data> onGetCache(DataContext<Param> context) throws NoCacheException;
 
     /**
      * 缓存数据(有限的线程安全保障，只锁相同key)
      *
      * @param context  上下文，含有当前环境的一些信息
-     * @param key      使用{@link IKeyConverter}对{@link Param}进行转化后的键，用于KV
      * @param dataPack 待缓存的数据
      * @return 返回至上一级的数据
      */
-    DataPack<Data> onCacheData(DataContext<Param> context, String key, DataPack<Data> dataPack);
+    DataPack<Data> onCacheData(DataContext<Param> context, DataPack<Data> dataPack);
 
     /**
      * 移除指定的缓存(有限的线程安全保障，只锁相同key)
      *
      * @param context 上下文，含有当前环境的一些信息
-     * @param key     使用{@link IKeyConverter}对{@link Param}进行转化后的键，用于KV
      */
-    void onRemoveCache(DataContext<Param> context, String key);
+    void onRemoveCache(DataContext<Param> context);
 
     /**
      * 清除全部缓存(有限的线程安全保障，只锁相同key)
@@ -82,6 +79,6 @@ public interface ICacheStorage<Param, Data> {
      *
      * @return 数目
      */
-    int cacheSize();
+    int cachedDataCount();
 
 }

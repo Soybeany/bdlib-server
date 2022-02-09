@@ -5,6 +5,7 @@ import com.soybeany.cache.v2.contract.IDatasource;
 import com.soybeany.cache.v2.core.DataManager;
 import com.soybeany.cache.v2.exception.NoCacheException;
 import com.soybeany.cache.v2.log.ConsoleLogger;
+import com.soybeany.cache.v2.model.DataContext;
 import com.soybeany.cache.v2.storage.LruMemTimerCacheStorage;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -54,13 +55,13 @@ public class LruMemTimerStorageTest {
         // 检验
         Thread.sleep(300);
         try {
-            cacheStorage.onGetCache(null, key2);
+            cacheStorage.onGetCache(new DataContext<>(null, null, key2, null));
             throw new Exception("不允许还持有缓存");
         } catch (NoCacheException ignore) {
         }
-        assert cacheStorage.cacheSize() == 1;
+        assert cacheStorage.cachedDataCount() == 1;
         Thread.sleep(250);
-        assert cacheStorage.cacheSize() == 0;
+        assert cacheStorage.cachedDataCount() == 0;
     }
 
 }

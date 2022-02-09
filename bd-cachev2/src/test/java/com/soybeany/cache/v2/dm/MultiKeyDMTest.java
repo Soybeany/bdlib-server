@@ -55,14 +55,14 @@ public class MultiKeyDMTest {
         }
 
         @Override
-        public DataPack<Data> onCacheData(DataContext<Param> context, String key, DataPack<Data> dataPack) {
-            System.out.println("存数据:" + key);
+        public DataPack<Data> onCacheData(DataContext<Param> context, DataPack<Data> dataPack) {
+            System.out.println("存数据:" + context.paramKey);
             try {
                 Thread.sleep(500);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-            return super.onCacheData(context, key, dataPack);
+            return super.onCacheData(context, dataPack);
         }
     }
 

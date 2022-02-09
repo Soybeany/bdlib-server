@@ -56,7 +56,7 @@ public class RenewCacheDMTest {
         assert dataPack4.provider == lruStorage;
         // 第五次将访问数据源
         dbStorage.enableRenewExpiredCache(false);
-        Thread.sleep(200);
+        Thread.sleep(250);
         DataPack<String> dataPack5 = dataManager.getDataPack(null);
         assert dataPack5.provider == datasource;
     }

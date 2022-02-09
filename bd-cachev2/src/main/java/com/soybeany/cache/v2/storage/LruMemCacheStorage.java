@@ -43,13 +43,13 @@ public class LruMemCacheStorage<Param, Data> extends StdStorage<Param, Data> {
     }
 
     @Override
-    protected long onGetCurTimestamp() {
-        return System.currentTimeMillis();
+    protected void onRemoveCacheEntity(DataContext<Param> context, String key) {
+        mLruMap.remove(key);
     }
 
     @Override
-    public synchronized void onRemoveCache(DataContext<Param> context, String key) {
-        mLruMap.remove(key);
+    protected long onGetCurTimestamp() {
+        return System.currentTimeMillis();
     }
 
     @Override
@@ -58,7 +58,7 @@ public class LruMemCacheStorage<Param, Data> extends StdStorage<Param, Data> {
     }
 
     @Override
-    public int cacheSize() {
+    public int cachedDataCount() {
         return mLruMap.size();
     }
 

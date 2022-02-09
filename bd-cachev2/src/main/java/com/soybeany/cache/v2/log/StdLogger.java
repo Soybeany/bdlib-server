@@ -8,6 +8,7 @@ import com.soybeany.cache.v2.model.DataPack;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * @author Soybeany
@@ -35,26 +36,35 @@ public class StdLogger<Param, Data> implements ILogger<Param, Data> {
         } else {
             from = "其它来源(" + pack.provider + ")";
         }
-        mWriter.onWriteInfo("“" + context.dataDesc + "”从“" + from + "”获取了“" + context.paramDesc + "”的数据");
+        mWriter.onWriteInfo("“" + context.dataDesc + "”从“" + from + "”获取了“" + getDesc(context) + "”的数据");
     }
 
     @Override
     public void onCacheData(DataContext<Param> context, DataPack<Data> pack) {
+        String desc = getDesc(context);
         if (pack.norm()) {
-            mWriter.onWriteInfo("“" + context.dataDesc + "”缓存了“" + context.paramDesc + "”的数据“");
+            mWriter.onWriteInfo("“" + context.dataDesc + "”缓存了“" + desc + "”的数据“");
         } else {
-            mWriter.onWriteWarn("“" + context.dataDesc + "”缓存了“" + context.paramDesc + "”的异常(" + pack.dataCore.exception.getClass().getSimpleName() + ")“");
+            mWriter.onWriteWarn("“" + context.dataDesc + "”缓存了“" + desc + "”的异常(" + pack.dataCore.exception.getClass().getSimpleName() + ")“");
         }
     }
 
     @Override
     public void onRemoveCache(DataContext<Param> context, int... cacheIndexes) {
-        mWriter.onWriteInfo("“" + context.dataDesc + "”移除了" + getIndexMsg(cacheIndexes) + "中“" + context.paramDesc + "”的缓存“");
+        mWriter.onWriteInfo("“" + context.dataDesc + "”移除了" + getIndexMsg(cacheIndexes) + "中“" + getDesc(context) + "”的缓存“");
     }
 
     @Override
     public void onClearCache(String dataDesc, int... cacheIndexes) {
         mWriter.onWriteInfo("“" + dataDesc + "”清空了" + getIndexMsg(cacheIndexes) + "的缓存“");
+    }
+
+    private String getDesc(DataContext<Param> context) {
+        String desc = context.paramDesc;
+        if (!Objects.equals(context.paramDesc, context.paramKey)) {
+            desc += "(" + context.paramKey + ")";
+        }
+        return desc;
     }
 
     private String getIndexMsg(int... cacheIndexes) {

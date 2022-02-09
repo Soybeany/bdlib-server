@@ -53,14 +53,13 @@ class CacheNode<Param, Data> {
      * 获取数据并自动缓存
      */
     public DataPack<Data> getDataPackAndAutoCache(DataContext<Param> context, final IDatasource<Param, Data> datasource) {
-        String key = context.paramKey;
         return getDataFromCurNode(context, () -> {
             // 加锁，避免并发时数据重复获取
-            Lock lock = getLock(key);
+            Lock lock = getLock(context.paramKey);
             lock.lock();
             try {
                 // 再查一次本节点，避免由于并发多次调用下一节点
-                return getDataFromCurNode(context, () -> getDataFromNextNode(context, key, datasource));
+                return getDataFromCurNode(context, () -> getDataFromNextNode(context, datasource));
             } finally {
                 lock.unlock();
             }
@@ -68,26 +67,26 @@ class CacheNode<Param, Data> {
     }
 
     public void cacheData(DataContext<Param> context, DataPack<Data> pack) {
-        traverse(context.paramKey, (key, node) -> node.curStorage.onCacheData(context, key, pack));
+        traverse(node -> node.curStorage.onCacheData(context, pack));
     }
 
     public void removeCache(DataContext<Param> context, int... cacheIndexes) {
-        traverse(context.paramKey, (key, node) -> node.curStorage.onRemoveCache(context, key), cacheIndexes);
+        traverse(node -> node.curStorage.onRemoveCache(context), cacheIndexes);
     }
 
     public void clearCache(int... cacheIndexes) {
-        traverse(null, (key, node) -> node.curStorage.onClearCache(), cacheIndexes);
+        traverse(node -> node.curStorage.onClearCache(), cacheIndexes);
     }
 
     // ****************************************内部方法****************************************
 
-    private void traverse(String key, ICallback2<Param, Data> callback, int... cacheIndexes) {
+    private void traverse(ICallback2<Param, Data> callback, int... cacheIndexes) {
         ICallback3 callback3 = getCallback3(cacheIndexes);
         CacheNode<Param, Data> node = this;
         int index = 0;
         while (null != node) {
             if (callback3.shouldInvoke(index++)) {
-                callback.onInvoke(key, node);
+                callback.onInvoke(node);
             }
             node = node.nextNode;
         }
@@ -96,7 +95,7 @@ class CacheNode<Param, Data> {
     /**
      * 从下一节点获取数据
      */
-    private DataPack<Data> getDataFromNextNode(DataContext<Param> context, String key, IDatasource<Param, Data> datasource) {
+    private DataPack<Data> getDataFromNextNode(DataContext<Param> context, IDatasource<Param, Data> datasource) {
         DataPack<Data> pack;
         // 若没有下一节点，则从数据源获取
         if (null == nextNode) {
@@ -106,7 +105,7 @@ class CacheNode<Param, Data> {
         else {
             pack = nextNode.getDataPackAndAutoCache(context, datasource);
         }
-        return curStorage.onCacheData(context, key, pack);
+        return curStorage.onCacheData(context, pack);
     }
 
     /**
@@ -114,7 +113,7 @@ class CacheNode<Param, Data> {
      */
     private DataPack<Data> getDataFromCurNode(DataContext<Param> context, ICallback1<Data> callback) {
         try {
-            return curStorage.onGetCache(context, context.paramKey);
+            return curStorage.onGetCache(context);
         } catch (NoCacheException e) {
             return callback.onNoCache();
         }
@@ -144,7 +143,7 @@ class CacheNode<Param, Data> {
     }
 
     private interface ICallback2<Param, Data> {
-        void onInvoke(String key, CacheNode<Param, Data> node);
+        void onInvoke(CacheNode<Param, Data> node);
     }
 
     private interface ICallback3 {

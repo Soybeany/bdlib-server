@@ -79,7 +79,7 @@ public class LruMemTimerCacheStorage<Param, Data> extends LruMemCacheStorage<Par
             return;
         }
         taskMap.remove(key);
-        super.onRemoveCache(context, key);
+        super.onRemoveCacheEntity(context, key);
     }
 
     // ********************内部类********************
