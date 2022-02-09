@@ -5,7 +5,7 @@ import com.soybeany.cache.v2.contract.IDatasource;
 import com.soybeany.cache.v2.core.DataManager;
 import com.soybeany.cache.v2.exception.NoCacheException;
 import com.soybeany.cache.v2.log.ConsoleLogger;
-import com.soybeany.cache.v2.storage.LruMemTimerCacheStorageBuilder;
+import com.soybeany.cache.v2.storage.LruMemTimerCacheStorage;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -23,7 +23,7 @@ public class LruMemTimerStorageTest {
         return UUID.randomUUID().toString();
     };
 
-    ICacheStorage<String, String> cacheStorage = new LruMemTimerCacheStorageBuilder<String, String>().pTtl(500).build();
+    ICacheStorage<String, String> cacheStorage = new LruMemTimerCacheStorage.Builder<String, String>().pTtl(500).build();
 
     private final DataManager<String, String> dataManager = DataManager.Builder
             .get("LRU定时器存储器测试", datasource)
@@ -33,12 +33,12 @@ public class LruMemTimerStorageTest {
 
     @BeforeClass
     public static void beforeTest() {
-        LruMemTimerCacheStorageBuilder.createTimer();
+        LruMemTimerCacheStorage.createTimer();
     }
 
     @AfterClass
     public static void afterTest() {
-        LruMemTimerCacheStorageBuilder.destroyTimer();
+        LruMemTimerCacheStorage.destroyTimer();
     }
 
     @Test

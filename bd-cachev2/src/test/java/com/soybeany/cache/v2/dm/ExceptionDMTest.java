@@ -5,7 +5,7 @@ import com.soybeany.cache.v2.contract.IDatasource;
 import com.soybeany.cache.v2.core.DataManager;
 import com.soybeany.cache.v2.log.ConsoleLogger;
 import com.soybeany.cache.v2.model.DataPack;
-import com.soybeany.cache.v2.storage.LruMemCacheStorageBuilder;
+import com.soybeany.cache.v2.storage.LruMemCacheStorage;
 import org.junit.Test;
 
 /**
@@ -17,7 +17,7 @@ public class ExceptionDMTest {
         throw new Exception("测试");
     };
 
-    ICacheStorage<String, String> cacheStorage = new LruMemCacheStorageBuilder<String, String>().build();
+    ICacheStorage<String, String> cacheStorage = new LruMemCacheStorage.Builder<String, String>().build();
 
     private final DataManager<String, String> dataManager = DataManager.Builder
             .get("异常测试", datasource)

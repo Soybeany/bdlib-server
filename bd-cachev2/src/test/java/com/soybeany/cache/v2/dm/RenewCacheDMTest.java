@@ -6,7 +6,7 @@ import com.soybeany.cache.v2.contract.IDatasource;
 import com.soybeany.cache.v2.core.DataManager;
 import com.soybeany.cache.v2.log.ConsoleLogger;
 import com.soybeany.cache.v2.model.DataPack;
-import com.soybeany.cache.v2.storage.LruMemCacheStorageBuilder;
+import com.soybeany.cache.v2.storage.LruMemCacheStorage;
 import org.junit.Test;
 
 /**
@@ -28,7 +28,7 @@ public class RenewCacheDMTest {
         }
     };
 
-    ICacheStorage<String, String> lruStorage = new LruMemCacheStorageBuilder<String, String>().capacity(3).pTtl(200).build();
+    ICacheStorage<String, String> lruStorage = new LruMemCacheStorage.Builder<String, String>().capacity(3).pTtl(200).build();
     ICacheStorage<String, String> dbStorage = new DBSimulationStorage<>(200);
 
     private final DataManager<String, String> dataManager = DataManager.Builder

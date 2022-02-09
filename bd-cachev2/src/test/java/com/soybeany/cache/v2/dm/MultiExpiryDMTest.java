@@ -6,7 +6,7 @@ import com.soybeany.cache.v2.contract.IDatasource;
 import com.soybeany.cache.v2.core.DataManager;
 import com.soybeany.cache.v2.log.ConsoleLogger;
 import com.soybeany.cache.v2.model.DataPack;
-import com.soybeany.cache.v2.storage.LruMemCacheStorageBuilder;
+import com.soybeany.cache.v2.storage.LruMemCacheStorage;
 import org.junit.Test;
 
 import java.util.UUID;
@@ -21,7 +21,7 @@ public class MultiExpiryDMTest {
         return UUID.randomUUID().toString();
     };
 
-    private final ICacheStorage<String, String> lruStorage = new LruMemCacheStorageBuilder<String, String>().pTtl(800).build();
+    private final ICacheStorage<String, String> lruStorage = new LruMemCacheStorage.Builder<String, String>().pTtl(800).build();
     private final ICacheStorage<String, String> dbStorage = new DBSimulationStorage<>(1000);
 
     private final DataManager<String, String> dataManager = DataManager.Builder

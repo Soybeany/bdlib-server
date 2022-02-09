@@ -3,7 +3,7 @@ package com.soybeany.cache.v2.component;
 import com.soybeany.cache.v2.exception.NoCacheException;
 import com.soybeany.cache.v2.model.CacheEntity;
 import com.soybeany.cache.v2.model.DataContext;
-import com.soybeany.cache.v2.storage.StdStorageBuilder;
+import com.soybeany.cache.v2.storage.StdStorage;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -11,7 +11,7 @@ import java.util.Map;
 /**
  * <br>Created by Soybeany on 2020/10/16.
  */
-public class DBSimulationStorage<Param, Data> extends StdStorageBuilder.StdStorage<Param, Data> {
+public class DBSimulationStorage<Param, Data> extends StdStorage<Param, Data> {
     private final Map<String, CacheEntity<Data>> map = new HashMap<>();
 
     public DBSimulationStorage() {
@@ -19,7 +19,7 @@ public class DBSimulationStorage<Param, Data> extends StdStorageBuilder.StdStora
     }
 
     public DBSimulationStorage(int pTtl) {
-        super(pTtl, 60 * 1000);
+        super(pTtl, pTtl);
     }
 
     @Override
