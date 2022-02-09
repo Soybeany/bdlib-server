@@ -29,13 +29,14 @@ public class RenewCacheDMTest {
     };
 
     ICacheStorage<String, String> lruStorage = new LruMemCacheStorageBuilder<String, String>().capacity(3).pTtl(200).build();
-    ICacheStorage<String, String> dbStorage = new DBSimulationStorage<>(200, true);
+    ICacheStorage<String, String> dbStorage = new DBSimulationStorage<>(200);
 
     private final DataManager<String, String> dataManager = DataManager.Builder
             .get("简单测试", datasource)
             .withCache(lruStorage)
             .withCache(dbStorage)
             .logger(new ConsoleLogger<>())
+            .enableRenewExpiredCache(true)
             .build();
 
     @Test
@@ -53,6 +54,11 @@ public class RenewCacheDMTest {
         // 第四次将访问LRU
         DataPack<String> dataPack4 = dataManager.getDataPack(null);
         assert dataPack4.provider == lruStorage;
+        // 第五次将访问数据源
+        dbStorage.enableRenewExpiredCache(false);
+        Thread.sleep(200);
+        DataPack<String> dataPack5 = dataManager.getDataPack(null);
+        assert dataPack5.provider == datasource;
     }
 
 }

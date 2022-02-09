@@ -19,7 +19,7 @@ public abstract class CheckRule {
         private final Set<String> requiredPermissions = new HashSet<>();
 
         public static List<WithPermission> fromEntityMap(Set<String> permissionDefines, Map<String, String> map) {
-            List<WithPermission> result = new LinkedList<>();
+            List<WithPermission> result = new ArrayList<>();
             map.forEach((pattern, permissions) -> {
                 WithPermission restrict = new WithPermission();
                 restrict.setPattern(pattern);
@@ -41,7 +41,7 @@ public abstract class CheckRule {
     public static class WithAnonymity extends CheckRule {
 
         public static List<WithAnonymity> fromPatternList(List<String> list) {
-            List<WithAnonymity> result = new LinkedList<>();
+            List<WithAnonymity> result = new ArrayList<>();
             for (String pattern : list) {
                 WithAnonymity restrict = new WithAnonymity();
                 restrict.setPattern(pattern);

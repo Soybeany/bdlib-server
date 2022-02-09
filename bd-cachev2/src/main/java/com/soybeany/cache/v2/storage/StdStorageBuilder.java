@@ -28,12 +28,6 @@ public abstract class StdStorageBuilder<Param, Data> {
     @Setter
     protected int pTtlErr = 60000;
 
-    /**
-     * 是否允许在数据源出现异常时，使用上一次已失效的缓存数据，使用异常的生存时间
-     */
-    @Setter
-    protected boolean enableRenewExpiredCache;
-
     public ICacheStorage<Param, Data> build() {
         // 预处理时间
         handleTtl();
@@ -58,7 +52,7 @@ public abstract class StdStorageBuilder<Param, Data> {
 
         private final int pTtl;
         private final int pTtlErr;
-        private final boolean enableRenewExpiredCache;
+        private boolean enableRenewExpiredCache;
 
         @Override
         public DataPack<Data> onGetCache(DataContext<Param> context, String key) throws NoCacheException {
@@ -100,6 +94,11 @@ public abstract class StdStorageBuilder<Param, Data> {
                 // 没有本地缓存，按常规处理
                 return simpleCacheData(context, key, dataPack);
             }
+        }
+
+        @Override
+        public void enableRenewExpiredCache(boolean enable) {
+            enableRenewExpiredCache = enable;
         }
 
         private DataPack<Data> simpleCacheData(DataContext<Param> context, String key, DataPack<Data> data) {

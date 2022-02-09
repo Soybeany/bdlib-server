@@ -3,17 +3,17 @@ package com.soybeany.permx.model;
 import com.soybeany.permx.exception.BdPermxRtException;
 import org.springframework.util.AntPathMatcher;
 
+import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedList;
 import java.util.List;
 
 @SuppressWarnings("unused")
 public class CheckRuleStorage {
 
     private static final AntPathMatcher MATCHER = new AntPathMatcher();
-    private static final List<CheckRule> ALL_RULES = new LinkedList<>();
-    private static final List<CheckRule.WithPermission> PERMISSION_RULES = new LinkedList<>();
-    private static final List<CheckRule.WithAnonymity> ANONYMITY_RULES = new LinkedList<>();
+    private static final List<CheckRule> ALL_RULES = new ArrayList<>();
+    private static final List<CheckRule.WithPermission> PERMISSION_RULES = new ArrayList<>();
+    private static final List<CheckRule.WithAnonymity> ANONYMITY_RULES = new ArrayList<>();
 
     public static synchronized void addRules(List<? extends CheckRule> list) {
         for (CheckRule restrict : list) {
@@ -38,8 +38,8 @@ public class CheckRuleStorage {
      * <br>其余情况保持原有顺序
      */
     public static void updateAllRules() {
-        List<CheckRule> fix = new LinkedList<>();
-        List<CheckRule> dynamic = new LinkedList<>();
+        List<CheckRule> fix = new ArrayList<>();
+        List<CheckRule> dynamic = new ArrayList<>();
 
         sort(PERMISSION_RULES, fix, dynamic);
         sort(ANONYMITY_RULES, fix, dynamic);

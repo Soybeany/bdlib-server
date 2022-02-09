@@ -38,7 +38,7 @@ public class LruMemTimerCacheStorageBuilder<Param, Data> extends LruMemCacheStor
 
     @Override
     protected ICacheStorage<Param, Data> onBuild() {
-        return new Storage<>(pTtl, pTtlErr, enableRenewExpiredCache, capacity);
+        return new Storage<>(pTtl, pTtlErr, capacity);
     }
 
     // ********************内部类********************
@@ -47,8 +47,8 @@ public class LruMemTimerCacheStorageBuilder<Param, Data> extends LruMemCacheStor
 
         private final Map<String, Task> taskMap = new HashMap<>();
 
-        public Storage(int pTtl, int pTtlErr, boolean enableRenewExpiredCache, int capacity) {
-            super(pTtl, pTtlErr, enableRenewExpiredCache, capacity);
+        public Storage(int pTtl, int pTtlErr, int capacity) {
+            super(pTtl, pTtlErr, capacity);
         }
 
         @Override

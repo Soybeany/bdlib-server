@@ -10,9 +10,12 @@ import com.soybeany.cache.v2.model.DataContext;
 import com.soybeany.cache.v2.model.DataCore;
 import com.soybeany.cache.v2.model.DataPack;
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
+import lombok.experimental.Accessors;
 
+import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.LinkedList;
+import java.util.List;
 
 /**
  * @author Soybeany
@@ -118,7 +121,7 @@ public class DataManager<Param, Data> {
     private DataContext<Param> getNewDataContext(Param param) {
         String paramKey = paramKeyConverter.getKey(param);
         String paramDesc = paramKey;
-        if (paramKeyConverter != paramDescConverter) {
+        if (null != paramDescConverter && paramDescConverter != paramKeyConverter) {
             paramDesc = paramDescConverter.getKey(param);
         }
         return new DataContext<>(dataDesc, paramDesc, paramKey, param);
@@ -148,14 +151,33 @@ public class DataManager<Param, Data> {
 
     // ********************内部类********************
 
+    @Accessors(fluent = true, chain = true)
     public static class Builder<Param, Data> {
 
-        private final LinkedList<CacheNode<Param, Data>> mNodes = new LinkedList<>();
+        private final List<CacheNode<Param, Data>> mNodes = new ArrayList<>();
         private final String dataDesc;
         private final IDatasource<Param, Data> defaultDatasource;
         private final IKeyConverter<Param> paramKeyConverter;
+
+        /**
+         * 配置入参描述转换器
+         * <br>* 根据入参定义自动输出的日志中使用的paramDesc
+         * <br>* 默认使用构造时指定的“defaultConverter”
+         */
+        @Setter
         private IKeyConverter<Param> paramDescConverter;
+
+        /**
+         * 若需要记录日志，则配置该logger
+         */
+        @Setter
         private ILogger<Param, Data> logger;
+
+        /**
+         * 是否允许在数据源出现异常时，使用上一次已失效的缓存数据，使用异常的生存时间
+         */
+        @Setter
+        private boolean enableRenewExpiredCache;
 
         public static <Data> Builder<String, Data> get(String dataDesc, IDatasource<String, Data> datasource) {
             return new Builder<>(dataDesc, datasource, new IKeyConverter.Std());
@@ -193,31 +215,15 @@ public class DataManager<Param, Data> {
         }
 
         /**
-         * 若需要记录日志，则配置该logger
-         */
-        public Builder<Param, Data> logger(ILogger<Param, Data> logger) {
-            this.logger = logger;
-            return this;
-        }
-
-        /**
-         * 配置入参描述转换器
-         * <br>* 根据入参定义自动输出的日志中使用的paramDesc
-         * <br>* 默认使用构造时指定的“defaultConverter”
-         */
-        public Builder<Param, Data> paramDescConverter(IKeyConverter<Param> converter) {
-            if (null != converter) {
-                this.paramDescConverter = converter;
-            }
-            return this;
-        }
-
-        /**
          * 构建出用于使用的实例
          */
         public DataManager<Param, Data> build() {
             // 节点排序
             mNodes.sort(new ServiceComparator());
+            // 为末端节点的存储设置缓存重用
+            if (!mNodes.isEmpty() && enableRenewExpiredCache) {
+                mNodes.get(0).getCurStorage().enableRenewExpiredCache(true);
+            }
             // 创建调用链
             CacheNode<Param, Data> firstNode = buildChain();
             // 返回管理器实例
