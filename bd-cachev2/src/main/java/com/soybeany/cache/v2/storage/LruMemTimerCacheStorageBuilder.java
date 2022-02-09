@@ -38,7 +38,7 @@ public class LruMemTimerCacheStorageBuilder<Param, Data> extends LruMemCacheStor
 
     @Override
     protected ICacheStorage<Param, Data> onBuild() {
-        return new Storage<>(pTtl, pTtlErr, capacity);
+        return new Storage<>(pTtl, pTtlErr, enableRenewExpiredCache, capacity);
     }
 
     // ********************内部类********************
@@ -47,8 +47,8 @@ public class LruMemTimerCacheStorageBuilder<Param, Data> extends LruMemCacheStor
 
         private final Map<String, Task> taskMap = new HashMap<>();
 
-        public Storage(int pTtl, int pTtlErr, int capacity) {
-            super(pTtl, pTtlErr, capacity);
+        public Storage(int pTtl, int pTtlErr, boolean enableRenewExpiredCache, int capacity) {
+            super(pTtl, pTtlErr, enableRenewExpiredCache, capacity);
         }
 
         @Override
@@ -68,7 +68,7 @@ public class LruMemTimerCacheStorageBuilder<Param, Data> extends LruMemCacheStor
 
         @Override
         protected synchronized CacheEntity<Data> onSaveCacheEntity(DataContext<Param> context, String key, CacheEntity<Data> entity) {
-            long pTtl = entity.pExpireAt - System.currentTimeMillis();
+            long pTtl = entity.pExpireAt - onGetCurTimestamp();
             String uid = scheduleTask(context, key, pTtl);
             taskMap.put(key, new Task(uid, pTtl));
             return super.onSaveCacheEntity(context, key, entity);

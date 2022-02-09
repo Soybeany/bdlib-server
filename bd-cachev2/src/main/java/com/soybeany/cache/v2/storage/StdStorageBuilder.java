@@ -28,6 +28,12 @@ public abstract class StdStorageBuilder<Param, Data> {
     @Setter
     protected int pTtlErr = 60000;
 
+    /**
+     * 是否允许在数据源出现异常时，使用上一次已失效的缓存数据，使用异常的生存时间
+     */
+    @Setter
+    protected boolean enableRenewExpiredCache;
+
     public ICacheStorage<Param, Data> build() {
         // 预处理时间
         handleTtl();
@@ -52,6 +58,7 @@ public abstract class StdStorageBuilder<Param, Data> {
 
         private final int pTtl;
         private final int pTtlErr;
+        private final boolean enableRenewExpiredCache;
 
         @Override
         public DataPack<Data> onGetCache(DataContext<Param> context, String key) throws NoCacheException {
@@ -59,7 +66,9 @@ public abstract class StdStorageBuilder<Param, Data> {
             long curTimestamp = onGetCurTimestamp();
             // 若缓存中的数据过期，则移除数据后抛出无数据异常
             if (cacheEntity.isExpired(curTimestamp)) {
-                onRemoveCache(context, key);
+                if (!enableRenewExpiredCache) {
+                    onRemoveCache(context, key);
+                }
                 throw new NoCacheException();
             }
             // 返回数据
@@ -67,8 +76,34 @@ public abstract class StdStorageBuilder<Param, Data> {
         }
 
         @Override
-        public DataPack<Data> onCacheData(DataContext<Param> context, String key, DataPack<Data> data) {
-            CacheEntity<Data> cacheEntity = CacheEntity.fromDataPack(data, System.currentTimeMillis(), pTtl, pTtlErr);
+        public DataPack<Data> onCacheData(DataContext<Param> context, String key, DataPack<Data> dataPack) {
+            // 若不支持缓存刷新，则不作额外处理
+            if (dataPack.norm() || !enableRenewExpiredCache) {
+                return simpleCacheData(context, key, dataPack);
+            }
+            try {
+                CacheEntity<Data> cacheEntity = onLoadCacheEntity(context, key);
+                // 若缓存依旧可用，则直接使用
+                long curTimestamp = onGetCurTimestamp();
+                if (!cacheEntity.isExpired(curTimestamp)) {
+                    return CacheEntity.toDataPack(cacheEntity, this, curTimestamp);
+                }
+                // 不是正常数据，则当缓存不存在处理
+                if (!cacheEntity.dataCore.norm) {
+                    throw new NoCacheException();
+                }
+                // 重新持久化一个使用新过期时间的info
+                CacheEntity<Data> newCacheEntity = new CacheEntity<>(cacheEntity.dataCore, curTimestamp + pTtlErr);
+                onSaveCacheEntity(context, key, newCacheEntity);
+                return CacheEntity.toDataPack(newCacheEntity, this, curTimestamp);
+            } catch (NoCacheException e) {
+                // 没有本地缓存，按常规处理
+                return simpleCacheData(context, key, dataPack);
+            }
+        }
+
+        private DataPack<Data> simpleCacheData(DataContext<Param> context, String key, DataPack<Data> data) {
+            CacheEntity<Data> cacheEntity = CacheEntity.fromDataPack(data, onGetCurTimestamp(), pTtl, pTtlErr);
             CacheEntity<Data> newCacheEntity = onSaveCacheEntity(context, key, cacheEntity);
             if (newCacheEntity == cacheEntity) {
                 return data;

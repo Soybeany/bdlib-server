@@ -25,7 +25,7 @@ public class LruMemCacheStorageBuilder<Param, Data> extends StdStorageBuilder<Pa
 
     @Override
     protected ICacheStorage<Param, Data> onBuild() {
-        return new Storage<>(pTtl, pTtlErr, capacity);
+        return new Storage<>(pTtl, pTtlErr, enableRenewExpiredCache, capacity);
     }
 
     // ***********************内部类****************************
@@ -34,8 +34,8 @@ public class LruMemCacheStorageBuilder<Param, Data> extends StdStorageBuilder<Pa
 
         private final LruMap<String, CacheEntity<Data>> mLruMap;
 
-        public Storage(int pTtl, int pTtlErr, int capacity) {
-            super(pTtl, pTtlErr);
+        public Storage(int pTtl, int pTtlErr, boolean enableRenewExpiredCache, int capacity) {
+            super(pTtl, pTtlErr, enableRenewExpiredCache);
             mLruMap = new LruMap<>(capacity);
         }
 
@@ -74,7 +74,7 @@ public class LruMemCacheStorageBuilder<Param, Data> extends StdStorageBuilder<Pa
         }
 
         @Override
-        public int size() {
+        public int cacheSize() {
             return mLruMap.size();
         }
     }

@@ -22,7 +22,7 @@ public class MultiExpiryDMTest {
     };
 
     private final ICacheStorage<String, String> lruStorage = new LruMemCacheStorageBuilder<String, String>().pTtl(800).build();
-    private final ICacheStorage<String, String> dbStorage = new DBSimulationStorage<>(1000);
+    private final ICacheStorage<String, String> dbStorage = new DBSimulationStorage<>(1000, false);
 
     private final DataManager<String, String> dataManager = DataManager.Builder
             .get("MultiExpiry", datasource)

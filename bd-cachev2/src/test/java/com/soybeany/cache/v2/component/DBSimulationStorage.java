@@ -15,11 +15,11 @@ public class DBSimulationStorage<Param, Data> extends StdStorageBuilder.StdStora
     private final Map<String, CacheEntity<Data>> map = new HashMap<>();
 
     public DBSimulationStorage() {
-        this(Integer.MAX_VALUE);
+        this(Integer.MAX_VALUE, false);
     }
 
-    public DBSimulationStorage(int pTtl) {
-        super(pTtl, 60 * 1000);
+    public DBSimulationStorage(int pTtl, boolean enableRenewExpiredCache) {
+        super(pTtl, 60 * 1000, enableRenewExpiredCache);
     }
 
     @Override
@@ -57,7 +57,7 @@ public class DBSimulationStorage<Param, Data> extends StdStorageBuilder.StdStora
     }
 
     @Override
-    public int size() {
+    public int cacheSize() {
         return map.size();
     }
 

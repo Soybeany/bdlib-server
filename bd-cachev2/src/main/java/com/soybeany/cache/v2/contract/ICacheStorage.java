@@ -50,12 +50,12 @@ public interface ICacheStorage<Param, Data> {
     /**
      * 缓存数据(有限的线程安全保障，只锁相同key)
      *
-     * @param context 上下文，含有当前环境的一些信息
-     * @param key     使用{@link IKeyConverter}对{@link Param}进行转化后的键，用于KV
-     * @param data    待缓存的数据
+     * @param context  上下文，含有当前环境的一些信息
+     * @param key      使用{@link IKeyConverter}对{@link Param}进行转化后的键，用于KV
+     * @param dataPack 待缓存的数据
      * @return 返回至上一级的数据
      */
-    DataPack<Data> onCacheData(DataContext<Param> context, String key, DataPack<Data> data);
+    DataPack<Data> onCacheData(DataContext<Param> context, String key, DataPack<Data> dataPack);
 
     /**
      * 移除指定的缓存(有限的线程安全保障，只锁相同key)
@@ -74,7 +74,9 @@ public interface ICacheStorage<Param, Data> {
 
     /**
      * 当前缓存的数据条数
+     *
+     * @return 数目
      */
-    int size();
+    int cacheSize();
 
 }
