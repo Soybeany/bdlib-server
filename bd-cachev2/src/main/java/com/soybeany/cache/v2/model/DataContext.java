@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 public class DataContext<Param> {
 
     public final String dataDesc;
+    public final String storageId;
     public final String paramDesc;
     public final String paramKey;
     public final Param param;

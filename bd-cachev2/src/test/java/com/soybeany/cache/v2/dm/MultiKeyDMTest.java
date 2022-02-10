@@ -51,7 +51,7 @@ public class MultiKeyDMTest {
     private static class TestStorage<Param, Data> extends LruMemCacheStorage<Param, Data> {
 
         public TestStorage(int pTtl) {
-            super(pTtl, 60 * 1000, 100);
+            super(pTtl, 60 * 1000, 100, false);
         }
 
         @Override

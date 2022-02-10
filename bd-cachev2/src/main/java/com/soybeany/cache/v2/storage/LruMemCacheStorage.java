@@ -9,6 +9,7 @@ import lombok.experimental.Accessors;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * @author Soybeany
@@ -16,16 +17,32 @@ import java.util.Map;
  */
 public class LruMemCacheStorage<Param, Data> extends StdStorage<Param, Data> {
 
-    private final LruMap<String, CacheEntity<Data>> mLruMap;
+    @SuppressWarnings("rawtypes")
+    private static final Map<String, LruMap> MAP = new ConcurrentHashMap<>();
 
-    public LruMemCacheStorage(int pTtl, int pTtlErr, int capacity) {
+    private LruMap<String, CacheEntity<Data>> mLruMap;
+    private final int capacity;
+    private final boolean enableShareStorage;
+
+    public LruMemCacheStorage(int pTtl, int pTtlErr, int capacity, boolean enableShareStorage) {
         super(pTtl, pTtlErr);
-        mLruMap = new LruMap<>(capacity);
+        this.capacity = capacity;
+        this.enableShareStorage = enableShareStorage;
     }
 
     @Override
     public String desc() {
         return "LRU";
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public void onInit(String storageId) {
+        if (enableShareStorage) {
+            mLruMap = MAP.computeIfAbsent(storageId, id -> new LruMap<>(capacity));
+        } else {
+            mLruMap = new LruMap<>(capacity);
+        }
     }
 
     @Override
@@ -72,9 +89,15 @@ public class LruMemCacheStorage<Param, Data> extends StdStorage<Param, Data> {
         @Setter
         protected int capacity = 100;
 
+        /**
+         * 设置storageId相同时，是否允许共享数据
+         */
+        @Setter
+        protected boolean enableShareStorage;
+
         @Override
         protected ICacheStorage<Param, Data> onBuild() {
-            return new LruMemCacheStorage<>(pTtl, pTtlErr, capacity);
+            return new LruMemCacheStorage<>(pTtl, pTtlErr, capacity, enableShareStorage);
         }
     }
 

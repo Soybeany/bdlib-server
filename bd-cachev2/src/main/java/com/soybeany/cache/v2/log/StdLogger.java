@@ -36,22 +36,23 @@ public class StdLogger<Param, Data> implements ILogger<Param, Data> {
         } else {
             from = "其它来源(" + pack.provider + ")";
         }
-        mWriter.onWriteInfo("“" + context.dataDesc + "”从“" + from + "”获取了“" + getDesc(context) + "”的数据");
+        mWriter.onWriteInfo("“" + getDataDesc(context) + "”从“" + from + "”获取了“" + getParamDesc(context) + "”的数据");
     }
 
     @Override
     public void onCacheData(DataContext<Param> context, DataPack<Data> pack) {
-        String desc = getDesc(context);
+        String dataDesc = getDataDesc(context);
+        String paramDesc = getParamDesc(context);
         if (pack.norm()) {
-            mWriter.onWriteInfo("“" + context.dataDesc + "”缓存了“" + desc + "”的数据“");
+            mWriter.onWriteInfo("“" + dataDesc + "”缓存了“" + paramDesc + "”的数据“");
         } else {
-            mWriter.onWriteWarn("“" + context.dataDesc + "”缓存了“" + desc + "”的异常(" + pack.dataCore.exception.getClass().getSimpleName() + ")“");
+            mWriter.onWriteWarn("“" + dataDesc + "”缓存了“" + paramDesc + "”的异常(" + pack.dataCore.exception.getClass().getSimpleName() + ")“");
         }
     }
 
     @Override
     public void onRemoveCache(DataContext<Param> context, int... cacheIndexes) {
-        mWriter.onWriteInfo("“" + context.dataDesc + "”移除了" + getIndexMsg(cacheIndexes) + "中“" + getDesc(context) + "”的缓存“");
+        mWriter.onWriteInfo("“" + getDataDesc(context) + "”移除了" + getIndexMsg(cacheIndexes) + "中“" + getParamDesc(context) + "”的缓存“");
     }
 
     @Override
@@ -59,7 +60,15 @@ public class StdLogger<Param, Data> implements ILogger<Param, Data> {
         mWriter.onWriteInfo("“" + dataDesc + "”清空了" + getIndexMsg(cacheIndexes) + "的缓存“");
     }
 
-    private String getDesc(DataContext<Param> context) {
+    private String getDataDesc(DataContext<Param> context) {
+        String desc = context.dataDesc;
+        if (!Objects.equals(context.dataDesc, context.storageId)) {
+            desc += "(" + context.storageId + ")";
+        }
+        return desc;
+    }
+
+    private String getParamDesc(DataContext<Param> context) {
         String desc = context.paramDesc;
         if (!Objects.equals(context.paramDesc, context.paramKey)) {
             desc += "(" + context.paramKey + ")";

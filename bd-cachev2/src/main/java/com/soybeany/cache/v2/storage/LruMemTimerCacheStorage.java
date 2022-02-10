@@ -38,8 +38,8 @@ public class LruMemTimerCacheStorage<Param, Data> extends LruMemCacheStorage<Par
         }
     }
 
-    public LruMemTimerCacheStorage(int pTtl, int pTtlErr, int capacity) {
-        super(pTtl, pTtlErr, capacity);
+    public LruMemTimerCacheStorage(int pTtl, int pTtlErr, int capacity, boolean enableShareStorage) {
+        super(pTtl, pTtlErr, capacity, enableShareStorage);
     }
 
     @Override
@@ -87,7 +87,7 @@ public class LruMemTimerCacheStorage<Param, Data> extends LruMemCacheStorage<Par
     public static class Builder<Param, Data> extends LruMemCacheStorage.Builder<Param, Data> {
         @Override
         protected ICacheStorage<Param, Data> onBuild() {
-            return new LruMemTimerCacheStorage<>(pTtl, pTtlErr, capacity);
+            return new LruMemTimerCacheStorage<>(pTtl, pTtlErr, capacity, enableShareStorage);
         }
     }
 

@@ -16,8 +16,11 @@ import lombok.experimental.Accessors;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 
 /**
+ * 数据管理器，提供数据自动缓存/读取的核心功能
+ *
  * @author Soybeany
  * @date 2020/1/19
  */
@@ -26,6 +29,7 @@ import java.util.List;
 public class DataManager<Param, Data> {
 
     private final String dataDesc;
+    private final String storageId;
     private final IDatasource<Param, Data> defaultDatasource;
     private final IKeyConverter<Param> paramDescConverter;
     private final IKeyConverter<Param> paramKeyConverter;
@@ -88,7 +92,7 @@ public class DataManager<Param, Data> {
     }
 
     /**
-     * 移除指定key在指定存储器中的缓存
+     * 移除指定存储器中指定key的缓存
      */
     public void removeCache(Param param, int... cacheIndexes) {
         if (null == firstNode) {
@@ -103,7 +107,7 @@ public class DataManager<Param, Data> {
     }
 
     /**
-     * 清除全部缓存(全部存储器)
+     * 清除指定存储器中全部的缓存
      */
     public void clearCache(int... cacheIndexes) {
         if (null == firstNode) {
@@ -124,7 +128,7 @@ public class DataManager<Param, Data> {
         if (null != paramDescConverter && paramDescConverter != paramKeyConverter) {
             paramDesc = paramDescConverter.getKey(param);
         }
-        return new DataContext<>(dataDesc, paramDesc, paramKey, param);
+        return new DataContext<>(dataDesc, storageId, paramDesc, paramKey, param);
     }
 
     private DataPack<Data> innerGetDataPackDirectly(Param param, IDatasource<Param, Data> datasource) {
@@ -160,6 +164,12 @@ public class DataManager<Param, Data> {
         private final IKeyConverter<Param> paramKeyConverter;
 
         /**
+         * 数据存储的唯一id，某些存储方式会将相同的storageId共享存储
+         */
+        @Setter
+        private String storageId;
+
+        /**
          * 配置入参描述转换器
          * <br>* 根据入参定义自动输出的日志中使用的paramDesc
          * <br>* 默认使用构造时指定的“defaultConverter”
@@ -188,10 +198,8 @@ public class DataManager<Param, Data> {
         }
 
         private Builder(String dataDesc, IDatasource<Param, Data> datasource, IKeyConverter<Param> keyConverter) {
-            if (null == keyConverter) {
-                throw new BdCacheRtException("keyConverter不能为null");
-            }
-            this.dataDesc = dataDesc;
+            this.dataDesc = Optional.ofNullable(dataDesc).orElseThrow(() -> new BdCacheRtException("dataDesc不能为null"));
+            Optional.ofNullable(keyConverter).orElseThrow(() -> new BdCacheRtException("keyConverter不能为null"));
             this.defaultDatasource = datasource;
             this.paramKeyConverter = keyConverter;
             this.paramDescConverter = keyConverter;
@@ -218,6 +226,8 @@ public class DataManager<Param, Data> {
          * 构建出用于使用的实例
          */
         public DataManager<Param, Data> build() {
+            // 初始化存储
+            String storageId = initStorages();
             // 节点排序
             mNodes.sort(new ServiceComparator());
             // 为末端节点的存储设置缓存重用
@@ -227,10 +237,18 @@ public class DataManager<Param, Data> {
             // 创建调用链
             CacheNode<Param, Data> firstNode = buildChain();
             // 返回管理器实例
-            return new DataManager<>(dataDesc, defaultDatasource, paramDescConverter, paramKeyConverter, firstNode, logger);
+            return new DataManager<>(dataDesc, storageId, defaultDatasource, paramDescConverter, paramKeyConverter, firstNode, logger);
         }
 
         // ********************内部方法********************
+
+        private String initStorages() {
+            String storageId = Optional.ofNullable(this.storageId).orElse(dataDesc);
+            for (CacheNode<Param, Data> node : mNodes) {
+                node.getCurStorage().onInit(storageId);
+            }
+            return storageId;
+        }
 
         private CacheNode<Param, Data> buildChain() {
             CacheNode<Param, Data> nextNode = null;

@@ -36,6 +36,13 @@ public interface ICacheStorage<Param, Data> {
      */
     String desc();
 
+    /**
+     * 初始化时的回调
+     *
+     * @param storageId 数据存储的唯一id
+     */
+    void onInit(String storageId);
+
     // ********************操作回调类********************
 
     /**
