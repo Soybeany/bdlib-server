@@ -9,14 +9,15 @@ import com.soybeany.cache.v2.exception.BdCacheRtException;
 import com.soybeany.cache.v2.model.DataContext;
 import com.soybeany.cache.v2.model.DataCore;
 import com.soybeany.cache.v2.model.DataPack;
+import com.soybeany.util.file.BdFileUtils;
+import lombok.AccessLevel;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 数据管理器，提供数据自动缓存/读取的核心功能
@@ -25,16 +26,30 @@ import java.util.Optional;
  * @date 2020/1/19
  */
 @SuppressWarnings("UnusedReturnValue")
+@Getter
+@Accessors(fluent = true)
 @RequiredArgsConstructor
 public class DataManager<Param, Data> {
+
+    private static final Map<String, DataManager<?, ?>> MANAGERS = new ConcurrentHashMap<>();
 
     private final String dataDesc;
     private final String storageId;
     private final IDatasource<Param, Data> defaultDatasource;
     private final IKeyConverter<Param> paramDescConverter;
     private final IKeyConverter<Param> paramKeyConverter;
+    @Getter(AccessLevel.NONE)
     private final CacheNode<Param, Data> firstNode;
     private final ILogger<Param, Data> logger;
+
+    private final List<ICacheStorage<Param, Data>> storages;
+    private final boolean enableRenewExpiredCache;
+
+    // ***********************管理****************************
+
+    public static Map<String, DataManager<?, ?>> getAllManagers() {
+        return Collections.unmodifiableMap(MANAGERS);
+    }
 
     // ********************操作********************
 
@@ -94,29 +109,29 @@ public class DataManager<Param, Data> {
     /**
      * 移除指定存储器中指定key的缓存
      */
-    public void removeCache(Param param, int... cacheIndexes) {
+    public void removeCache(Param param, int... storageIndexes) {
         if (null == firstNode) {
             return;
         }
         DataContext<Param> context = getNewDataContext(param);
-        firstNode.removeCache(context, cacheIndexes);
+        firstNode.removeCache(context, storageIndexes);
         // 记录日志
         if (null != logger) {
-            logger.onRemoveCache(context, cacheIndexes);
+            logger.onRemoveCache(context, storageIndexes);
         }
     }
 
     /**
      * 清除指定存储器中全部的缓存
      */
-    public void clearCache(int... cacheIndexes) {
+    public void clearCache(int... storageIndexes) {
         if (null == firstNode) {
             return;
         }
-        firstNode.clearCache(cacheIndexes);
+        firstNode.clearCache(storageIndexes);
         // 记录日志
         if (null != logger) {
-            logger.onClearCache(dataDesc, cacheIndexes);
+            logger.onClearCache(dataDesc, storageIndexes);
         }
     }
 
@@ -227,7 +242,8 @@ public class DataManager<Param, Data> {
          */
         public DataManager<Param, Data> build() {
             // 初始化存储
-            String storageId = initStorages();
+            List<ICacheStorage<Param, Data>> storages = new ArrayList<>();
+            String storageId = initStorages(storages);
             // 节点排序
             mNodes.sort(new ServiceComparator());
             // 为末端节点的存储设置缓存重用
@@ -236,16 +252,31 @@ public class DataManager<Param, Data> {
             }
             // 创建调用链
             CacheNode<Param, Data> firstNode = buildChain();
-            // 返回管理器实例
-            return new DataManager<>(dataDesc, storageId, defaultDatasource, paramDescConverter, paramKeyConverter, firstNode, logger);
+            // 创建管理器实例
+            DataManager<Param, Data> manager = new DataManager<>(
+                    dataDesc,
+                    storageId,
+                    defaultDatasource,
+                    paramDescConverter,
+                    paramKeyConverter,
+                    firstNode,
+                    logger,
+                    Collections.unmodifiableList(storages),
+                    enableRenewExpiredCache
+            );
+            // 保存并返回实例信息
+            MANAGERS.put(BdFileUtils.getUuid(), manager);
+            return manager;
         }
 
         // ********************内部方法********************
 
-        private String initStorages() {
+        private String initStorages(List<ICacheStorage<Param, Data>> storages) {
             String storageId = Optional.ofNullable(this.storageId).orElse(dataDesc);
             for (CacheNode<Param, Data> node : mNodes) {
-                node.getCurStorage().onInit(storageId);
+                ICacheStorage<Param, Data> storage = node.getCurStorage();
+                storage.onInit(storageId);
+                storages.add(storage);
             }
             return storageId;
         }

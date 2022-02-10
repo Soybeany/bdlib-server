@@ -70,18 +70,18 @@ class CacheNode<Param, Data> {
         traverse(node -> node.curStorage.onCacheData(context, pack));
     }
 
-    public void removeCache(DataContext<Param> context, int... cacheIndexes) {
-        traverse(node -> node.curStorage.onRemoveCache(context), cacheIndexes);
+    public void removeCache(DataContext<Param> context, int... storageIndexes) {
+        traverse(node -> node.curStorage.onRemoveCache(context), storageIndexes);
     }
 
-    public void clearCache(int... cacheIndexes) {
-        traverse(node -> node.curStorage.onClearCache(), cacheIndexes);
+    public void clearCache(int... storageIndexes) {
+        traverse(node -> node.curStorage.onClearCache(), storageIndexes);
     }
 
     // ****************************************内部方法****************************************
 
-    private void traverse(ICallback2<Param, Data> callback, int... cacheIndexes) {
-        ICallback3 callback3 = getCallback3(cacheIndexes);
+    private void traverse(ICallback2<Param, Data> callback, int... storageIndexes) {
+        ICallback3 callback3 = getCallback3(storageIndexes);
         CacheNode<Param, Data> node = this;
         int index = 0;
         while (null != node) {
