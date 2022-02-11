@@ -24,10 +24,6 @@ public class StdLogger<Param, Data> implements ILogger<Param, Data> {
 
     @Override
     public void onGetData(DataContext<Param> context, DataPack<Data> pack) {
-        // 非正常获取，不输出日志
-        if (!pack.norm()) {
-            return;
-        }
         String from;
         if (pack.provider instanceof ICacheStorage) {
             from = "缓存(" + ((ICacheStorage<?, ?>) pack.provider).desc() + ")";
@@ -36,7 +32,13 @@ public class StdLogger<Param, Data> implements ILogger<Param, Data> {
         } else {
             from = "其它来源(" + pack.provider + ")";
         }
-        mWriter.onWriteInfo("“" + getDataDesc(context) + "”从“" + from + "”获取了“" + getParamDesc(context) + "”的数据");
+        String dataDesc = getDataDesc(context);
+        String paramDesc = getParamDesc(context);
+        if (pack.norm()) {
+            mWriter.onWriteInfo("“" + dataDesc + "”从“" + from + "”获取了“" + paramDesc + "”的数据");
+        } else {
+            mWriter.onWriteInfo("“" + dataDesc + "”从“" + from + "”获取了“" + paramDesc + "”的异常(" + getExceptionMsg(pack) + ")");
+        }
     }
 
     @Override
@@ -44,20 +46,20 @@ public class StdLogger<Param, Data> implements ILogger<Param, Data> {
         String dataDesc = getDataDesc(context);
         String paramDesc = getParamDesc(context);
         if (pack.norm()) {
-            mWriter.onWriteInfo("“" + dataDesc + "”缓存了“" + paramDesc + "”的数据“");
+            mWriter.onWriteInfo("“" + dataDesc + "”缓存了“" + paramDesc + "”的数据");
         } else {
-            mWriter.onWriteWarn("“" + dataDesc + "”缓存了“" + paramDesc + "”的异常(" + pack.dataCore.exception.getClass().getSimpleName() + ")“");
+            mWriter.onWriteWarn("“" + dataDesc + "”缓存了“" + paramDesc + "”的异常(" + getExceptionMsg(pack) + ")");
         }
     }
 
     @Override
     public void onRemoveCache(DataContext<Param> context, int... storageIndexes) {
-        mWriter.onWriteInfo("“" + getDataDesc(context) + "”移除了" + getIndexMsg(storageIndexes) + "中“" + getParamDesc(context) + "”的缓存“");
+        mWriter.onWriteInfo("“" + getDataDesc(context) + "”移除了" + getIndexMsg(storageIndexes) + "中“" + getParamDesc(context) + "”的缓存");
     }
 
     @Override
     public void onClearCache(String dataDesc, int... storageIndexes) {
-        mWriter.onWriteInfo("“" + dataDesc + "”清空了" + getIndexMsg(storageIndexes) + "的缓存“");
+        mWriter.onWriteInfo("“" + dataDesc + "”清空了" + getIndexMsg(storageIndexes) + "的缓存");
     }
 
     private String getDataDesc(DataContext<Param> context) {
@@ -74,6 +76,11 @@ public class StdLogger<Param, Data> implements ILogger<Param, Data> {
             desc += "(" + context.paramKey + ")";
         }
         return desc;
+    }
+
+    private String getExceptionMsg(DataPack<Data> pack) {
+        Exception exception = pack.dataCore.exception;
+        return exception.getClass().getSimpleName() + " - " + exception.getMessage();
     }
 
     private String getIndexMsg(int... storageIndexes) {
