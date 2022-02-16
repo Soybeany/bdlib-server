@@ -43,10 +43,12 @@ public class FileClientUtils {
         try (Response response = client.newCall(request).execute()) {
             FileInfo info = getFileInfo(response);
             try {
-                handleResponse(tempFileInfo, response, callback);
-                callback.onSuccess(info, tempFileInfo.getTempFile());
+                handleResponse(tempFileInfo, response);
+                callback.onSuccess(response, info, tempFileInfo.getTempFile());
             } catch (IOException e) {
-                callback.onFailure(info, e);
+                callback.onFailure(response, info, e);
+            } finally {
+                callback.onFinal(response, info);
             }
         }
     }
@@ -82,7 +84,7 @@ public class FileClientUtils {
         );
     }
 
-    private static <T extends FileInfo> void handleResponse(TempFileInfo tempFileInfo, Response response, ICallback callback) throws IOException {
+    private static void handleResponse(TempFileInfo tempFileInfo, Response response) throws IOException {
         // 下载前校验与准备
         Result checkResult = canRandomAccess(response, tempFileInfo);
         File tempFile = tempFileInfo.getTempFile();
@@ -145,9 +147,12 @@ public class FileClientUtils {
     // ***********************内部类****************************
 
     public interface ICallback {
-        void onSuccess(FileInfo info, File tempFile);
+        void onSuccess(Response response, FileInfo info, File tempFile);
 
-        void onFailure(FileInfo info, IOException e);
+        void onFailure(Response response, FileInfo info, IOException e);
+
+        default void onFinal(Response response, FileInfo info) {
+        }
     }
 
     @Data
