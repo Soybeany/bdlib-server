@@ -11,6 +11,7 @@ import java.util.UUID;
  * @author Soybeany
  * @date 2018/5/30
  */
+@SuppressWarnings("UnusedReturnValue")
 public class BdFileUtils {
 
     /**
