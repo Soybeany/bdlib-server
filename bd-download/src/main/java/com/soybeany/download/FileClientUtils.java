@@ -89,7 +89,7 @@ public class FileClientUtils {
         Result checkResult = canRandomAccess(response, tempFileInfo);
         File tempFile = tempFileInfo.getTempFile();
         if (checkResult.notSupport) {
-            recreateFile(tempFile);
+            recreateTempFile(tempFile);
         }
         // 下载数据到临时文件
         InputStream is = Optional.ofNullable(response.body())
@@ -133,7 +133,8 @@ public class FileClientUtils {
         return new Result(false, "支持断点续传");
     }
 
-    private static void recreateFile(File file) throws IOException {
+    private static void recreateTempFile(File file) throws IOException {
+        BdFileUtils.mkParentDirs(file);
         if (!file.exists()) {
             return;
         }
@@ -141,7 +142,6 @@ public class FileClientUtils {
         if (!deleted) {
             throw new BdDownloadException("无法删除失效的断点续传临时文件“" + file.getName() + "”");
         }
-        BdFileUtils.mkParentDirs(file);
     }
 
     // ***********************内部类****************************

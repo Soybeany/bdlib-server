@@ -3,6 +3,7 @@ package com.soybeany.download.core;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
+import java.io.File;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 
@@ -31,6 +32,10 @@ public class FileInfo {
 
     public static FileInfo getNewAttachment(String fileName, long contentLength, String eTag) {
         return new FileInfo(getAttachmentContentDisposition(fileName, "UTF-8"), contentLength, eTag);
+    }
+
+    public static FileInfo getNewAttachment(File file) {
+        return getNewAttachment(file.getName(), file.length(), file.lastModified() + "");
     }
 
 }
