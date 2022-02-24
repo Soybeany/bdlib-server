@@ -41,6 +41,9 @@ public class FileClientUtils {
         OkHttpClient client = getClient(downloadConfig.timeout());
         Request request = getRequest(downloadConfig, tempFileInfo);
         try (Response response = client.newCall(request).execute()) {
+            if (!response.isSuccessful()) {
+                throw new BdDownloadException("下载异常，code=" + response.code());
+            }
             FileInfo info = getFileInfo(response);
             try {
                 handleResponse(tempFileInfo, response);
