@@ -10,7 +10,6 @@ import com.soybeany.permx.model.CheckRule.WithAnonymity;
 import com.soybeany.permx.model.CheckRule.WithPermission;
 import com.soybeany.permx.model.CheckRuleStorage;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.mvc.method.RequestMappingInfo;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
@@ -22,8 +21,15 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-@Component
-class CheckRuleHandler implements ServletContextListener {
+@SuppressWarnings("SpringJavaAutowiredMembersInspection")
+public class CheckRuleHandler implements ServletContextListener {
+
+    @Autowired
+    private PermxConfig permxConfig;
+    @Autowired
+    private PermDefineConsumer permDefineConsumer;
+    @Autowired
+    private RequestMappingHandlerMapping mapping;
 
     private static final Map<Class<?>, CheckRuleProvider> RESTRICT_PROVIDER_MAPPING = new HashMap<Class<?>, CheckRuleProvider>() {{
         put(RequireAnonymity.class, (url, annotation, permDefines) -> {
@@ -50,13 +56,6 @@ class CheckRuleHandler implements ServletContextListener {
             return restrict;
         });
     }};
-
-    @Autowired
-    private PermxConfig permxConfig;
-    @Autowired
-    private PermDefineConsumer permDefineConsumer;
-    @Autowired
-    private RequestMappingHandlerMapping mapping;
 
     @Override
     public void contextInitialized(ServletContextEvent sce) {

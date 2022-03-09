@@ -4,7 +4,6 @@ import com.soybeany.permx.config.PermxConfig;
 import com.soybeany.permx.model.PermissionDefine;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.lang.Nullable;
-import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -15,8 +14,8 @@ import java.util.Set;
  * @author Soybeany
  * @date 2022/1/13
  */
-@Component
-class PermDefineConsumerImpl implements PermDefineConsumer {
+@SuppressWarnings("SpringJavaAutowiredMembersInspection")
+public class PermDefineConsumerImpl implements PermDefineConsumer {
 
     @Autowired
     private PermxConfig permxConfig;
