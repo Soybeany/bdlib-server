@@ -59,9 +59,9 @@ public class LruMemTimerStorageTest {
             throw new Exception("不允许还持有缓存");
         } catch (NoCacheException ignore) {
         }
-        assert cacheStorage.cachedDataCount() == 1;
+        assert cacheStorage.cachedDataCount(null) == 1;
         Thread.sleep(250);
-        assert cacheStorage.cachedDataCount() == 0;
+        assert cacheStorage.cachedDataCount(null) == 0;
     }
 
 }

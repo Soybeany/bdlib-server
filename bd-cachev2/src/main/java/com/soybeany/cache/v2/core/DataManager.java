@@ -128,7 +128,7 @@ public class DataManager<Param, Data> {
         if (null == firstNode) {
             return;
         }
-        firstNode.clearCache(storageIndexes);
+        firstNode.clearCache(storageId, storageIndexes);
         // 记录日志
         if (null != logger) {
             logger.onClearCache(dataDesc, storageIndexes);

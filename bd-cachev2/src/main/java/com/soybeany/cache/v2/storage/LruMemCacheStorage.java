@@ -70,12 +70,12 @@ public class LruMemCacheStorage<Param, Data> extends StdStorage<Param, Data> {
     }
 
     @Override
-    public synchronized void onClearCache() {
+    public synchronized void onClearCache(String storageId) {
         mLruMap.clear();
     }
 
     @Override
-    public int cachedDataCount() {
+    public int cachedDataCount(String storageId) {
         return mLruMap.size();
     }
 

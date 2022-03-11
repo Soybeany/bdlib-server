@@ -46,7 +46,7 @@ public interface ICacheStorage<Param, Data> {
     // ********************操作回调类********************
 
     /**
-     * 获取缓存(没有线程安全保障)
+     * 获取缓存
      *
      * @param context 上下文，含有当前环境的一些信息
      * @return 数据
@@ -54,7 +54,7 @@ public interface ICacheStorage<Param, Data> {
     DataPack<Data> onGetCache(DataContext<Param> context) throws NoCacheException;
 
     /**
-     * 缓存数据(有限的线程安全保障，只锁相同key)
+     * 缓存数据
      *
      * @param context  上下文，含有当前环境的一些信息
      * @param dataPack 待缓存的数据
@@ -63,16 +63,16 @@ public interface ICacheStorage<Param, Data> {
     DataPack<Data> onCacheData(DataContext<Param> context, DataPack<Data> dataPack);
 
     /**
-     * 移除指定的缓存(有限的线程安全保障，只锁相同key)
+     * 移除指定的缓存
      *
      * @param context 上下文，含有当前环境的一些信息
      */
     void onRemoveCache(DataContext<Param> context);
 
     /**
-     * 清除全部缓存(有限的线程安全保障，只锁相同key)
+     * 清除全部缓存
      */
-    void onClearCache();
+    void onClearCache(String storageId);
 
     // ***********************主动调用类****************************
 
@@ -86,6 +86,6 @@ public interface ICacheStorage<Param, Data> {
      *
      * @return 数目
      */
-    int cachedDataCount();
+    int cachedDataCount(String storageId);
 
 }
