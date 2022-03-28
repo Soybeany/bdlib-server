@@ -21,6 +21,7 @@
         <module>bd-download</module>
         <module>bd-config</module>
         <module>bd-auto-cipher</module>
+        <module>bd-exception</module>
     </modules>
 
     <dependencies>

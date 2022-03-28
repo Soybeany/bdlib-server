@@ -1,6 +1,6 @@
 package com.soybeany.util;
 
-import com.soybeany.exception.BdException;
+import com.soybeany.exception.BdRtException;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -24,7 +24,7 @@ public class Md5Utils {
         try {
             return MessageDigest.getInstance("MD5").digest(input);
         } catch (NoSuchAlgorithmException e) {
-            throw new BdException(e.getMessage());
+            throw new BdRtException(e.getMessage());
         }
     }
 
