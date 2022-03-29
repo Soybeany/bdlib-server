@@ -32,9 +32,9 @@ public class StdMemDataHolder<T> implements IDataHolder<T> {
     }
 
     @Override
-    public synchronized T put(String key, T data, int expiryInSec) {
-        String uid = scheduleTask(key, expiryInSec);
-        Task<T> previous = dataMap.put(key, new Task<>(uid, data, expiryInSec));
+    public synchronized T put(String key, T data, int ttl) {
+        String uid = scheduleTask(key, ttl);
+        Task<T> previous = dataMap.put(key, new Task<>(uid, data, ttl));
         return getDataFromTask(previous);
     }
 
@@ -45,7 +45,7 @@ public class StdMemDataHolder<T> implements IDataHolder<T> {
             return null;
         }
         if (needAutoUpdate) {
-            task.uid = scheduleTask(key, task.expiryInSec);
+            task.uid = scheduleTask(key, task.ttl);
         }
         return task.data;
     }
@@ -76,12 +76,12 @@ public class StdMemDataHolder<T> implements IDataHolder<T> {
     }
 
     @SuppressWarnings("AlibabaThreadPoolCreation")
-    private String scheduleTask(String key, int expiryInSec) {
+    private String scheduleTask(String key, int ttl) {
         String uid = BdFileUtils.getUuid();
         if (null == service) {
             service = Executors.newScheduledThreadPool(1);
         }
-        service.schedule(() -> removeData(key, uid), expiryInSec, TimeUnit.SECONDS);
+        service.schedule(() -> removeData(key, uid), ttl, TimeUnit.SECONDS);
         return uid;
     }
 
@@ -116,12 +116,12 @@ public class StdMemDataHolder<T> implements IDataHolder<T> {
     private static class Task<T> {
         String uid;
         T data;
-        int expiryInSec;
+        int ttl;
 
-        public Task(String uid, T data, int expiryInSec) {
+        public Task(String uid, T data, int ttl) {
             this.uid = uid;
             this.data = data;
-            this.expiryInSec = expiryInSec;
+            this.ttl = ttl;
         }
     }
 

@@ -7,7 +7,7 @@ import java.util.Collection;
  */
 public interface IDataHolder<T> {
 
-    T put(String key, T data, int expiryInSec);
+    T put(String key, T data, int ttl);
 
     T get(String key);
 
