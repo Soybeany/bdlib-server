@@ -69,6 +69,11 @@ public class StdMemDataHolder<T> implements IDataHolder<T> {
         dataMap.clear();
     }
 
+    @Override
+    public void close() {
+        innerClose();
+    }
+
     // ********************内部方法********************
 
     private T getDataFromTask(Task<T> task) {
@@ -91,7 +96,13 @@ public class StdMemDataHolder<T> implements IDataHolder<T> {
             return;
         }
         dataMap.remove(key);
-        if (dataMap.isEmpty() && null != service) {
+        if (dataMap.isEmpty()) {
+            innerClose();
+        }
+    }
+
+    private synchronized void innerClose() {
+        if (null != service) {
             service.shutdownNow();
             service = null;
         }
