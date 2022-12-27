@@ -13,26 +13,12 @@ import java.util.Base64;
  */
 public class BDCipherUtils {
 
-    private static final String DEFAULT_PROTOCOL = "bdEnc";
-    private static final String PROTOCOL_SEPARATOR = "://";
-
     private static final Base64.Encoder ENCODER = Base64.getEncoder();
     private static final Base64.Decoder DECODER = Base64.getDecoder();
 
-    private static String PROTOCOL;
     private static ICipher CIPHER = new AesCipherImpl();
 
-    static {
-        setupProtocol(DEFAULT_PROTOCOL);
-    }
-
     // ****************************************配置****************************************
-
-    public static void setupProtocol(String protocol) {
-        if (null != protocol) {
-            PROTOCOL = protocol + PROTOCOL_SEPARATOR;
-        }
-    }
 
     public static void setupCipher(ICipher cipher) {
         if (null != cipher) {
@@ -41,30 +27,6 @@ public class BDCipherUtils {
     }
 
     // ****************************************加解密API****************************************
-
-    /**
-     * 加密，并附带协议头
-     */
-    public static String encryptWithProtocol(String key, String rawMsg) throws Exception {
-        return PROTOCOL + encrypt(key, rawMsg);
-    }
-
-    /**
-     * 是否有使用指定协议
-     */
-    public static boolean isWithProtocol(Object msg) {
-        return msg.toString().startsWith(PROTOCOL);
-    }
-
-    /**
-     * 解密，如果附带协议头
-     */
-    public static String decryptIfWithProtocol(String key, String msg) throws Exception {
-        if (!isWithProtocol(msg)) {
-            return msg;
-        }
-        return decrypt(key, msg.substring(PROTOCOL.length()));
-    }
 
     /**
      * 使用指定密钥加密

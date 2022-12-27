@@ -1,5 +1,6 @@
 package com.soybeany.config;
 
+import com.soybeany.config.handler.DecryptHandler;
 import org.springframework.boot.env.OriginTrackedMapPropertySource;
 import org.springframework.boot.origin.Origin;
 import org.springframework.boot.origin.OriginTrackedValue;
@@ -24,6 +25,14 @@ import java.util.Optional;
  */
 public abstract class BaseDecryptConfigurer extends PropertySourcesPlaceholderConfigurer {
 
+    private final String key;
+    private final DecryptHandler decryptHandler;
+
+    {
+        key = setupKey();
+        decryptHandler = setupDecryptHandler();
+    }
+
     @Override
     @NonNull
     public PropertySources getAppliedPropertySources() throws IllegalStateException {
@@ -43,12 +52,11 @@ public abstract class BaseDecryptConfigurer extends PropertySourcesPlaceholderCo
             Map<Object, Object> map = new HashMap<>();
             Class<?> clazz = Class.forName("org.springframework.boot.origin.OriginTrackedValue$OriginTrackedCharSequence");
             Map<?, ?> source2 = (Map<?, ?>) applicationConfig.getSource();
-            String key = setupKey();
             for (Map.Entry<?, ?> entry : source2.entrySet()) {
                 Object value = entry.getValue();
-                if (clazz.isInstance(value) && BDCipherUtils.isWithProtocol(value)) {
+                if (clazz.isInstance(value) && decryptHandler.shouldDecrypt(value)) {
                     OriginTrackedValue v = (OriginTrackedValue) value;
-                    String dMsg = BDCipherUtils.decryptIfWithProtocol(key, value.toString());
+                    String dMsg = decryptHandler.onDecrypt(key, value.toString());
                     Constructor<?> constructor = clazz.getDeclaredConstructor(CharSequence.class, Origin.class);
                     constructor.setAccessible(true);
                     value = constructor.newInstance(dMsg, v.getOrigin());
@@ -65,4 +73,5 @@ public abstract class BaseDecryptConfigurer extends PropertySourcesPlaceholderCo
 
     protected abstract String setupKey();
 
+    protected abstract DecryptHandler setupDecryptHandler();
 }
