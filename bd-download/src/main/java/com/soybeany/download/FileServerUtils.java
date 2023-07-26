@@ -4,6 +4,7 @@ import com.soybeany.download.core.BdDownloadException;
 import com.soybeany.download.core.FileInfo;
 import com.soybeany.util.file.BdFileUtils;
 
+import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.File;
@@ -31,11 +32,13 @@ public class FileServerUtils {
      */
     public static <T extends FileInfo> void randomAccessDownload(T info, HttpServletRequest request, HttpServletResponse response, ICallback<T> callback) throws IOException {
         // 获取待读取的范围
-        Range range = getRange(request, info.contentLength(), info.eTag());
+        Range range = getRange(request, info.contentLength(), info.needCheck(), info.eTag());
         // 设置断点续传的响应头
         setupRandomAccessResponseHeader(range, info, response);
         // 将内容写入到响应
-        callback.onWrite(info, response.getOutputStream(), range.start, range.end);
+        try (ServletOutputStream os = response.getOutputStream()) {
+            callback.onWrite(info, os, range.start, range.end);
+        }
     }
 
     /**
@@ -71,12 +74,13 @@ public class FileServerUtils {
         }
     }
 
-    private static Range getRange(HttpServletRequest request, long maxSize, String eTag) throws IOException {
+    private static Range getRange(HttpServletRequest request, long maxSize, boolean needCheck, String eTag) throws IOException {
         // 读取请求中的数值
         String range = request.getHeader(RANGE);
         String ifRange = request.getHeader(IF_RANGE);
-        // 若不满足要求，返回全量范围b
-        if (null == range || null == ifRange || !ifRange.equals(eTag)) {
+        // 若不满足要求，返回全量范围
+        boolean needFull = (null == range) || (needCheck && (null == ifRange || !ifRange.equals(eTag)));
+        if (needFull) {
             return Range.getDefault(maxSize);
         }
         try {

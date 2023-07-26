@@ -1,8 +1,5 @@
 package com.soybeany.download.core;
 
-import lombok.Data;
-import lombok.experimental.Accessors;
-
 import java.io.File;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
@@ -11,13 +8,18 @@ import java.net.URLEncoder;
  * @author Soybeany
  * @date 2022/2/14
  */
-@Data
-@Accessors(fluent = true, chain = true)
 public class FileInfo {
     private String contentType = "application/octet-stream";
+    private Boolean needCheck = true;
     private final String contentDisposition;
     private final long contentLength;
     private final String eTag;
+
+    public FileInfo(String contentDisposition, long contentLength, String eTag) {
+        this.contentDisposition = contentDisposition;
+        this.contentLength = contentLength;
+        this.eTag = eTag;
+    }
 
     /**
      * 获取用于下载的“Content-Disposition”响应头
@@ -35,7 +37,37 @@ public class FileInfo {
     }
 
     public static FileInfo getNewAttachment(File file) {
-        return getNewAttachment(file.getName(), file.length(), file.lastModified() + "");
+        return getNewAttachment(file.getName(), file.length(), String.valueOf(file.lastModified()));
+    }
+
+    public String contentType() {
+        return contentType;
+    }
+
+    public FileInfo contentType(String contentType) {
+        this.contentType = contentType;
+        return this;
+    }
+
+    public boolean needCheck() {
+        return needCheck;
+    }
+
+    public FileInfo needCheck(boolean needCheck) {
+        this.needCheck = needCheck;
+        return this;
+    }
+
+    public String contentDisposition() {
+        return contentDisposition;
+    }
+
+    public long contentLength() {
+        return contentLength;
+    }
+
+    public String eTag() {
+        return eTag;
     }
 
 }

@@ -1,7 +1,6 @@
 package com.soybeany.download.core;
 
 import com.soybeany.util.file.BdFileUtils;
-import lombok.Data;
 
 import java.io.File;
 
@@ -9,7 +8,6 @@ import java.io.File;
  * @author Soybeany
  * @date 2022/2/15
  */
-@Data
 public class TempFileInfo {
 
     private final File tempFile;
@@ -19,4 +17,16 @@ public class TempFileInfo {
         return new TempFileInfo(new File(tempFileDir, BdFileUtils.getUuid()), null);
     }
 
+    public TempFileInfo(File tempFile, String eTag) {
+        this.tempFile = tempFile;
+        this.eTag = eTag;
+    }
+
+    public File getTempFile() {
+        return tempFile;
+    }
+
+    public String getETag() {
+        return eTag;
+    }
 }

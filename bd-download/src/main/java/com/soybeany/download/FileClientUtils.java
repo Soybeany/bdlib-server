@@ -5,11 +5,10 @@ import com.soybeany.download.core.DownloadConfig;
 import com.soybeany.download.core.FileInfo;
 import com.soybeany.download.core.TempFileInfo;
 import com.soybeany.util.file.BdFileUtils;
-import lombok.Data;
-import lombok.extern.slf4j.Slf4j;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
+import okhttp3.ResponseBody;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -27,7 +26,6 @@ import static com.soybeany.download.core.BdDownloadHeaders.*;
  * @author Soybeany
  * @date 2022/1/27
  */
-@Slf4j
 public class FileClientUtils {
 
     private static final Pattern RANGE_PATTERN = Pattern.compile(BYTES + " (\\d+)-(\\d*)/(\\d+)");
@@ -95,9 +93,9 @@ public class FileClientUtils {
             recreateTempFile(tempFile);
         }
         // 下载数据到临时文件
-        InputStream is = Optional.ofNullable(response.body())
-                .orElseThrow(() -> new BdDownloadException("body为null")).byteStream();
-        try (FileOutputStream os = new FileOutputStream(tempFile, true)) {
+        try (ResponseBody body = Optional.ofNullable(response.body()).orElseThrow(() -> new BdDownloadException("body为null"));
+             InputStream is = body.byteStream();
+             FileOutputStream os = new FileOutputStream(tempFile, true)) {
             BdFileUtils.readWriteStream(is, os);
         }
     }
@@ -158,10 +156,14 @@ public class FileClientUtils {
         }
     }
 
-    @Data
     private static class Result {
         private final boolean notSupport;
         private final String msg;
+
+        private Result(boolean notSupport, String msg) {
+            this.notSupport = notSupport;
+            this.msg = msg;
+        }
     }
 
 }
