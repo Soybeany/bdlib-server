@@ -3,6 +3,7 @@ package com.soybeany.util.file;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.UUID;
 
 /**
@@ -13,6 +14,12 @@ import java.util.UUID;
  */
 @SuppressWarnings("UnusedReturnValue")
 public class BdFileUtils {
+
+    public static final int FLAG_CLEAN = 0;
+    public static final int FLAG_IN_BUFFER = 1;
+    public static final int FLAG_IN_CLOSE = 1 << 1;
+    public static final int FLAG_OUT_BUFFER = 1 << 2;
+    public static final int FLAG_OUT_CLOSE = 1 << 3;
 
     /**
      * 默认的分段尺寸
@@ -46,7 +53,7 @@ public class BdFileUtils {
      */
     public static void readWriteStream(InputStream in, File file) throws IOException {
         mkParentDirs(file);
-        try (OutputStream out = new FileOutputStream(file)) {
+        try (OutputStream out = Files.newOutputStream(file.toPath())) {
             readWriteStream(in, out);
         }
     }
@@ -68,7 +75,7 @@ public class BdFileUtils {
      * Created by Soybeany on 2018/5/8 11:00
      */
     public static long randomRead(File inFile, OutputStream out, long start, long end) throws IOException {
-        try (RandomAccessFile raf = new BufferedRandomAccessFile(inFile, "r");) {
+        try (RandomAccessFile raf = new BufferedRandomAccessFile(inFile, "r")) {
             raf.seek(start);
             int bufferSize = DEFAULT_BLOCK_SIZE;
             byte[] tempArr = new byte[bufferSize];
@@ -92,7 +99,7 @@ public class BdFileUtils {
      * 随机读取
      */
     public static void randomReadLine(File inFile, long startPointer, RandomReadLineCallback callback) throws IOException {
-        try (RandomAccessFile raf = new BufferedRandomAccessFile(inFile, "r");) {
+        try (RandomAccessFile raf = new BufferedRandomAccessFile(inFile, "r")) {
             raf.seek(startPointer);
             callback.onInit();
             String line;
@@ -113,14 +120,18 @@ public class BdFileUtils {
      * Created by Soybeany on 2018/5/14 10:41
      */
     public static void readWriteStream(InputStream in, OutputStream out) throws IOException {
-        readWriteStream(in, out, null, null);
+        readWriteStream(in, out, FLAG_IN_BUFFER | FLAG_IN_CLOSE | FLAG_OUT_BUFFER | FLAG_OUT_CLOSE);
+    }
+
+    public static void readWriteStream(InputStream in, OutputStream out, int flags) throws IOException {
+        readWriteStream(in, out, null, null, flags);
     }
 
     /**
      * 读写流操作
      * Created by Soybeany on 2018/5/14 10:41
      */
-    public static void readWriteStream(InputStream in, OutputStream out, Integer bufferArrSize, ILoopCallback callback) throws IOException {
+    public static void readWriteStream(InputStream in, OutputStream out, Integer bufferArrSize, ILoopCallback callback, int flags) throws IOException {
         if (null == in) {
             throw new RuntimeException("输入流不能为null");
         }
@@ -130,8 +141,8 @@ public class BdFileUtils {
         InputStream input = null;
         OutputStream output = null;
         try {
-            input = in instanceof BufferedInputStream ? in : new BufferedInputStream(in);
-            output = out instanceof BufferedOutputStream ? out : new BufferedOutputStream(out);
+            input = (flags & FLAG_IN_BUFFER) > 0 ? in : new BufferedInputStream(in);
+            output = (flags & FLAG_OUT_BUFFER) > 0 ? out : new BufferedOutputStream(out);
 
             int len;
             byte[] buffer = new byte[null != bufferArrSize ? bufferArrSize : DEFAULT_BLOCK_SIZE];
@@ -147,10 +158,10 @@ public class BdFileUtils {
                 }
             }
         } finally {
-            if (!(out instanceof BufferedOutputStream)) {
+            if ((flags & FLAG_OUT_CLOSE) > 0) {
                 closeStream(output);
             }
-            if (!(in instanceof BufferedInputStream)) {
+            if ((flags & FLAG_IN_CLOSE) > 0) {
                 closeStream(input);
             }
         }
