@@ -2,10 +2,13 @@ package com.soybeany.util.file;
 
 
 import com.soybeany.exception.BdRtException;
+import com.soybeany.util.HexUtils;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.UUID;
 
 /**
@@ -27,6 +30,8 @@ public class BdFileUtils {
      * 默认的分段尺寸
      */
     public static final int DEFAULT_BLOCK_SIZE = 25 * 1024;
+    public static final int MD5_SIZE = 16;
+    public static final int DEFAULT_SECTION_LENGTH = 10 * 1024 * 1024 - MD5_SIZE;
 
     /**
      * 创建指定文件的父目录
@@ -49,24 +54,54 @@ public class BdFileUtils {
         return file.mkdirs();
     }
 
+    public static String md5(File file) {
+        return md5(file, 0, file.length());
+    }
+
+    public static String md5(File file, long start, long end) {
+        return md5(file, start, end, DEFAULT_SECTION_LENGTH);
+    }
+
+    public static String md5(File file, long start, long end, int sectionLength) {
+        MessageDigest digest;
+        try {
+            digest = MessageDigest.getInstance("MD5");
+        } catch (NoSuchAlgorithmException e) {
+            throw new BdRtException(e.getMessage());
+        }
+        BufferWithMd5 buffer = new BufferWithMd5(MD5_SIZE, sectionLength);
+        long l = randomRead(file, start, end, buffer, b -> {
+            // 将上一次的结果与新数据混合
+            System.arraycopy(b.md5, 0, b.buffer, 0, MD5_SIZE);
+            // 开始计算混合后数据的md5
+            digest.update(b.buffer, 0, MD5_SIZE + b.length);
+            b.md5 = digest.digest();
+        });
+        return HexUtils.bytesToHex(buffer.md5);
+    }
+
     /**
      * 读写流操作(流输出到文件)
      * Created by Soybeany on 2018/5/14 10:41
      */
-    public static void readWriteStream(InputStream in, File file) throws IOException {
+    public static void readWriteStream(InputStream in, File file) {
         mkParentDirs(file);
         try (OutputStream out = Files.newOutputStream(file.toPath())) {
             readWriteStream(in, out);
+        } catch (IOException e) {
+            throw new BdRtException(e.getMessage());
         }
     }
 
     /**
      * 从流中读取字符串
      */
-    public static String readString(InputStream in) throws IOException {
+    public static String readString(InputStream in) {
         try (ByteArrayOutputStream stream = new ByteArrayOutputStream()) {
             readWriteStream(in, stream);
             return stream.toString("utf-8");
+        } catch (IOException e) {
+            throw new BdRtException(e.getMessage());
         }
     }
 
@@ -76,18 +111,18 @@ public class BdFileUtils {
      * @return 总共读取的字节
      * Created by Soybeany on 2018/5/8 11:00
      */
-    public static long randomRead(File inFile, OutputStream out, long start, long end) throws IOException {
+    public static long randomRead(File inFile, OutputStream out, long start, long end) {
         return randomRead(inFile, start, end, new Buffer(0, DEFAULT_BLOCK_SIZE), buffer -> out.write(buffer.buffer, buffer.offset, buffer.length));
     }
 
-    public static <T extends Buffer> long randomRead(File inFile, long start, long end, T buffer, RandomReadCallback<T> callback) throws IOException {
+    public static <T extends Buffer> long randomRead(File inFile, long start, long end, T buffer, RandomReadCallback<T> callback) {
         if (start < 0) {
             throw new BdRtException("start < 0");
         }
         if (end < start) {
             throw new BdRtException("end < start");
         }
-        try (RandomAccessFile raf = new BufferedRandomAccessFile(inFile, "r");) {
+        try (RandomAccessFile raf = new BufferedRandomAccessFile(inFile, "r")) {
             raf.seek(start);
             int curRead, written = 0;
             long totalRead = 0, dataLength = end - start, remaining;
@@ -113,13 +148,15 @@ public class BdFileUtils {
                 callback.onHandle(buffer);
             }
             return totalRead;
+        } catch (IOException e) {
+            throw new BdRtException(e.getMessage());
         }
     }
 
     /**
      * 随机读取
      */
-    public static void randomReadLine(File inFile, long startPointer, RandomReadLineCallback callback) throws IOException {
+    public static void randomReadLine(File inFile, long startPointer, RandomReadLineCallback callback) {
         try (RandomAccessFile raf = new BufferedRandomAccessFile(inFile, "r")) {
             raf.seek(startPointer);
             callback.onInit();
@@ -133,6 +170,8 @@ public class BdFileUtils {
                 }
             }
             callback.onFinish(status);
+        } catch (IOException e) {
+            throw new BdRtException(e.getMessage());
         }
     }
 
@@ -140,11 +179,11 @@ public class BdFileUtils {
      * 读写流操作
      * Created by Soybeany on 2018/5/14 10:41
      */
-    public static void readWriteStream(InputStream in, OutputStream out) throws IOException {
+    public static void readWriteStream(InputStream in, OutputStream out) {
         readWriteStream(in, out, FLAG_IN_BUFFER | FLAG_IN_CLOSE | FLAG_OUT_BUFFER | FLAG_OUT_CLOSE);
     }
 
-    public static void readWriteStream(InputStream in, OutputStream out, int flags) throws IOException {
+    public static void readWriteStream(InputStream in, OutputStream out, int flags) {
         readWriteStream(in, out, null, null, flags);
     }
 
@@ -152,7 +191,7 @@ public class BdFileUtils {
      * 读写流操作
      * Created by Soybeany on 2018/5/14 10:41
      */
-    public static void readWriteStream(InputStream in, OutputStream out, Integer bufferArrSize, ILoopCallback callback, int flags) throws IOException {
+    public static void readWriteStream(InputStream in, OutputStream out, Integer bufferArrSize, ILoopCallback callback, int flags) {
         if (null == in) {
             throw new RuntimeException("输入流不能为null");
         }
@@ -178,6 +217,8 @@ public class BdFileUtils {
                     output.write(buffer, 0, len);
                 }
             }
+        } catch (IOException e) {
+            throw new BdRtException(e.getMessage());
         } finally {
             if ((flags & FLAG_OUT_CLOSE) > 0) {
                 closeStream(output);
@@ -263,6 +304,14 @@ public class BdFileUtils {
             this.offset = offset;
             this.length = length;
             this.buffer = new byte[offset + length];
+        }
+    }
+
+    private static class BufferWithMd5 extends BdFileUtils.Buffer {
+        byte[] md5 = new byte[MD5_SIZE];
+
+        public BufferWithMd5(int offset, int length) {
+            super(offset, length);
         }
     }
 
