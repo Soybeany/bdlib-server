@@ -1,6 +1,8 @@
 package com.soybeany.util.file;
 
 
+import com.soybeany.exception.BdRtException;
+
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -75,21 +77,40 @@ public class BdFileUtils {
      * Created by Soybeany on 2018/5/8 11:00
      */
     public static long randomRead(File inFile, OutputStream out, long start, long end) throws IOException {
-        try (RandomAccessFile raf = new BufferedRandomAccessFile(inFile, "r")) {
+        return randomRead(inFile, start, end, new Buffer(0, DEFAULT_BLOCK_SIZE), buffer -> out.write(buffer.buffer, buffer.offset, buffer.length));
+    }
+
+    public static <T extends Buffer> long randomRead(File inFile, long start, long end, T buffer, RandomReadCallback<T> callback) throws IOException {
+        if (start < 0) {
+            throw new BdRtException("start < 0");
+        }
+        if (end < start) {
+            throw new BdRtException("end < start");
+        }
+        try (RandomAccessFile raf = new BufferedRandomAccessFile(inFile, "r");) {
             raf.seek(start);
-            int bufferSize = DEFAULT_BLOCK_SIZE;
-            byte[] tempArr = new byte[bufferSize];
-            int curRead = 0;
-            long totalRead = 0, delta = end - start;
-            while (totalRead <= delta - bufferSize) {
-                curRead = raf.read(tempArr, 0, bufferSize);
+            int curRead, written = 0;
+            long totalRead = 0, dataLength = end - start, remaining;
+            while ((remaining = dataLength - totalRead) > 0) {
+                // 读取数据
+                curRead = raf.read(buffer.buffer, buffer.offset + written, (int) Math.min(buffer.length - written, remaining));
+                // 已到文件末尾，则提前结束
+                if (curRead < 0) {
+                    break;
+                }
+                // 累计数据
                 totalRead += curRead;
-                out.write(tempArr, 0, curRead);
+                written += curRead;
+                // 累积足够数据，则回调业务层
+                if (buffer.length == written) {
+                    callback.onHandle(buffer);
+                    written = 0;
+                }
             }
-            while (totalRead < delta && -1 != curRead) {
-                curRead = raf.read(tempArr, 0, (int) (delta - totalRead));
-                totalRead += curRead;
-                out.write(tempArr, 0, curRead);
+            // 将缓存的数据也返回业务层
+            if (written > 0) {
+                buffer.length = written;
+                callback.onHandle(buffer);
             }
             return totalRead;
         }
@@ -196,6 +217,10 @@ public class BdFileUtils {
         }
     }
 
+    public interface RandomReadCallback<T extends Buffer> {
+        void onHandle(T buffer) throws IOException;
+    }
+
     public interface RandomReadLineCallback {
         /**
          * 设置字符集
@@ -227,6 +252,18 @@ public class BdFileUtils {
          * @return 状态码 0:正常读取下一行；其它值表示各种中断状态
          */
         int onHandleLine(long startPointer, long endPointer, String line) throws IOException;
+    }
+
+    public static class Buffer {
+        public byte[] buffer;
+        public int offset;
+        public int length;
+
+        public Buffer(int offset, int length) {
+            this.offset = offset;
+            this.length = length;
+            this.buffer = new byte[offset + length];
+        }
     }
 
 }
