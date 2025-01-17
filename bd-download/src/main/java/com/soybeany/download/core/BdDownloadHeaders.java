@@ -14,6 +14,8 @@ public interface BdDownloadHeaders {
     // *********************** server -> client ****************************
 
     String CONTENT_DISPOSITION = "Content-Disposition";
+    String CONTENT_TYPE = "Content-Type";
+    String CONTENT_MD5 = "Content-MD5";
     String ACCEPT_RANGES = "Accept-Ranges";
     String CONTENT_RANGE = "Content-Range";
     String CONTENT_LENGTH = "Content-Length";

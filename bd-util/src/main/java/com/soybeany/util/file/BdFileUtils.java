@@ -183,6 +183,10 @@ public class BdFileUtils {
         readWriteStream(in, out, FLAG_IN_BUFFER | FLAG_IN_CLOSE | FLAG_OUT_BUFFER | FLAG_OUT_CLOSE);
     }
 
+    public static void readWriteStreamNoBuffer(InputStream in, OutputStream out) {
+        readWriteStream(in, out, null, null, 0);
+    }
+
     public static void readWriteStream(InputStream in, OutputStream out, int flags) {
         readWriteStream(in, out, null, null, flags);
     }

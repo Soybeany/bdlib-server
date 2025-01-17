@@ -42,7 +42,7 @@ public class FileClientUtils {
             if (!response.isSuccessful()) {
                 throw new BdDownloadException("下载异常，code=" + response.code());
             }
-            FileInfo info = getFileInfo(response);
+            FileInfo.Client info = getFileInfo(response);
             try {
                 handleResponse(tempFileInfo, response);
                 callback.onSuccess(response, info, tempFileInfo.getTempFile());
@@ -77,11 +77,13 @@ public class FileClientUtils {
         return builder.build();
     }
 
-    private static FileInfo getFileInfo(Response response) {
-        return new FileInfo(
+    private static FileInfo.Client getFileInfo(Response response) {
+        return new FileInfo.Client(
                 response.header(CONTENT_DISPOSITION),
+                response.header(E_TAG),
+                response.header(CONTENT_TYPE),
                 Long.parseLong(Optional.ofNullable(response.header(CONTENT_LENGTH)).orElse("-1")),
-                response.header(E_TAG)
+                response.header(CONTENT_MD5)
         );
     }
 
@@ -148,11 +150,11 @@ public class FileClientUtils {
     // ***********************内部类****************************
 
     public interface ICallback {
-        void onSuccess(Response response, FileInfo info, File tempFile);
+        void onSuccess(Response response, FileInfo.Client info, File tempFile);
 
-        void onFailure(Response response, FileInfo info, IOException e);
+        void onFailure(Response response, FileInfo.Client info, IOException e);
 
-        default void onFinal(Response response, FileInfo info) {
+        default void onFinal(Response response, FileInfo.Client info) {
         }
     }
 
