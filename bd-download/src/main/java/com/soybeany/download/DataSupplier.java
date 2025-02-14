@@ -17,7 +17,7 @@ import java.util.Optional;
 
 import static com.soybeany.download.core.BdDownloadHeaders.*;
 
-public class DataSupplier {
+public abstract class DataSupplier {
 
     public static String toDisposition(String fileName) {
         try {
@@ -27,16 +27,16 @@ public class DataSupplier {
         }
     }
 
-    public Part1 fileName(String fileName, long contentLength) {
-        return contentDisposition(toDisposition(fileName), contentLength);
+    public static Part1 startWithFileName(String fileName, long contentLength) {
+        return startWithContentDisposition(toDisposition(fileName), contentLength);
     }
 
-    public Part1 contentDisposition(String contentDisposition, long contentLength) {
+    public static Part1 startWithContentDisposition(String contentDisposition, long contentLength) {
         return new Part1(contentDisposition, contentLength);
     }
 
-    public Part3 file(File file) {
-        return fileName(file.getName(), file.length())
+    public static Part3 startWithFile(File file) {
+        return startWithFileName(file.getName(), file.length())
                 .eTag(String.valueOf(file.lastModified()))
                 .from()
                 .file(file);
