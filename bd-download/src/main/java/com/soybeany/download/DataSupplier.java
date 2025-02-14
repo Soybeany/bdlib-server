@@ -27,73 +27,59 @@ public abstract class DataSupplier {
         }
     }
 
-    public static Part0 start() {
+    public static Part0 builder() {
         return new Part0();
     }
 
     public static class Part0 {
-        public Part1 fileName(String fileName, long contentLength) {
-            return contentDisposition(toDisposition(fileName), contentLength);
+        public Part1 fileName(String fileName) {
+            return contentDisposition(toDisposition(fileName));
         }
 
-        public Part1 contentDisposition(String contentDisposition, long contentLength) {
-            return new Part1(contentDisposition, contentLength);
+        public Part1 contentDisposition(String contentDisposition) {
+            return new Part1(contentDisposition);
         }
 
         public Part3 file(File file) {
-            return fileName(file.getName(), file.length())
-                    .eTag(String.valueOf(file.lastModified()))
-                    .from()
-                    .file(file);
+            return fileName(file.getName())
+                    .contentLength(file.length())
+                    .callback(file)
+                    .eTag(String.valueOf(file.lastModified()));
+        }
+    }
+
+    public static class Part1 {
+        private final String contentDisposition;
+        private long contentLength;
+
+        Part1(String contentDisposition) {
+            this.contentDisposition = contentDisposition;
+        }
+
+        public Part2 contentLength(long contentLength) {
+            this.contentLength = contentLength;
+            return new Part2(this);
         }
     }
 
     /**
      * 文件静态属性
      */
-    public static class Part1 {
-        private final String contentDisposition;
-        private final long contentLength;
-        private String contentType = "application/octet-stream";
-        private String eTag;
-
-        Part1(String contentDisposition, long contentLength) {
-            this.contentDisposition = contentDisposition;
-            this.contentLength = contentLength;
-        }
-
-        public Part1 contentType(String contentType) {
-            this.contentType = contentType;
-            return this;
-        }
-
-        public Part1 eTag(String eTag) {
-            this.eTag = eTag;
-            return this;
-        }
-
-        public Part2 from() {
-            return new Part2(this);
-        }
-    }
-
-    /**
-     * 文件数据以及动态配置
-     */
     public static class Part2 {
         private final Part1 part1;
-        private IRandomAccessCallback callback;
-        private boolean supportRandomAccess;
 
-        public Part2(Part1 part1) {
+        Part2(Part1 part1) {
             this.part1 = part1;
         }
 
-        public Part3 file(File file) {
-            return file(file, true);
+        private IRandomAccessCallback callback;
+        private boolean supportRandomAccess;
+
+        public Part3 callback(File file) {
+            return callback(file, true);
         }
 
-        public Part3 file(File file, boolean useRangeMd5) {
+        public Part3 callback(File file, boolean useRangeMd5) {
             return callback(new IRandomAccessCallback() {
                 @Override
                 public Optional<String> onCalculateMd5(Range range) {
@@ -136,8 +122,13 @@ public abstract class DataSupplier {
     public static class Part3 {
         private final Part1 part1;
         private final Part2 part2;
-        private boolean completeDownload = true;
+
+        private String contentType = "application/octet-stream";
+        private String eTag;
+
         private String consumerETag;
+
+        private boolean completeDownload = true;
         private Range range;
 
         Part3(Part2 part2) {
@@ -146,8 +137,18 @@ public abstract class DataSupplier {
             this.range = Range.getDefault(part1.contentLength);
         }
 
-        public Part3 randomAccess(HttpServletRequest request, boolean needCheckIfRange) {
+        public Part3 enableRandomAccess(HttpServletRequest request, boolean needCheckIfRange) {
             range = getRange(request, needCheckIfRange);
+            return this;
+        }
+
+        public Part3 contentType(String contentType) {
+            this.contentType = contentType;
+            return this;
+        }
+
+        public Part3 eTag(String eTag) {
+            this.eTag = eTag;
             return this;
         }
 
@@ -156,9 +157,9 @@ public abstract class DataSupplier {
             return this;
         }
 
-        public void to(HttpServletResponse response) {
+        public void start(HttpServletResponse response) {
             // 比对eTag
-            if (null != consumerETag && consumerETag.equals(part1.eTag)) {
+            if (null != consumerETag && consumerETag.equals(eTag)) {
                 response.setStatus(HttpServletResponse.SC_NOT_MODIFIED);
                 return;
             }
@@ -176,11 +177,11 @@ public abstract class DataSupplier {
 
         private void setupResponseHeader(Range range, HttpServletResponse response) {
             // 常规响应头
-            response.setContentType(part1.contentType);
+            response.setContentType(contentType);
             response.setContentLengthLong(part1.contentLength);
             response.setHeader(CONTENT_DISPOSITION, part1.contentDisposition);
             // 可选响应头
-            Optional.ofNullable(part1.eTag).ifPresent(eTag -> response.setHeader(E_TAG, eTag));
+            Optional.ofNullable(eTag).ifPresent(eTag -> response.setHeader(E_TAG, eTag));
             part2.callback.onCalculateMd5(range).ifPresent(md5 -> response.setHeader(CONTENT_MD5, md5));
             // 支持断点续传的标识
             if (part2.supportRandomAccess) {
@@ -204,7 +205,7 @@ public abstract class DataSupplier {
             // 若不满足要求，返回全量范围
             completeDownload = (!part2.supportRandomAccess)
                     || (null == rRange)
-                    || (needCheckIfRange && (null == rIfRange || !rIfRange.equals(part1.eTag)));
+                    || (needCheckIfRange && (null == rIfRange || !rIfRange.equals(eTag)));
             if (completeDownload) {
                 return Range.getDefault(maxLength);
             }
