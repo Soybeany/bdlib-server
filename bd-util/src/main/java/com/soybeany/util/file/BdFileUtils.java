@@ -81,7 +81,7 @@ public abstract class BdFileUtils {
      * @return 总共读取的字节
      * Created by Soybeany on 2018/5/8 11:00
      */
-    public static long randomRead(File inFile, OutputStream out, long start, long end) {
+    public static long randomRead(File inFile, long start, long end, OutputStream out) {
         return randomRead(inFile, start, end, new BdBufferUtils.Buffer(0, BdStreamUtils.DEFAULT_BLOCK_SIZE), buffer -> out.write(buffer.buffer, buffer.offset, buffer.length));
     }
 
