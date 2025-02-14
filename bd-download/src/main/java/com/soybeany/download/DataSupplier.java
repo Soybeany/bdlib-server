@@ -27,19 +27,25 @@ public abstract class DataSupplier {
         }
     }
 
-    public static Part1 startWithFileName(String fileName, long contentLength) {
-        return startWithContentDisposition(toDisposition(fileName), contentLength);
+    public static Part0 start() {
+        return new Part0();
     }
 
-    public static Part1 startWithContentDisposition(String contentDisposition, long contentLength) {
-        return new Part1(contentDisposition, contentLength);
-    }
+    public static class Part0 {
+        public Part1 fileName(String fileName, long contentLength) {
+            return contentDisposition(toDisposition(fileName), contentLength);
+        }
 
-    public static Part3 startWithFile(File file) {
-        return startWithFileName(file.getName(), file.length())
-                .eTag(String.valueOf(file.lastModified()))
-                .from()
-                .file(file);
+        public Part1 contentDisposition(String contentDisposition, long contentLength) {
+            return new Part1(contentDisposition, contentLength);
+        }
+
+        public Part3 file(File file) {
+            return fileName(file.getName(), file.length())
+                    .eTag(String.valueOf(file.lastModified()))
+                    .from()
+                    .file(file);
+        }
     }
 
     /**
