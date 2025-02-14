@@ -40,10 +40,10 @@ public abstract class DataSupplier {
             return new Part1(contentDisposition);
         }
 
-        public Part3 file(File file) {
+        public Part3 file(File file, boolean useRangeMd5) {
             return fileName(file.getName())
                     .contentLength(file.length())
-                    .callback(file)
+                    .callback(file, useRangeMd5)
                     .eTag(String.valueOf(file.lastModified()));
         }
     }
@@ -125,6 +125,7 @@ public abstract class DataSupplier {
 
         private String contentType = "application/octet-stream";
         private String eTag;
+        private String age;
 
         private String consumerETag;
 
@@ -149,6 +150,11 @@ public abstract class DataSupplier {
 
         public Part3 eTag(String eTag) {
             this.eTag = eTag;
+            return this;
+        }
+
+        public Part3 age(String age) {
+            this.age = age;
             return this;
         }
 
@@ -182,6 +188,7 @@ public abstract class DataSupplier {
             response.setHeader(CONTENT_DISPOSITION, part1.contentDisposition);
             // 可选响应头
             Optional.ofNullable(eTag).ifPresent(eTag -> response.setHeader(E_TAG, eTag));
+            Optional.ofNullable(age).ifPresent(age -> response.setHeader(AGE, age));
             part2.callback.onCalculateMd5(range).ifPresent(md5 -> response.setHeader(CONTENT_MD5, md5));
             // 支持断点续传的标识
             if (part2.supportRandomAccess) {

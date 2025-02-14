@@ -20,6 +20,7 @@ public interface BdDownloadHeaders {
     String CONTENT_RANGE = "Content-Range";
     String CONTENT_LENGTH = "Content-Length";
     String E_TAG = "ETag";
+    String AGE = "Age";
 
     // *********************** value ****************************
 
