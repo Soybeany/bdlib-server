@@ -11,7 +11,9 @@ public abstract class BdStreamUtils {
     public static final int FLAG_IN_CLOSE = 1 << 1;
     public static final int FLAG_OUT_BUFFER = 1 << 2;
     public static final int FLAG_OUT_CLOSE = 1 << 3;
-    public static final int FLAG_ALL = FLAG_IN_BUFFER | FLAG_IN_CLOSE | FLAG_OUT_BUFFER | FLAG_OUT_CLOSE;
+    public static final int FLAG_IN_ALL = FLAG_IN_BUFFER | FLAG_IN_CLOSE;
+    public static final int FLAG_OUT_ALL = FLAG_OUT_BUFFER | FLAG_OUT_CLOSE;
+    public static final int FLAG_ALL = FLAG_IN_ALL | FLAG_OUT_ALL;
 
     /**
      * 默认的分段尺寸
