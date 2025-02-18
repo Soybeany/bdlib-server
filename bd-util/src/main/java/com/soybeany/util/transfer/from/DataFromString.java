@@ -10,15 +10,15 @@ import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
-public class DataFromStringInStream implements IDataFrom<OutputStream> {
+public class DataFromString implements IDataFrom<OutputStream> {
     private final String content;
     private final Charset streamCharset;
 
-    public DataFromStringInStream(String content) {
+    public DataFromString(String content) {
         this(content, StandardCharsets.UTF_8);
     }
 
-    public DataFromStringInStream(String content, Charset streamCharset) {
+    public DataFromString(String content, Charset streamCharset) {
         this.content = content;
         this.streamCharset = streamCharset;
     }

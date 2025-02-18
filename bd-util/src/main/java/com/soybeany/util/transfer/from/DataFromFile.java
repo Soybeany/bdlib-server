@@ -10,10 +10,10 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
 
-public class DataFromFileInStream implements IDataFrom.WithRandomAccess<OutputStream> {
+public class DataFromFile implements IDataFrom.WithRandomAccess<OutputStream> {
     private final File file;
 
-    public DataFromFileInStream(File file) {
+    public DataFromFile(File file) {
         this.file = file;
     }
 

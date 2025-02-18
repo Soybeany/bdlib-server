@@ -12,17 +12,17 @@ import java.io.OutputStream;
 import java.nio.file.Files;
 import java.util.Optional;
 
-public class DataToFileInStream implements IDataTo.WithRandomAccess<OutputStream> {
+public class DataToFile implements IDataTo.WithRandomAccess<OutputStream> {
     private final File target;
     private File tempFile;
     private Runnable onCheck;
     private boolean deleteOnFailure;
 
-    public DataToFileInStream(File target) {
+    public DataToFile(File target) {
         this.target = target;
     }
 
-    public DataToFileInStream useTempFile(File tempFile, Runnable onCheck, boolean deleteOnFailure) {
+    public DataToFile useTempFile(File tempFile, Runnable onCheck, boolean deleteOnFailure) {
         this.tempFile = tempFile;
         this.onCheck = onCheck;
         this.deleteOnFailure = deleteOnFailure;
@@ -64,9 +64,6 @@ public class DataToFileInStream implements IDataTo.WithRandomAccess<OutputStream
 
     @Override
     public Optional<DataRange> onGetRange() {
-        if (null == tempFile) {
-            return Optional.empty();
-        }
-        return Optional.of(DataRange.from(tempFile.length()));
+        return Optional.ofNullable(tempFile).map(file -> DataRange.from(file.length()));
     }
 }

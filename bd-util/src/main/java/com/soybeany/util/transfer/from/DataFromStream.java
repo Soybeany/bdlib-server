@@ -6,10 +6,10 @@ import com.soybeany.util.transfer.core.IDataFrom;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-public class DataFromStreamInStream implements IDataFrom<OutputStream> {
+public class DataFromStream implements IDataFrom<OutputStream> {
     private final InputStream is;
 
-    public DataFromStreamInStream(InputStream is) {
+    public DataFromStream(InputStream is) {
         this.is = is;
     }
 

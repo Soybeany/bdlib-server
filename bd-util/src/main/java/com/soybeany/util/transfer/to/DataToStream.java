@@ -5,10 +5,10 @@ import com.soybeany.util.transfer.core.IDataTo;
 import java.io.BufferedOutputStream;
 import java.io.OutputStream;
 
-public class DataToStreamInStream implements IDataTo<OutputStream> {
+public class DataToStream implements IDataTo<OutputStream> {
     private final OutputStream os;
 
-    public DataToStreamInStream(OutputStream os) {
+    public DataToStream(OutputStream os) {
         this.os = os;
     }
 
