@@ -1,9 +1,11 @@
 package com.soybeany.util.transfer;
 
+import com.soybeany.util.BdStreamUtils;
 import com.soybeany.util.transfer.core.DataRange;
 import com.soybeany.util.transfer.core.IDataFrom;
 import com.soybeany.util.transfer.core.IDataTo;
 
+import java.io.Closeable;
 import java.util.Optional;
 
 public class BdDataTransferUtils {
@@ -20,7 +22,7 @@ public class BdDataTransferUtils {
     private static <T> void onTransfer(IDataFrom<T> from, IDataTo<T> to) throws Exception {
         // 若from或to不支持随机读写，则使用普通传输
         if (!(to instanceof IDataTo.WithRandomAccess) || !(from instanceof IDataFrom.WithRandomAccess)) {
-            from.onTransfer(to.onGetOutput());
+            autoClose(to, from::onTransfer);
             return;
         }
 
@@ -29,11 +31,26 @@ public class BdDataTransferUtils {
         Optional<DataRange> rangeOpt = aTo.onGetRange();
         // 若配置了范围，则使用范围传输
         if (rangeOpt.isPresent()) {
-            ((IDataFrom.WithRandomAccess<T>) from).onTransfer(rangeOpt.get(), to.onGetOutput());
+            autoClose(to, os -> ((IDataFrom.WithRandomAccess<T>) from).onTransfer(rangeOpt.get(), os));
         }
         // 否则使用普通传输
         else {
-            from.onTransfer(to.onGetOutput());
+            autoClose(to, from::onTransfer);
         }
+    }
+
+    private static <T> void autoClose(IDataTo<T> to, ICallback<T> consumer) throws Exception {
+        T out = to.onGetOutput();
+        try {
+            consumer.onInvoke(out);
+        } finally {
+            if (out instanceof Closeable) {
+                BdStreamUtils.closeStream((Closeable) out);
+            }
+        }
+    }
+
+    private interface ICallback<T> {
+        void onInvoke(T out) throws Exception;
     }
 }

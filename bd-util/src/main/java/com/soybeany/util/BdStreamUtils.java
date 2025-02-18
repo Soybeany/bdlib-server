@@ -56,8 +56,8 @@ public abstract class BdStreamUtils {
         InputStream input = null;
         OutputStream output = null;
         try {
-            input = (flags & FLAG_IN_BUFFER) > 0 ? in : new BufferedInputStream(in);
-            output = (flags & FLAG_OUT_BUFFER) > 0 ? out : new BufferedOutputStream(out);
+            input = (flags & FLAG_IN_BUFFER) > 0 ? new BufferedInputStream(in) : in;
+            output = (flags & FLAG_OUT_BUFFER) > 0 ? new BufferedOutputStream(out) : out;
             handler.onHandle(input, output);
         } catch (IOException e) {
             throw new BdRtException(e.getMessage());

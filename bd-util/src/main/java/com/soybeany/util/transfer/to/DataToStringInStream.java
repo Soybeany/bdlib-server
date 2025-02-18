@@ -8,12 +8,17 @@ import java.io.ByteArrayOutputStream;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.function.Consumer;
 
 public class DataToStringInStream implements IDataTo<OutputStream> {
     private final Charset streamCharset;
     private final Consumer<String> consumer;
     private ByteArrayOutputStream os;
+
+    public DataToStringInStream(Consumer<String> consumer) {
+        this(StandardCharsets.UTF_8, consumer);
+    }
 
     public DataToStringInStream(Charset streamCharset, Consumer<String> consumer) {
         this.streamCharset = streamCharset;

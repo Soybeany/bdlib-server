@@ -1,6 +1,7 @@
 package com.soybeany.util.transfer.to;
 
 import com.soybeany.exception.BdIoException;
+import com.soybeany.util.file.BdFileUtils;
 import com.soybeany.util.transfer.core.DataRange;
 import com.soybeany.util.transfer.core.IDataTo;
 
@@ -31,6 +32,7 @@ public class DataToFileInStream implements IDataTo.WithRandomAccess<OutputStream
     @Override
     public OutputStream onGetOutput() throws IOException {
         File file = null != tempFile ? tempFile : target;
+        BdFileUtils.mkParentDirs(file);
         return new BufferedOutputStream(Files.newOutputStream(file.toPath()));
     }
 
