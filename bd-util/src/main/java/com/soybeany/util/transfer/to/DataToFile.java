@@ -5,16 +5,13 @@ import com.soybeany.util.file.BdFileUtils;
 import com.soybeany.util.transfer.core.DataRange;
 import com.soybeany.util.transfer.core.IDataTo;
 
-import java.io.BufferedOutputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.nio.file.Files;
+import java.io.*;
 import java.util.Optional;
 
 public class DataToFile implements IDataTo.WithRandomAccess<OutputStream> {
     private final File target;
     private File tempFile;
+    private boolean append;
     private Runnable onCheck;
     private boolean deleteOnFailure;
 
@@ -22,8 +19,9 @@ public class DataToFile implements IDataTo.WithRandomAccess<OutputStream> {
         this.target = target;
     }
 
-    public DataToFile useTempFile(File tempFile, Runnable onCheck, boolean deleteOnFailure) {
+    public DataToFile useTempFile(File tempFile, boolean append, Runnable onCheck, boolean deleteOnFailure) {
         this.tempFile = tempFile;
+        this.append = append;
         this.onCheck = onCheck;
         this.deleteOnFailure = deleteOnFailure;
         return this;
@@ -33,7 +31,7 @@ public class DataToFile implements IDataTo.WithRandomAccess<OutputStream> {
     public OutputStream onGetOutput() throws IOException {
         File file = null != tempFile ? tempFile : target;
         BdFileUtils.mkParentDirs(file);
-        return new BufferedOutputStream(Files.newOutputStream(file.toPath()));
+        return new BufferedOutputStream(new FileOutputStream(file, append));
     }
 
     @Override
@@ -50,7 +48,6 @@ public class DataToFile implements IDataTo.WithRandomAccess<OutputStream> {
         if (!tempFile.renameTo(target)) {
             throw new BdIoException("文件重命名失败: " + tempFile.getAbsolutePath() + " -> " + target.getAbsolutePath());
         }
-        // todo 放在第一个前置，由datasource设置新数据检测逻辑，以及检查间隔；到点有更新，invalid旧缓存再执行原后续逻辑
     }
 
     @Override
@@ -64,6 +61,9 @@ public class DataToFile implements IDataTo.WithRandomAccess<OutputStream> {
 
     @Override
     public Optional<DataRange> onGetRange() {
+        if (!append) {
+            return Optional.empty();
+        }
         return Optional.ofNullable(tempFile).map(file -> DataRange.from(file.length()));
     }
 }
