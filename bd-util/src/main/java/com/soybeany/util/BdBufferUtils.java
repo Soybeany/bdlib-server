@@ -8,30 +8,16 @@ public abstract class BdBufferUtils {
 
     public static <T extends Buffer> long dataCopy(long dataLength, T buffer, DataSupplier supplier, DataConsumer<T> consumer) {
         try {
-            int curRead, written = 0;
-            long totalRead = 0, remaining;
-            while ((remaining = dataLength - totalRead) > 0) {
-                // 读取数据
-                curRead = supplier.onHandle(buffer.buffer, buffer.offset + written, (int) Math.min(buffer.length - written, remaining));
-                // 已到文件末尾，则提前结束
-                if (curRead < 0) {
-                    break;
-                }
-                // 累计数据
-                totalRead += curRead;
-                written += curRead;
-                // 累积足够数据，则回调业务层
-                if (buffer.length == written) {
-                    consumer.onHandle(buffer);
-                    written = 0;
-                }
+            long remaining;
+            Calculator<T> calculator = new Calculator<>(buffer, consumer);
+            while ((remaining = dataLength - calculator.getTotalRead()) > 0) {
+                int written = calculator.getWritten();
+                int toCopy = supplier.onHandle(buffer.buffer, buffer.offset + written, (int) Math.min(buffer.length - written, remaining));
+                calculator.flush(toCopy);
             }
             // 将缓存的数据也返回业务层
-            if (written > 0) {
-                buffer.length = written;
-                consumer.onHandle(buffer);
-            }
-            return totalRead;
+            calculator.finish();
+            return calculator.getTotalRead();
         } catch (IOException e) {
             throw new BdRtException(e.getMessage());
         }
@@ -43,6 +29,69 @@ public abstract class BdBufferUtils {
 
     public interface DataConsumer<T extends Buffer> {
         void onHandle(T buffer) throws IOException;
+    }
+
+    public static class Calculator<T extends Buffer> {
+
+        private final T buffer;
+        private final DataConsumer<T> consumer;
+
+        private long totalRead;
+        private int written;
+
+        private boolean finished;
+
+        public Calculator(T buffer, DataConsumer<T> consumer) {
+            this.buffer = buffer;
+            this.consumer = consumer;
+        }
+
+        public long getTotalRead() {
+            return totalRead;
+        }
+
+        public int getWritten() {
+            return written;
+        }
+
+        public void write(byte[] input, int offset, int len) throws IOException {
+            // 若已无新数据，则结束
+            if (len < 0) {
+                finish();
+            }
+            // 精确统计数据缓冲
+            int copied = 0;
+            while (copied < len) {
+                int toCopy = Math.min(buffer.length - written, len - copied);
+                System.arraycopy(input, offset + copied, buffer.buffer, buffer.offset + written, toCopy);
+                copied += toCopy;
+                flush(toCopy);
+            }
+        }
+
+        public void flush(int toCopy) throws IOException {
+            // 计数累加
+            written += toCopy;
+            totalRead += toCopy;
+            // 到点触发回调
+            if (buffer.length == written) {
+                consumer.onHandle(buffer);
+                written = 0;
+            }
+        }
+
+        public void finish() throws IOException {
+            if (finished) {
+                return;
+            }
+            finished = true;
+
+            // 剩余数据写入回调
+            if (written > 0) {
+                buffer.length = written;
+                consumer.onHandle(buffer);
+            }
+        }
     }
 
     public static class Buffer {

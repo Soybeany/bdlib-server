@@ -2,6 +2,8 @@ package com.soybeany.util;
 
 import com.soybeany.exception.BdRtException;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -29,7 +31,7 @@ public abstract class Md5Utils {
 
     public static String calMd5(long dataLength, BdBufferUtils.DataSupplier supplier, BdBufferUtils.DataConsumer<BdBufferUtils.Buffer> consumer) {
         MessageDigest digest = getDigest();
-        BufferWithMd5 buffer = new BufferWithMd5(MD5_SIZE, DEFAULT_SECTION_LENGTH);
+        BufferWithMd5 buffer = new BufferWithMd5();
         long l = BdBufferUtils.dataCopy(dataLength, buffer, supplier, b -> {
             // 更新md5
             updateMd5(digest, b);
@@ -59,12 +61,45 @@ public abstract class Md5Utils {
 
     // ***********************内部类****************************
 
-    private static class BufferWithMd5 extends BdBufferUtils.Buffer {
-        byte[] md5 = new byte[MD5_SIZE];
+    public static class Md5InputStream extends InputStream {
+        private final MessageDigest digest = getDigest();
+        private final BufferWithMd5 buffer = new BufferWithMd5();
+        private final BdBufferUtils.Calculator<BufferWithMd5> calculator = new BdBufferUtils.Calculator<>(buffer, b -> updateMd5(digest, b));
 
-        public BufferWithMd5(int offset, int length) {
-            super(offset, length);
+        private final InputStream target;
+
+        public Md5InputStream(InputStream target) {
+            this.target = target;
+        }
+
+        @Override
+        public int read() {
+            throw new BdRtException("不支持读单个字节");
+        }
+
+        @Override
+        public int read(byte[] b, int off, int len) throws IOException {
+            int read = target.read(b, off, len);
+            calculator.write(b, off, read);
+            return read;
+        }
+
+        @Override
+        public void close() throws IOException {
+            super.close();
+            calculator.finish();
+        }
+
+        public String getMd5() {
+            return HexUtils.bytesToHex(buffer.md5);
         }
     }
 
+    private static class BufferWithMd5 extends BdBufferUtils.Buffer {
+        byte[] md5 = new byte[MD5_SIZE];
+
+        public BufferWithMd5() {
+            super(MD5_SIZE, DEFAULT_SECTION_LENGTH);
+        }
+    }
 }
