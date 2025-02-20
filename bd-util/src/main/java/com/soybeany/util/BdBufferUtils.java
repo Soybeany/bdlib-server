@@ -2,6 +2,7 @@ package com.soybeany.util;
 
 import com.soybeany.exception.BdRtException;
 
+import java.io.Closeable;
 import java.io.IOException;
 
 public abstract class BdBufferUtils {
@@ -16,7 +17,7 @@ public abstract class BdBufferUtils {
                 calculator.flush(toCopy);
             }
             // 将缓存的数据也返回业务层
-            calculator.finish();
+            calculator.close();
             return calculator.getTotalRead();
         } catch (IOException e) {
             throw new BdRtException(e.getMessage());
@@ -31,15 +32,13 @@ public abstract class BdBufferUtils {
         void onHandle(T buffer) throws IOException;
     }
 
-    public static class Calculator<T extends Buffer> {
+    public static class Calculator<T extends Buffer> implements Closeable {
 
         private final T buffer;
         private final DataConsumer<T> consumer;
 
         private long totalRead;
         private int written;
-
-        private boolean finished;
 
         public Calculator(T buffer, DataConsumer<T> consumer) {
             this.buffer = buffer;
@@ -54,10 +53,10 @@ public abstract class BdBufferUtils {
             return written;
         }
 
-        public void write(byte[] input, int offset, int len) throws IOException {
+        public void update(byte[] input, int offset, int len) throws IOException {
             // 若已无新数据，则结束
             if (len < 0) {
-                finish();
+                return;
             }
             // 精确统计数据缓冲
             int copied = 0;
@@ -75,22 +74,22 @@ public abstract class BdBufferUtils {
             totalRead += toCopy;
             // 到点触发回调
             if (buffer.length == written) {
-                consumer.onHandle(buffer);
-                written = 0;
+                callConsumer();
             }
         }
 
-        public void finish() throws IOException {
-            if (finished) {
-                return;
-            }
-            finished = true;
-
+        @Override
+        public void close() throws IOException {
             // 剩余数据写入回调
             if (written > 0) {
-                buffer.length = written;
-                consumer.onHandle(buffer);
+                callConsumer();
             }
+        }
+
+        private void callConsumer() throws IOException {
+            buffer.length = written;
+            consumer.onHandle(buffer);
+            written = 0;
         }
     }
 

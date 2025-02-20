@@ -9,38 +9,43 @@ import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.util.function.Consumer;
+import java.util.Map;
 
 public class DataToString implements IDataTo<OutputStream> {
-    private final Charset streamCharset;
-    private final Consumer<String> consumer;
+    private final ICallback callback;
     private ByteArrayOutputStream os;
 
-    public DataToString(Consumer<String> consumer) {
-        this(StandardCharsets.UTF_8, consumer);
-    }
-
-    public DataToString(Charset streamCharset, Consumer<String> consumer) {
-        this.streamCharset = streamCharset;
-        this.consumer = consumer;
+    public DataToString(ICallback callback) {
+        this.callback = callback;
     }
 
     @Override
-    public OutputStream onGetOutput() {
+    public OutputStream onGetOutput(Map<String, Object> context) {
         return new BufferedOutputStream(os = new ByteArrayOutputStream());
     }
 
     @Override
-    public void onSuccess() {
-        consumer.accept(getContent());
+    public void onSuccess(Map<String, Object> context) {
+        callback.onFinish(getContent());
     }
 
     private String getContent() {
-        String charsetName = streamCharset.name();
+        String charsetName = callback.streamCharset().name();
         try {
             return os.toString(charsetName);
         } catch (UnsupportedEncodingException e) {
             throw new BdIoException("不支持字符编码：" + charsetName);
         }
     }
+
+    // ***********************内部类****************************
+
+    public interface ICallback {
+        default Charset streamCharset() {
+            return StandardCharsets.UTF_8;
+        }
+
+        void onFinish(String content);
+    }
+
 }

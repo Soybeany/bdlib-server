@@ -4,6 +4,7 @@ import com.soybeany.exception.BdRtException;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -12,6 +13,7 @@ import java.security.NoSuchAlgorithmException;
  * @author Soybeany
  * @date 2018/9/11
  */
+@SuppressWarnings("unused")
 public abstract class Md5Utils {
 
     public static final int MD5_SIZE = 16;
@@ -80,14 +82,47 @@ public abstract class Md5Utils {
         @Override
         public int read(byte[] b, int off, int len) throws IOException {
             int read = target.read(b, off, len);
-            calculator.write(b, off, read);
+            calculator.update(b, off, read);
             return read;
         }
 
         @Override
         public void close() throws IOException {
             super.close();
-            calculator.finish();
+            calculator.close();
+        }
+
+        public String getMd5() {
+            return HexUtils.bytesToHex(buffer.md5);
+        }
+    }
+
+    public static class Md5OutputStream extends OutputStream {
+        private final MessageDigest digest = getDigest();
+        private final BufferWithMd5 buffer = new BufferWithMd5();
+        private final BdBufferUtils.Calculator<BufferWithMd5> calculator = new BdBufferUtils.Calculator<>(buffer, b -> updateMd5(digest, b));
+
+        private final OutputStream target;
+
+        public Md5OutputStream(OutputStream target) {
+            this.target = target;
+        }
+
+        @Override
+        public void write(int b) {
+            throw new BdRtException("不支持写单个字节");
+        }
+
+        @Override
+        public void write(byte[] b, int off, int len) throws IOException {
+            target.write(b, off, len);
+            calculator.update(b, off, len);
+        }
+
+        @Override
+        public void close() throws IOException {
+            super.close();
+            calculator.close();
         }
 
         public String getMd5() {
