@@ -12,8 +12,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 public class DataToString implements IDataTo<OutputStream> {
+    private static final String OS = "os";
+
     private final ICallback callback;
-    private ByteArrayOutputStream os;
 
     public DataToString(ICallback callback) {
         this.callback = callback;
@@ -21,15 +22,17 @@ public class DataToString implements IDataTo<OutputStream> {
 
     @Override
     public OutputStream onGetOutput(Map<String, Object> context) {
-        return new BufferedOutputStream(os = new ByteArrayOutputStream());
+        ByteArrayOutputStream os = new ByteArrayOutputStream();
+        context.put(OS, os);
+        return new BufferedOutputStream(os);
     }
 
     @Override
     public void onSuccess(Map<String, Object> context) {
-        callback.onFinish(getContent());
+        callback.onFinish(getContent((ByteArrayOutputStream) context.get(OS)));
     }
 
-    private String getContent() {
+    private String getContent(ByteArrayOutputStream os) {
         String charsetName = callback.streamCharset().name();
         try {
             return os.toString(charsetName);
