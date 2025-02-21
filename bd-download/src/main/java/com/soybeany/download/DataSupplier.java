@@ -14,6 +14,7 @@ import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 import static com.soybeany.download.core.BdDownloadHeaders.*;
 
@@ -130,16 +131,16 @@ public abstract class DataSupplier {
         private String consumerETag;
 
         private boolean completeDownload = true;
-        private Range range;
+        private Supplier<Range> rangeSupplier;
 
         Part3(Part2 part2) {
             this.part1 = part2.part1;
             this.part2 = part2;
-            this.range = Range.getDefault(part1.contentLength);
+            this.rangeSupplier = () -> Range.getDefault(part1.contentLength);
         }
 
         public Part3 enableRandomAccess(HttpServletRequest request, boolean needCheckIfRange) {
-            range = getRange(request, needCheckIfRange);
+            rangeSupplier = () -> getRange(request, needCheckIfRange);
             return this;
         }
 
@@ -170,6 +171,7 @@ public abstract class DataSupplier {
                 return;
             }
             // 设置响应头
+            Range range = rangeSupplier.get();
             setupResponseHeader(range, response);
             // 将内容写入到响应
             try (ServletOutputStream os = response.getOutputStream()) {
