@@ -24,7 +24,9 @@ public class DataToResponse implements IDataTo.WithRandomAccess<OutputStream> {
     private static final String RANGE = "range";
 
     private final HttpServletResponse response;
-    private Supplier<String> contentDispositionSupplier;
+    private Supplier<String> contentDispositionSupplier = () -> {
+        throw new BdDownloadException("未指定contentDisposition");
+    };
     private Supplier<Long> contentLengthSupplier = () -> {
         throw new BdDownloadException("未指定contentLength");
     };
