@@ -23,6 +23,9 @@ public class BdDataTransferUtils {
     }
 
     private static <T> void onTransfer(Map<String, Object> context, IDataFrom<T> from, IDataTo<T> to) throws Exception {
+        // 通知源进行初始化
+        from.onInit();
+
         // 若from或to不支持随机读写，则使用普通传输
         if (!(to instanceof IDataTo.WithRandomAccess) || !(from instanceof IDataFrom.WithRandomAccess)) {
             autoClose(context, to, from::onTransfer);

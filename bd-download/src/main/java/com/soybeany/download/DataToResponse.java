@@ -21,9 +21,10 @@ import static com.soybeany.download.core.BdDownloadHeaders.*;
 
 public class DataToResponse implements IDataTo.WithRandomAccess<OutputStream> {
 
+    private static final String RESPONSE = "response";
     private static final String RANGE = "range";
 
-    private final HttpServletResponse response;
+    private final Supplier<HttpServletResponse> responseSupplier;
     private Supplier<String> contentDispositionSupplier = () -> {
         throw new BdDownloadException("未指定contentDisposition");
     };
@@ -47,8 +48,8 @@ public class DataToResponse implements IDataTo.WithRandomAccess<OutputStream> {
         }
     }
 
-    public DataToResponse(HttpServletResponse response) {
-        this.response = response;
+    public DataToResponse(Supplier<HttpServletResponse> responseSupplier) {
+        this.responseSupplier = responseSupplier;
     }
 
     public DataToResponse fileName(Supplier<String> supplier) {
@@ -128,6 +129,8 @@ public class DataToResponse implements IDataTo.WithRandomAccess<OutputStream> {
 
     @Override
     public OutputStream onGetOutput(Map<String, Object> context) throws IOException {
+        HttpServletResponse response = responseSupplier.get();
+        context.put(RESPONSE, response);
         // 设置响应头
         long contentLength = contentLengthSupplier.get();
         DataRange range = (DataRange) context.get(RANGE);
@@ -136,13 +139,14 @@ public class DataToResponse implements IDataTo.WithRandomAccess<OutputStream> {
             range = DataRange.to(contentLength);
             supportRandomAccess = false;
         }
-        setupResponseHeader(supportRandomAccess, range, contentLength);
+        setupResponseHeader(response, supportRandomAccess, range, contentLength);
         // 返回流
         return response.getOutputStream();
     }
 
     @Override
     public void onFailure(Map<String, Object> context, Exception e) {
+        HttpServletResponse response = (HttpServletResponse) context.get(RESPONSE);
         // 已发送则不作处理
         if (response.isCommitted()) {
             return;
@@ -174,7 +178,7 @@ public class DataToResponse implements IDataTo.WithRandomAccess<OutputStream> {
         return new DataRange(start, end);
     }
 
-    private void setupResponseHeader(boolean supportRandomAccess, DataRange range, long contentLength) {
+    private void setupResponseHeader(HttpServletResponse response, boolean supportRandomAccess, DataRange range, long contentLength) {
         long rangeLength = range.end - range.start;
         // 常规响应头
         response.setContentType(contentTypeSupplier.get());
