@@ -186,7 +186,7 @@ public abstract class DataSupplier {
         private void setupResponseHeader(Range range, HttpServletResponse response) {
             // 常规响应头
             response.setContentType(contentType);
-            response.setContentLengthLong(part1.contentLength);
+            response.setContentLengthLong(range.end - range.start);
             response.setHeader(CONTENT_DISPOSITION, part1.contentDisposition);
             // 可选响应头
             Optional.ofNullable(eTag).ifPresent(eTag -> response.setHeader(E_TAG, eTag));
