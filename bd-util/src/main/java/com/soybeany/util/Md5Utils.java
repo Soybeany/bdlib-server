@@ -36,6 +36,19 @@ public abstract class Md5Utils {
         BufferWithMd5 buffer = new BufferWithMd5();
         long l = BdBufferUtils.dataCopy(dataLength, buffer, supplier, b -> {
             // 更新md5
+            digest.update(buffer.buffer, buffer.offset, buffer.length);
+            // 输出
+            consumer.onHandle(b);
+        });
+        return HexUtils.bytesToHex(digest.digest());
+    }
+
+    @Deprecated
+    public static String calMd5Old(long dataLength, BdBufferUtils.DataSupplier supplier, BdBufferUtils.DataConsumer<BdBufferUtils.Buffer> consumer) {
+        MessageDigest digest = getDigest();
+        BufferWithMd5 buffer = new BufferWithMd5();
+        long l = BdBufferUtils.dataCopy(dataLength, buffer, supplier, b -> {
+            // 更新md5
             updateMd5(digest, b);
             // 输出
             consumer.onHandle(b);
@@ -65,8 +78,6 @@ public abstract class Md5Utils {
 
     public static class Md5InputStream extends InputStream {
         private final MessageDigest digest = getDigest();
-        private final BufferWithMd5 buffer = new BufferWithMd5();
-        private final BdBufferUtils.Calculator<BufferWithMd5> calculator = new BdBufferUtils.Calculator<>(buffer, b -> updateMd5(digest, b));
 
         private final InputStream target;
 
@@ -82,25 +93,19 @@ public abstract class Md5Utils {
         @Override
         public int read(byte[] b, int off, int len) throws IOException {
             int read = target.read(b, off, len);
-            calculator.update(b, off, read);
+            if (read > 0) {
+                digest.update(b, off, read);
+            }
             return read;
         }
 
-        @Override
-        public void close() throws IOException {
-            super.close();
-            calculator.close();
-        }
-
         public String getMd5() {
-            return HexUtils.bytesToHex(buffer.md5);
+            return HexUtils.bytesToHex(digest.digest());
         }
     }
 
     public static class Md5OutputStream extends OutputStream {
         private final MessageDigest digest = getDigest();
-        private final BufferWithMd5 buffer = new BufferWithMd5();
-        private final BdBufferUtils.Calculator<BufferWithMd5> calculator = new BdBufferUtils.Calculator<>(buffer, b -> updateMd5(digest, b));
 
         private final OutputStream target;
 
@@ -116,17 +121,11 @@ public abstract class Md5Utils {
         @Override
         public void write(byte[] b, int off, int len) throws IOException {
             target.write(b, off, len);
-            calculator.update(b, off, len);
-        }
-
-        @Override
-        public void close() throws IOException {
-            super.close();
-            calculator.close();
+            digest.update(b, off, len);
         }
 
         public String getMd5() {
-            return HexUtils.bytesToHex(buffer.md5);
+            return HexUtils.bytesToHex(digest.digest());
         }
     }
 
