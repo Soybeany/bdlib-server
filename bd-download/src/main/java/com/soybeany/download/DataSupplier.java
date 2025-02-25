@@ -7,14 +7,12 @@ import com.soybeany.util.file.BdFileUtils;
 import com.soybeany.util.transfer.BdDataTransferUtils;
 import com.soybeany.util.transfer.core.DataRange;
 import com.soybeany.util.transfer.core.IDataFrom;
+import com.soybeany.util.transfer.from.DataFromFile;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
-import java.nio.file.Files;
 import java.security.MessageDigest;
 import java.util.function.Function;
 
@@ -36,7 +34,7 @@ public abstract class DataSupplier {
         public Part3 file(File file, boolean useStdMd5) {
             return fileName(file.getName())
                     .contentLength(file.length())
-                    .callback(file, useStdMd5)
+                    .dataFrom(file, useStdMd5)
                     .eTag(String.valueOf(file.lastModified()));
         }
     }
@@ -65,32 +63,19 @@ public abstract class DataSupplier {
             this.part1 = part1;
         }
 
-        public Part3 callback(File file) {
-            return callback(file, true);
+        public Part3 dataFrom(File file) {
+            return dataFrom(file, true);
         }
 
-        public Part3 callback(File file, boolean useStdMd5) {
-            Part3 part3 = callback(new IDataFrom.WithRandomAccess<OutputStream>() {
-                @Override
-                public void onTransfer(OutputStream out) throws IOException {
-                    try (InputStream is = Files.newInputStream(file.toPath())) {
-                        BdFileUtils.readWriteStreamNoBuffer(is, out);
-                    }
-                }
-
-                @Override
-                public void onTransfer(DataRange range, OutputStream out) {
-                    BdFileUtils.randomRead(file, range.start, range.end, out);
-                }
-            });
-            return part3.md5(range -> useStdMd5 ? BdFileUtils.md5(file, range.start, range.end) : calMd5Old(file));
+        public Part3 dataFrom(File file, boolean useStdMd5) {
+            return dataFrom(new DataFromFile(file)).md5(range -> useStdMd5 ? BdFileUtils.md5(file, range.start, range.end) : calMd5Old(file));
         }
 
-        public Part3 callback(IDataFrom<OutputStream> callback) {
+        public Part3 dataFrom(IDataFrom<OutputStream> callback) {
             return new Part3(part1, callback);
         }
 
-        public Part3 callback(IDataFrom.WithRandomAccess<OutputStream> callback) {
+        public Part3 dataFrom(IDataFrom.WithRandomAccess<OutputStream> callback) {
             return new Part3(part1, callback);
         }
 

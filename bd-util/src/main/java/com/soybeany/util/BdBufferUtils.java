@@ -10,10 +10,11 @@ public abstract class BdBufferUtils {
     public static <T extends Buffer> long dataCopy(long dataLength, T buffer, DataSupplier supplier, DataConsumer<T> consumer) {
         try {
             long remaining;
+            int toCopy = 0;
             Calculator<T> calculator = new Calculator<>(buffer, consumer);
-            while ((remaining = dataLength - calculator.getTotalRead()) > 0) {
+            while ((remaining = dataLength - calculator.getTotalRead()) > 0 && toCopy > -1) {
                 int written = calculator.getWritten();
-                int toCopy = supplier.onHandle(buffer.buffer, buffer.offset + written, (int) Math.min(buffer.length - written, remaining));
+                toCopy = supplier.onHandle(buffer.buffer, buffer.offset + written, (int) Math.min(buffer.length - written, remaining));
                 calculator.flush(toCopy);
             }
             // 将缓存的数据也返回业务层
@@ -54,28 +55,21 @@ public abstract class BdBufferUtils {
         }
 
         public void update(byte[] input, int offset, int len) throws IOException {
-            // 若已无新数据，则结束
-            if (len < 0) {
-                return;
-            }
             // 精确统计数据缓冲
             int copied = 0;
             while (copied < len) {
                 int toCopy = Math.min(buffer.length - written, len - copied);
                 System.arraycopy(input, offset + copied, buffer.buffer, buffer.offset + written, toCopy);
                 copied += toCopy;
-                flush(toCopy);
+                innerFlush(toCopy);
             }
         }
 
         public void flush(int toCopy) throws IOException {
-            // 计数累加
-            written += toCopy;
-            totalRead += toCopy;
-            // 到点触发回调
-            if (buffer.length == written) {
-                callConsumer();
+            if (toCopy < 0) {
+                return;
             }
+            innerFlush(toCopy);
         }
 
         @Override
@@ -90,6 +84,16 @@ public abstract class BdBufferUtils {
             buffer.length = written;
             consumer.onHandle(buffer);
             written = 0;
+        }
+
+        private void innerFlush(int toCopy) throws IOException {
+            // 计数累加
+            written += toCopy;
+            totalRead += toCopy;
+            // 到点触发回调
+            if (buffer.length == written) {
+                callConsumer();
+            }
         }
     }
 
