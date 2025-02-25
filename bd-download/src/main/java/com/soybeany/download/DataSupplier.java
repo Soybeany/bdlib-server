@@ -131,7 +131,7 @@ public abstract class DataSupplier {
             return this;
         }
 
-        public Part3 age(String age) {
+        public Part3 age(long age) {
             dataToResponse.age(() -> age);
             return this;
         }

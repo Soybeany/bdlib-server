@@ -4,7 +4,6 @@ import com.soybeany.util.transfer.core.IDataTo;
 
 import java.io.BufferedOutputStream;
 import java.io.OutputStream;
-import java.util.Map;
 
 public class DataToStream implements IDataTo<OutputStream> {
     private final OutputStream os;
@@ -14,7 +13,7 @@ public class DataToStream implements IDataTo<OutputStream> {
     }
 
     @Override
-    public OutputStream onGetOutput(Map<String, Object> context) {
+    public OutputStream onGetOutput() {
         return new BufferedOutputStream(os);
     }
 }

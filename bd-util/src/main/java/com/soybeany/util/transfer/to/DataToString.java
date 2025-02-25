@@ -9,27 +9,29 @@ import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.util.Map;
 
 public class DataToString implements IDataTo<OutputStream> {
-    private static final String OS = "os";
 
     private final ICallback callback;
+    private ByteArrayOutputStream os;
 
     public DataToString(ICallback callback) {
         this.callback = callback;
     }
 
     @Override
-    public OutputStream onGetOutput(Map<String, Object> context) {
-        ByteArrayOutputStream os = new ByteArrayOutputStream();
-        context.put(OS, os);
+    public void onInit() {
+        os = new ByteArrayOutputStream();
+    }
+
+    @Override
+    public OutputStream onGetOutput() {
         return new BufferedOutputStream(os);
     }
 
     @Override
-    public void onSuccess(Map<String, Object> context) {
-        callback.onFinish(getContent((ByteArrayOutputStream) context.get(OS)));
+    public void onSuccess() {
+        callback.onFinish(getContent(os));
     }
 
     private String getContent(ByteArrayOutputStream os) {

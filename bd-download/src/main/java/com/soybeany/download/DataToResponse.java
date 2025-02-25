@@ -12,7 +12,6 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
-import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -20,9 +19,6 @@ import java.util.function.Supplier;
 import static com.soybeany.download.core.BdDownloadHeaders.*;
 
 public class DataToResponse implements IDataTo.WithRandomAccess<OutputStream> {
-
-    private static final String RESPONSE = "response";
-    private static final String RANGE = "range";
 
     private final Supplier<HttpServletResponse> responseSupplier;
     private Supplier<String> contentDispositionSupplier = () -> {
@@ -33,12 +29,17 @@ public class DataToResponse implements IDataTo.WithRandomAccess<OutputStream> {
     };
     private Supplier<String> contentTypeSupplier = () -> "application/octet-stream";
     private Supplier<String> eTagSupplier;
-    private Supplier<String> ageSupplier;
+    private Supplier<Long> ageSupplier;
     private Function<DataRange, String> md5Supplier;
 
     private Supplier<String> consumerETagSupplier;
 
-    private Function<Map<String, Object>, Optional<DataRange>> rangeSupplier = context -> Optional.empty();
+    private HttpServletResponse response;
+    private long contentLength;
+    private String eTag;
+    private DataRange range;
+
+    private Supplier<Optional<DataRange>> rangeSupplier = Optional::empty;
 
     public static String toDisposition(String fileName) {
         try {
@@ -76,7 +77,7 @@ public class DataToResponse implements IDataTo.WithRandomAccess<OutputStream> {
         return this;
     }
 
-    public DataToResponse age(Supplier<String> supplier) {
+    public DataToResponse age(Supplier<Long> supplier) {
         this.ageSupplier = supplier;
         return this;
     }
@@ -96,27 +97,33 @@ public class DataToResponse implements IDataTo.WithRandomAccess<OutputStream> {
     }
 
     public DataToResponse enableRandomAccess(Supplier<String> eTagSupplier, Supplier<DataRange> rangeSupplier) {
-        this.rangeSupplier = context -> {
+        this.rangeSupplier = () -> {
             DataRange range = rangeSupplier.get();
             if (null == range) {
                 return Optional.empty();
             }
-            if (range.start < 0 || range.end > contentLengthSupplier.get()) {
+            if (range.start < 0 || range.end > contentLength) {
                 throw new BdDownloadException("非法的续传范围:" + range.start + "~" + range.end);
             }
-            String eTag = this.eTagSupplier.get();
             String pETag = eTagSupplier.get();
             if (null != eTag && null != pETag && (!eTag.equals(pETag))) {
                 return Optional.empty();
             }
-            context.put(RANGE, range);
+            this.range = range;
             return Optional.of(range);
         };
         return this;
     }
 
     @Override
-    public Optional<DataRange> onGetRange(Map<String, Object> context) {
+    public void onInit() {
+        response = responseSupplier.get();
+        contentLength = contentLengthSupplier.get();
+        eTag = eTagSupplier.get();
+    }
+
+    @Override
+    public Optional<DataRange> onGetRange() {
         // 比对内容变更
         if (null != eTagSupplier && null != consumerETagSupplier
                 && eTagSupplier.get().equals(consumerETagSupplier.get())
@@ -124,16 +131,12 @@ public class DataToResponse implements IDataTo.WithRandomAccess<OutputStream> {
             throw new DataNotModifiedException();
         }
         // 返回范围
-        return rangeSupplier.apply(context);
+        return rangeSupplier.get();
     }
 
     @Override
-    public OutputStream onGetOutput(Map<String, Object> context) throws IOException {
-        HttpServletResponse response = responseSupplier.get();
-        context.put(RESPONSE, response);
+    public OutputStream onGetOutput() throws IOException {
         // 设置响应头
-        long contentLength = contentLengthSupplier.get();
-        DataRange range = (DataRange) context.get(RANGE);
         boolean supportRandomAccess = true;
         if (null == range) {
             range = DataRange.to(contentLength);
@@ -145,8 +148,7 @@ public class DataToResponse implements IDataTo.WithRandomAccess<OutputStream> {
     }
 
     @Override
-    public void onFailure(Map<String, Object> context, Exception e) {
-        HttpServletResponse response = (HttpServletResponse) context.get(RESPONSE);
+    public void onFailure(Exception e) {
         // 已发送则不作处理
         if (response.isCommitted()) {
             return;
@@ -169,7 +171,7 @@ public class DataToResponse implements IDataTo.WithRandomAccess<OutputStream> {
         if (null == range) {
             return null;
         }
-        long end = contentLengthSupplier.get();
+        long end = contentLength;
         String[] rangeArr = range.replaceAll(BYTES + "=", "").split("-");
         long start = Long.parseLong(rangeArr[0]);
         if (rangeArr.length > 1 && !rangeArr[1].isEmpty()) {
@@ -190,7 +192,7 @@ public class DataToResponse implements IDataTo.WithRandomAccess<OutputStream> {
                 .ifPresent(eTag -> response.setHeader(E_TAG, eTag));
         Optional.ofNullable(ageSupplier)
                 .map(Supplier::get)
-                .ifPresent(age -> response.setHeader(AGE, age));
+                .ifPresent(age -> response.setHeader(AGE, age + ""));
         Optional.ofNullable(md5Supplier)
                 .map(s -> s.apply(range))
                 .ifPresent(md5 -> response.setHeader(CONTENT_MD5, md5));
