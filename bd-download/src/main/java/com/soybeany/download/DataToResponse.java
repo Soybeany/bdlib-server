@@ -153,17 +153,18 @@ public class DataToResponse implements IDataTo.WithRandomAccess<OutputStream> {
         if (response.isCommitted()) {
             return;
         }
+        response.reset();
         // 无修改则返回304
         if (e instanceof DataNotModifiedException) {
             response.setStatus(HttpServletResponse.SC_NOT_MODIFIED);
-        }
-        // 重置响应并返回异常信息
-        response.reset();
-        response.setContentType("text/plain;charset=utf-8");
-        try (PrintWriter writer = response.getWriter()) {
-            writer.print(IDataTo.toErrMsg(e));
-        } catch (IOException ex) {
-            throw new BdDownloadException("响应写入异常:" + ex.getMessage());
+        } else {
+            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            response.setContentType("text/plain;charset=utf-8");
+            try (PrintWriter writer = response.getWriter()) {
+                writer.print(IDataTo.toErrMsg(e));
+            } catch (IOException ex) {
+                throw new BdDownloadException("响应写入异常:" + ex.getMessage());
+            }
         }
     }
 
