@@ -24,6 +24,29 @@ public abstract class DataSupplier {
         return new Part0();
     }
 
+    public static String calMd5Old(File file) {
+        return BdFileUtils.randomRead(file, 0, file.length(), (raf, len) -> calMd5Old(len, raf::read, b -> {
+        }));
+    }
+
+    private static String calMd5Old(long dataLength, BdBufferUtils.DataSupplier supplier, BdBufferUtils.DataConsumer<BdBufferUtils.Buffer> consumer) {
+        MessageDigest digest = Md5Utils.getDigest();
+        BufferWithMd5 buffer = new BufferWithMd5();
+        long l = BdBufferUtils.dataCopy(dataLength, buffer, supplier, b -> {
+            // 更新md5
+            // 将上一次的结果与新数据混合
+            System.arraycopy(b.md5, 0, b.buffer, 0, BufferWithMd5.MD5_SIZE);
+            // 开始计算混合后数据的md5
+            digest.update(b.buffer, 0, BufferWithMd5.MD5_SIZE + b.length);
+            b.md5 = digest.digest();
+            // 输出
+            consumer.onHandle(b);
+        });
+        return HexUtils.bytesToHex(buffer.md5);
+    }
+
+    // ***********************内部类****************************
+
     public static class Part0 {
         public Part1 fileName(String fileName) {
             return contentDisposition(DataToResponse.toDisposition(fileName));
@@ -95,27 +118,6 @@ public abstract class DataSupplier {
 
         public Part3 dataFrom(IDataFrom.WithRandomAccess<OutputStream> callback) {
             return new Part3(part1, callback);
-        }
-
-        private String calMd5Old(File file) {
-            return BdFileUtils.randomRead(file, 0, file.length(), (raf, len) -> calMd5Old(len, raf::read, b -> {
-            }));
-        }
-
-        private String calMd5Old(long dataLength, BdBufferUtils.DataSupplier supplier, BdBufferUtils.DataConsumer<BdBufferUtils.Buffer> consumer) {
-            MessageDigest digest = Md5Utils.getDigest();
-            BufferWithMd5 buffer = new BufferWithMd5();
-            long l = BdBufferUtils.dataCopy(dataLength, buffer, supplier, b -> {
-                // 更新md5
-                // 将上一次的结果与新数据混合
-                System.arraycopy(b.md5, 0, b.buffer, 0, BufferWithMd5.MD5_SIZE);
-                // 开始计算混合后数据的md5
-                digest.update(b.buffer, 0, BufferWithMd5.MD5_SIZE + b.length);
-                b.md5 = digest.digest();
-                // 输出
-                consumer.onHandle(b);
-            });
-            return HexUtils.bytesToHex(buffer.md5);
         }
     }
 
