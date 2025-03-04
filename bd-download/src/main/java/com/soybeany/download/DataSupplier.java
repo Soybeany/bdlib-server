@@ -1,5 +1,7 @@
 package com.soybeany.download;
 
+import com.soybeany.download.core.Md5Type;
+import com.soybeany.exception.BdRtException;
 import com.soybeany.util.BdBufferUtils;
 import com.soybeany.util.HexUtils;
 import com.soybeany.util.Md5Utils;
@@ -31,10 +33,10 @@ public abstract class DataSupplier {
             return new Part1(contentDisposition);
         }
 
-        public Part3 file(File file, boolean useStdMd5) {
+        public Part3 file(File file, Md5Type md5Type) {
             return fileName(file.getName())
                     .contentLength(file.length())
-                    .dataFrom(file, useStdMd5)
+                    .dataFrom(file, md5Type)
                     .eTag(String.valueOf(file.lastModified()));
         }
     }
@@ -64,11 +66,27 @@ public abstract class DataSupplier {
         }
 
         public Part3 dataFrom(File file) {
-            return dataFrom(file, true);
+            return dataFrom(file, Md5Type.STD_PARTIAL);
         }
 
-        public Part3 dataFrom(File file, boolean useStdMd5) {
-            return dataFrom(new DataFromFile(file)).md5(range -> useStdMd5 ? BdFileUtils.md5(file, range.start, range.end) : calMd5Old(file));
+        public Part3 dataFrom(File file, Md5Type md5Type) {
+            return dataFrom(new DataFromFile(file)).md5(range -> {
+                String md5;
+                switch (md5Type) {
+                    case OLD:
+                        md5 = calMd5Old(file);
+                        break;
+                    case STD:
+                        md5 = BdFileUtils.md5(file);
+                        break;
+                    case STD_PARTIAL:
+                        md5 = BdFileUtils.md5(file, range.start, range.end);
+                        break;
+                    default:
+                        throw new BdRtException("使用了不支持的md5类型(" + md5Type + ")");
+                }
+                return md5;
+            });
         }
 
         public Part3 dataFrom(IDataFrom<OutputStream> callback) {
