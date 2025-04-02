@@ -96,6 +96,9 @@ public abstract class DataSupplier {
             return dataFrom(new DataFromFile(file)).md5(range -> {
                 String md5;
                 switch (md5Type) {
+                    case WITHOUT:
+                        md5 = null;
+                        break;
                     case OLD:
                         md5 = calMd5Old(file);
                         break;
