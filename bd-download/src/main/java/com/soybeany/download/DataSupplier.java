@@ -89,11 +89,15 @@ public abstract class DataSupplier {
         }
 
         public Part3 dataFrom(File file) {
-            return dataFrom(file, Md5Type.STD_PARTIAL);
+            return dataFrom(new DataFromFile(file));
+        }
+
+        public Part3 dataFrom(File file, String md5) {
+            return dataFrom(file).md5(range -> md5);
         }
 
         public Part3 dataFrom(File file, Md5Type md5Type) {
-            return dataFrom(new DataFromFile(file)).md5(range -> {
+            return dataFrom(file).md5(range -> {
                 String md5;
                 switch (md5Type) {
                     case WITHOUT:
