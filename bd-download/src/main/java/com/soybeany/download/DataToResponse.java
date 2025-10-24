@@ -119,7 +119,7 @@ public class DataToResponse implements IDataTo.WithRandomAccess<OutputStream> {
     public void onInit() {
         response = responseSupplier.get();
         contentLength = contentLengthSupplier.get();
-        eTag = eTagSupplier.get();
+        Optional.ofNullable(eTagSupplier).ifPresent(supplier -> eTag = supplier.get());
     }
 
     @Override
