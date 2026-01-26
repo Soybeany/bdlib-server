@@ -10,9 +10,9 @@ import com.soybeany.util.transfer.BdDataTransferUtils;
 import com.soybeany.util.transfer.core.DataRange;
 import com.soybeany.util.transfer.core.IDataFrom;
 import com.soybeany.util.transfer.from.DataFromFile;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.OutputStream;
 import java.security.MessageDigest;

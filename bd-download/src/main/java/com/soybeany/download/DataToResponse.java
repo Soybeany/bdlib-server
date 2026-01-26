@@ -1,17 +1,16 @@
 package com.soybeany.download;
 
 import com.soybeany.download.core.BdDownloadException;
-import com.soybeany.exception.BdRtException;
 import com.soybeany.util.transfer.core.DataRange;
 import com.soybeany.util.transfer.core.IDataTo;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
-import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -42,11 +41,7 @@ public class DataToResponse implements IDataTo.WithRandomAccess<OutputStream> {
     private Supplier<Optional<DataRange>> rangeSupplier = Optional::empty;
 
     public static String toDisposition(String fileName) {
-        try {
-            return "attachment; filename=\"" + URLEncoder.encode(fileName, "UTF-8") + "\"";
-        } catch (UnsupportedEncodingException e) {
-            throw new BdRtException("使用了不支持的编码“utf-8”");
-        }
+        return "attachment; filename=\"" + URLEncoder.encode(fileName, StandardCharsets.UTF_8) + "\"";
     }
 
     public DataToResponse(Supplier<HttpServletResponse> responseSupplier) {
